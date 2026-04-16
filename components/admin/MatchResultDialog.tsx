@@ -39,7 +39,7 @@ export function MatchResultDialog({
       .filter((r) => r.a !== "" || r.b !== "")
       .map((r) => ({ a: parseInt(r.a, 10), b: parseInt(r.b, 10) }));
     if (parsed.some((s) => Number.isNaN(s.a) || Number.isNaN(s.b))) {
-      setError("Alle eingetragenen Sätze müssen Zahlen sein.");
+      setError("Bitte in jedem Satz beide Zahlen eintragen.");
       return;
     }
     setError(null);
@@ -52,7 +52,7 @@ export function MatchResultDialog({
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Fehler beim Speichern.");
+        setError(data.error ?? "Speichern hat nicht geklappt.");
         return;
       }
       router.refresh();
@@ -63,7 +63,7 @@ export function MatchResultDialog({
   }
 
   async function clearResult() {
-    if (!confirm("Ergebnis wirklich zurücksetzen?")) return;
+    if (!confirm("Ergebnis wirklich löschen?")) return;
     setSaving(true);
     try {
       await fetch(`/api/matches/${match.id}/result`, { method: "DELETE" });
@@ -75,65 +75,85 @@ export function MatchResultDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="card p-5 max-w-md w-full space-y-4">
-        <div>
-          <h3 className="text-lg font-semibold">
-            {playerA.name} vs {playerB.name}
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink-950/50 backdrop-blur-sm p-4"
+      onClick={onClose}
+    >
+      <div
+        className="card w-full max-w-md shadow-pop"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="px-6 pt-6 pb-4 border-b border-ink-100">
+          <div className="text-xs font-semibold uppercase tracking-wider text-brand-600 mb-1">
+            Ergebnis eintragen
+          </div>
+          <h3 className="text-lg font-semibold tracking-tight leading-snug">
+            {playerA.name}{" "}
+            <span className="text-ink-400 font-normal">gegen</span>{" "}
+            {playerB.name}
           </h3>
-          <p className="text-xs text-slate-500">Satzergebnisse eintragen</p>
         </div>
 
-        <div className="space-y-3">
+        <div className="px-6 py-5 space-y-3">
           {rows.map((row, i) => (
             <div key={i} className="flex items-center gap-3">
-              <span className="w-14 text-sm text-slate-500">Satz {i + 1}</span>
+              <span className="w-16 text-xs uppercase tracking-wider font-semibold text-ink-500">
+                Satz {i + 1}
+              </span>
               <input
-                className="input w-20 text-center font-mono"
+                className="input w-20 text-center font-mono text-lg font-semibold"
                 inputMode="numeric"
                 placeholder="11"
                 value={row.a}
                 onChange={(e) =>
                   setRows((r) =>
                     r.map((x, j) =>
-                      j === i ? { ...x, a: e.target.value.replace(/\D/g, "") } : x,
+                      j === i
+                        ? { ...x, a: e.target.value.replace(/\D/g, "") }
+                        : x,
                     ),
                   )
                 }
               />
-              <span>:</span>
+              <span className="text-ink-300 font-bold">:</span>
               <input
-                className="input w-20 text-center font-mono"
+                className="input w-20 text-center font-mono text-lg font-semibold"
                 inputMode="numeric"
                 placeholder="5"
                 value={row.b}
                 onChange={(e) =>
                   setRows((r) =>
                     r.map((x, j) =>
-                      j === i ? { ...x, b: e.target.value.replace(/\D/g, "") } : x,
+                      j === i
+                        ? { ...x, b: e.target.value.replace(/\D/g, "") }
+                        : x,
                     ),
                   )
                 }
               />
             </div>
           ))}
+
+          <div className="rounded-lg bg-ink-50 px-3 py-2.5 text-xs text-ink-600 leading-relaxed">
+            Ein Satz geht auf 11 mit 2 Punkten Vorsprung. Leere Sätze werden
+            übersprungen.
+          </div>
+
+          {error && (
+            <div className="rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-sm text-brand-700">
+              {error}
+            </div>
+          )}
         </div>
 
-        <p className="text-xs text-slate-500">
-          Best of 3 — 2 oder 3 Sätze eintragen. Leere Zeilen werden ignoriert.
-          Gültige Sätze: 11:x (x ≤ 9) oder Einstand +2 (z.B. 12:10).
-        </p>
-
-        {error && <p className="text-sm text-red-600">{error}</p>}
-
-        <div className="flex items-center justify-between pt-2">
+        <div className="flex items-center justify-between px-6 py-4 border-t border-ink-100 bg-ink-50/50 rounded-b-xl">
           <button
             type="button"
             onClick={clearResult}
             disabled={saving || match.status !== "finished"}
-            className="text-xs text-red-600 hover:underline disabled:text-slate-400"
+            className="text-xs font-medium text-ink-500 hover:text-brand-600 disabled:text-ink-300 disabled:hover:text-ink-300"
           >
-            Ergebnis zurücksetzen
+            Ergebnis löschen
           </button>
           <div className="flex gap-2">
             <button
@@ -150,7 +170,7 @@ export function MatchResultDialog({
               onClick={save}
               disabled={saving}
             >
-              {saving ? "Speichert…" : "Speichern"}
+              {saving ? "Speichern..." : "Speichern"}
             </button>
           </div>
         </div>

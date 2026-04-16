@@ -7,7 +7,7 @@ type Props = {
 };
 
 function formatTime(d: Date | string | null): string {
-  if (!d) return "—";
+  if (!d) return "";
   const date = typeof d === "string" ? new Date(d) : d;
   return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
 }
@@ -37,13 +37,19 @@ export function PublicBracket({ koMatches, sets, participants }: Props) {
   rounds.sort((a, b) => a.round - b.round);
 
   return (
-    <section className="space-y-4">
-      <h2 className="text-lg font-semibold">Finalbaum</h2>
+    <section className="space-y-5">
+      <div>
+        <h2 className="text-xl font-semibold tracking-tight">Finalrunde</h2>
+        <p className="mt-1 text-sm text-ink-500">
+          K.O.-System. Wer gewinnt, zieht eine Runde weiter.
+        </p>
+      </div>
+
       <div className="overflow-x-auto -mx-4 px-4">
-        <div className="flex gap-4 min-w-max pb-2">
+        <div className="flex gap-5 min-w-max pb-2">
           {rounds.map((r) => (
-            <div key={r.round} className="min-w-[220px] space-y-3">
-              <div className="text-xs uppercase text-slate-500 font-semibold">
+            <div key={r.round} className="min-w-[240px] space-y-3">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-brand-600">
                 {r.matches[0]?.koLabel ?? `Runde ${r.round + 1}`}
               </div>
               {r.matches.map((m) => {
@@ -51,26 +57,27 @@ export function PublicBracket({ koMatches, sets, participants }: Props) {
                 const b = partsById.get(m.participantBId ?? "");
                 const matchSets = setsByMatch.get(m.id) ?? [];
                 const winnerId = m.winnerParticipantId;
+                const done = m.status === "finished";
                 return (
                   <div key={m.id} className="card p-3">
                     <Row
-                      name={a?.name ?? "—"}
-                      score={m.status === "finished" ? m.setsA : null}
+                      name={a?.name ?? "…"}
+                      score={done ? m.setsA : null}
                       winner={winnerId === m.participantAId}
                       placeholder={!a}
                     />
+                    <div className="my-1 h-px bg-ink-100" />
                     <Row
-                      name={b?.name ?? "—"}
-                      score={m.status === "finished" ? m.setsB : null}
+                      name={b?.name ?? "…"}
+                      score={done ? m.setsB : null}
                       winner={winnerId === m.participantBId}
                       placeholder={!b}
                     />
-                    <div className="mt-2 text-[11px] text-slate-500">
-                      Tisch {m.tableNumber ?? "?"} •{" "}
-                      {formatTime(m.scheduledAt)}
+                    <div className="mt-2.5 text-[11px] text-ink-500 font-mono tabular-nums">
+                      T{m.tableNumber ?? "?"} {formatTime(m.scheduledAt)}
                       {matchSets.length > 0 && (
                         <>
-                          {" • "}
+                          {" · "}
                           {matchSets
                             .map((s) => `${s.pointsA}:${s.pointsB}`)
                             .join(", ")}
@@ -100,13 +107,17 @@ function Row({
   placeholder: boolean;
 }) {
   return (
-    <div
-      className={`flex items-center justify-between text-sm py-1 ${
-        winner ? "font-semibold" : ""
-      } ${placeholder ? "text-slate-400 italic" : ""}`}
-    >
-      <span className="truncate">{name}</span>
-      <span className="font-mono text-xs tabular-nums">
+    <div className="flex items-center justify-between text-sm py-0.5">
+      <span
+        className={`truncate ${
+          placeholder ? "italic text-ink-400" : winner ? "font-bold" : ""
+        }`}
+      >
+        {name}
+      </span>
+      <span
+        className={`font-mono text-xs tabular-nums ${winner ? "font-bold text-brand-700" : "text-ink-500"}`}
+      >
         {score !== null ? score : ""}
       </span>
     </div>

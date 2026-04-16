@@ -28,14 +28,14 @@ export function CreateCategoryForm({ tournamentId }: { tournamentId: string }) {
   if (!open) {
     return (
       <button className="btn-secondary" onClick={() => setOpen(true)}>
-        + Spielklasse hinzufügen
+        <span className="text-base leading-none">+</span> Spielklasse hinzufügen
       </button>
     );
   }
 
   return (
     <form
-      className="card p-4 space-y-4 max-w-xl"
+      className="card p-5 space-y-4 max-w-xl"
       onSubmit={async (e) => {
         e.preventDefault();
         setError(null);
@@ -56,7 +56,7 @@ export function CreateCategoryForm({ tournamentId }: { tournamentId: string }) {
           );
           const data = await res.json();
           if (!res.ok) {
-            setError(data.error ?? "Fehler beim Speichern.");
+            setError(data.error ?? "Speichern hat nicht geklappt.");
             return;
           }
           router.refresh();
@@ -69,7 +69,8 @@ export function CreateCategoryForm({ tournamentId }: { tournamentId: string }) {
         }
       }}
     >
-      <div className="grid gap-3 sm:grid-cols-2">
+      <h3 className="font-semibold tracking-tight">Neue Spielklasse</h3>
+      <div className="grid gap-4 sm:grid-cols-2">
         <div className="sm:col-span-2">
           <label className="label">Name</label>
           <input
@@ -84,10 +85,10 @@ export function CreateCategoryForm({ tournamentId }: { tournamentId: string }) {
             autoFocus
           />
         </div>
-        <div>
-          <label className="label">Slug</label>
+        <div className="sm:col-span-2">
+          <label className="label">URL-Kürzel</label>
           <input
-            className="input"
+            className="input font-mono"
             value={slug}
             onChange={(e) => {
               setSlug(e.target.value);
@@ -98,7 +99,7 @@ export function CreateCategoryForm({ tournamentId }: { tournamentId: string }) {
           />
         </div>
         <div>
-          <label className="label">Gruppengröße (Soll)</label>
+          <label className="label">Spieler pro Gruppe</label>
           <input
             className="input"
             type="number"
@@ -107,24 +108,27 @@ export function CreateCategoryForm({ tournamentId }: { tournamentId: string }) {
             value={groupSize}
             onChange={(e) => setGroupSize(parseInt(e.target.value, 10))}
           />
+          <p className="mt-1.5 text-xs text-ink-500">4 bis 8 Spieler.</p>
         </div>
         <div>
-          <label className="label">Gewinnsätze (Best-of {winSets * 2 - 1})</label>
-          <input
+          <label className="label">Spielmodus</label>
+          <select
             className="input"
-            type="number"
-            min={2}
-            max={4}
             value={winSets}
             onChange={(e) => setWinSets(parseInt(e.target.value, 10))}
-          />
+          >
+            <option value={2}>Best of 3 (2 Gewinnsätze)</option>
+            <option value={3}>Best of 5 (3 Gewinnsätze)</option>
+            <option value={4}>Best of 7 (4 Gewinnsätze)</option>
+          </select>
         </div>
       </div>
-      {error && <p className="text-sm text-red-600">{error}</p>}
-      <div className="flex gap-2">
-        <button className="btn-primary" disabled={saving}>
-          {saving ? "Speichert…" : "Speichern"}
-        </button>
+      {error && (
+        <div className="rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-sm text-brand-700">
+          {error}
+        </div>
+      )}
+      <div className="flex justify-end gap-2">
         <button
           type="button"
           className="btn-secondary"
@@ -132,6 +136,9 @@ export function CreateCategoryForm({ tournamentId }: { tournamentId: string }) {
           disabled={saving}
         >
           Abbrechen
+        </button>
+        <button className="btn-primary" disabled={saving}>
+          {saving ? "Speichern..." : "Anlegen"}
         </button>
       </div>
     </form>
