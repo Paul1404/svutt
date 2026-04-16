@@ -5,10 +5,8 @@ RUN corepack enable
 WORKDIR /app
 
 FROM base AS deps
-ARG RAILWAY_SERVICE_ID=local
 COPY package.json pnpm-lock.yaml ./
-RUN --mount=type=cache,id=s/${RAILWAY_SERVICE_ID}-pnpm,target=/root/.local/share/pnpm/store \
-    pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile
 
 FROM base AS builder
 ENV NEXT_TELEMETRY_DISABLED=1
