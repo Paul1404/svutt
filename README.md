@@ -8,12 +8,12 @@ Generic — not tied to any particular club.
 
 ## Stack
 
-- **Next.js 15** (App Router) + **React 19**
+- **Next.js 16** (App Router, Turbopack) + **React 19.2**
 - **TypeScript** (strict, `noUncheckedIndexedAccess`)
 - **Hono** for the API (one handler mounted under `/api/*`)
 - **Drizzle ORM** on **PostgreSQL** (Railway / Supabase / local)
-- **Tailwind CSS**
-- **Zod** for validation
+- **Tailwind CSS v4** (CSS-first config via `@theme`)
+- **Zod v4** for validation
 - **Vitest** for the engine tests
 - **jose** for session cookies (HS256 JWT, HttpOnly cookie)
 
@@ -90,7 +90,7 @@ pnpm dev
 
 | Script | What |
 | --- | --- |
-| `pnpm dev` | Next.js dev server |
+| `pnpm dev` | Next.js dev server (Turbopack) |
 | `pnpm build` / `pnpm start` | Production build + serve |
 | `pnpm typecheck` | Strict TS type-check |
 | `pnpm test` | Run Vitest engine suite |
@@ -144,9 +144,11 @@ All endpoints under `/api/*`, served by a single Hono handler
 
 ### Railway
 
-The repo ships Railway-ready (`railway.json` + `nixpacks.toml`). The start
-command runs `pnpm db:migrate && pnpm start`, so schema migrations are applied
-automatically on every deploy.
+The repo ships Railway-ready (`railway.json` + `railpack.json`). Builds use
+[Railpack](https://railpack.com) — Railway's current default builder that
+replaced the now-deprecated Nixpacks. The start command runs
+`pnpm db:migrate && pnpm start`, so schema migrations are applied automatically
+on every deploy.
 
 1. **Create the project**
 
@@ -174,9 +176,10 @@ automatically on every deploy.
    first deploy. After exposing the service (*Settings → Networking → Generate
    Domain*) Railway will populate `RAILWAY_PUBLIC_DOMAIN`.
 
-4. **Deploy** — push to the tracked branch or run `railway up`. Nixpacks
-   installs with pnpm, runs `pnpm build`, then the start command applies
-   migrations and boots Next.js on the port Railway provides via `$PORT`.
+4. **Deploy** — push to the tracked branch or run `railway up`. Railpack
+   pins Node 22 + pnpm 10, installs with `pnpm install --frozen-lockfile`,
+   runs `pnpm build`, then the start command applies migrations and boots
+   Next.js on the port Railway provides via `$PORT`.
 
 5. First-time admin login: `https://<your-domain>/admin`.
 
