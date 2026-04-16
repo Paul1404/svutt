@@ -140,6 +140,46 @@ All endpoints under `/api/*`, served by a single Hono handler
 - `GET /api/matches/:id`
 - `PUT|DELETE /api/matches/:id/result`
 
+## Deployment
+
+### Railway
+
+The repo ships Railway-ready (`railway.json` + `nixpacks.toml`). The start
+command runs `pnpm db:migrate && pnpm start`, so schema migrations are applied
+automatically on every deploy.
+
+1. **Create the project**
+
+   ```bash
+   railway init
+   railway link
+   ```
+
+   Or via the dashboard: *New Project → Deploy from GitHub repo*.
+
+2. **Add a PostgreSQL plugin** to the project (*+ New → Database → Add
+   PostgreSQL*).
+
+3. **Set variables** on the app service:
+
+   | Variable | Value |
+   | --- | --- |
+   | `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` (reference variable) |
+   | `ADMIN_USERNAME` | your admin login |
+   | `ADMIN_PASSWORD` | strong password |
+   | `SESSION_SECRET` | `openssl rand -hex 32` |
+   | `NEXT_PUBLIC_BASE_URL` | `https://${{RAILWAY_PUBLIC_DOMAIN}}` |
+
+   `NEXT_PUBLIC_BASE_URL` is needed at **build time**, so set it before the
+   first deploy. After exposing the service (*Settings → Networking → Generate
+   Domain*) Railway will populate `RAILWAY_PUBLIC_DOMAIN`.
+
+4. **Deploy** — push to the tracked branch or run `railway up`. Nixpacks
+   installs with pnpm, runs `pnpm build`, then the start command applies
+   migrations and boots Next.js on the port Railway provides via `$PORT`.
+
+5. First-time admin login: `https://<your-domain>/admin`.
+
 ## License
 
 MIT — see [LICENSE](./LICENSE).
