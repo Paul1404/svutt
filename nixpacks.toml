@@ -1,0 +1,14 @@
+# Nixpacks config for Railway.
+# Pins Node 20 and uses pnpm (declared via packageManager in package.json).
+
+[phases.setup]
+nixPkgs = ["nodejs_20", "pnpm-9_x"]
+
+[phases.install]
+cmds = ["pnpm install --frozen-lockfile"]
+
+[phases.build]
+cmds = ["pnpm build"]
+
+[start]
+cmd = "pnpm db:migrate && pnpm start"
