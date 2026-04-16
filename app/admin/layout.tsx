@@ -1,7 +1,5 @@
 import Link from "next/link";
 import { readSession } from "@/lib/auth/session";
-import { headers } from "next/headers";
-import { redirect } from "next/navigation";
 import { LogoutButton } from "@/components/admin/LogoutButton";
 
 export const dynamic = "force-dynamic";
@@ -11,14 +9,7 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const hdr = await headers();
-  const pathname = hdr.get("x-next-url") ?? hdr.get("x-invoke-path") ?? "";
-  const onLogin = pathname.endsWith("/admin/login");
-
   const session = await readSession();
-  if (!session && !onLogin) {
-    redirect("/admin/login");
-  }
 
   return (
     <div className="min-h-screen">
