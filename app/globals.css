@@ -51,6 +51,29 @@
   *:focus-visible {
     @apply outline-none ring-2 ring-brand-500/60 ring-offset-2 ring-offset-white rounded;
   }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+.skip-link {
+  position: absolute;
+  left: 1rem;
+  top: -3rem;
+  z-index: 100;
+  transition: top 150ms ease;
+  @apply rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-pop;
+}
+.skip-link:focus,
+.skip-link:focus-visible {
+  top: 1rem;
 }
 
 @utility btn {

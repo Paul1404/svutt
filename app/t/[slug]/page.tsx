@@ -66,7 +66,7 @@ export default async function PublicTournamentPage({
         </div>
       </header>
 
-      <main className="mx-auto max-w-4xl px-4 py-10 space-y-6">
+      <main id="main" tabIndex={-1} className="mx-auto max-w-4xl px-4 py-10 space-y-6">
         <div className="flex items-baseline justify-between">
           <h2 className="text-xl font-semibold tracking-tight">Spielklassen</h2>
           {cats.length > 0 && (

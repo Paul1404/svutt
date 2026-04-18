@@ -137,7 +137,7 @@ export default async function PublicCategoryPage({
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl px-4 py-8 space-y-10">
+      <main id="main" tabIndex={-1} className="mx-auto max-w-5xl px-4 py-8 space-y-10">
         {!category.drawDone ? (
           <div className="rounded-xl border border-dashed border-ink-200 bg-white p-10 text-center">
             <p className="text-sm text-ink-600">Losung steht noch aus.</p>

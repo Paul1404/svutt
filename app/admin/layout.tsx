@@ -3,6 +3,7 @@ import { readSession } from "@/lib/auth/session";
 import { LogoutButton } from "@/components/admin/LogoutButton";
 import { ClubMark } from "@/components/ClubMark";
 import { ExternalLink } from "@/components/Icon";
+import { ToastProvider } from "@/components/Toast";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,7 @@ export default async function AdminLayout({
   const session = await readSession();
 
   return (
+    <ToastProvider>
     <div className="min-h-screen bg-ink-50/40">
       {session && (
         <header className="sticky top-0 z-20 border-b border-ink-200/80 bg-white/80 backdrop-blur-md">
@@ -29,7 +31,7 @@ export default async function AdminLayout({
                   Admin
                 </span>
               </Link>
-              <nav className="text-sm text-ink-600 flex gap-5 font-medium">
+              <nav aria-label="Admin-Navigation" className="text-sm text-ink-600 flex gap-5 font-medium">
                 <Link
                   href="/admin"
                   className="hover:text-brand-600 transition-colors"
@@ -56,7 +58,10 @@ export default async function AdminLayout({
           </div>
         </header>
       )}
-      <main className="mx-auto max-w-6xl px-4 py-10">{children}</main>
+      <main id="main" tabIndex={-1} className="mx-auto max-w-6xl px-4 py-10">
+        {children}
+      </main>
     </div>
+    </ToastProvider>
   );
 }
