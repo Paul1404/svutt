@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "SVUTT — Tischtennis Turniersoftware",
+  title: "SVUTT Tischtennis-Turniere",
   description:
-    "Open-Source-Software zur Verwaltung von Tischtennis-Turnieren (Gruppen, Spielpläne, Finale).",
+    "Tischtennis-Turniere einfach verwalten. Gruppen ziehen, Ergebnisse eingeben, Finalrunde live zeigen.",
   icons: {
     icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
     shortcut: "/icon.svg",

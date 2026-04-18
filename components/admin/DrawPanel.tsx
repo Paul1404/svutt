@@ -18,27 +18,46 @@ export function DrawPanel({
   const canDraw = participantCount >= 4;
 
   return (
-    <section className="card p-5 space-y-3">
-      <h2 className="text-lg font-semibold">Gruppen auslosen</h2>
-      <p className="text-sm text-slate-500">
-        Erzeugt Gruppen, Round-Robin-Spielplan und Spielzeiten. Danach können
-        keine Teilnehmer mehr hinzugefügt werden.
-      </p>
-      <div className="flex gap-3 items-end">
-        <div className="flex-1 max-w-xs">
-          <label className="label">Seed (optional, für Reproduzierbarkeit)</label>
+    <section className="card p-6 space-y-4">
+      <div className="flex items-start gap-4">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 text-xl">
+          🎲
+        </div>
+        <div className="flex-1">
+          <h2 className="text-lg font-semibold tracking-tight">
+            Gruppen auslosen
+          </h2>
+          <p className="mt-1 text-sm text-ink-500">
+            Wir verteilen alle Spieler zufällig auf Gruppen und erstellen den
+            Spielplan mit Tischen und Startzeiten. Danach lassen sich keine
+            Spieler mehr hinzufügen.
+          </p>
+        </div>
+      </div>
+
+      <div className="flex gap-3 items-end flex-wrap">
+        <div className="flex-1 min-w-[200px] max-w-sm">
+          <label className="label">Seed (optional)</label>
           <input
             className="input"
             value={seed}
             onChange={(e) => setSeed(e.target.value)}
-            placeholder="z.B. 'svutt-2026'"
+            placeholder="z.B. svutt-2026"
           />
+          <p className="mt-1.5 text-xs text-ink-500">
+            Gleicher Seed heißt gleiche Losung. Leer lassen für eine zufällige.
+          </p>
         </div>
         <button
           className="btn-primary"
           disabled={!canDraw || loading}
           onClick={async () => {
-            if (!confirm("Auslosung jetzt durchführen? Das ist nicht rückgängig.")) return;
+            if (
+              !confirm(
+                "Losung jetzt starten? Das kann hinterher nicht rückgängig gemacht werden.",
+              )
+            )
+              return;
             setError(null);
             setLoading(true);
             try {
@@ -49,7 +68,7 @@ export function DrawPanel({
               });
               const data = await res.json();
               if (!res.ok) {
-                setError(data.error ?? "Fehler beim Auslosen.");
+                setError(data.error ?? "Losung hat nicht geklappt.");
                 return;
               }
               router.refresh();
@@ -58,15 +77,20 @@ export function DrawPanel({
             }
           }}
         >
-          {loading ? "Lose…" : "Jetzt auslosen"}
+          {loading ? "Losen..." : "Jetzt auslosen"}
         </button>
       </div>
+
       {!canDraw && (
-        <p className="text-sm text-amber-700">
-          Mindestens 4 Teilnehmer nötig ({participantCount} vorhanden).
-        </p>
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          Du brauchst mindestens 4 Spieler. Aktuell sind es {participantCount}.
+        </div>
       )}
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && (
+        <div className="rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-sm text-brand-700">
+          {error}
+        </div>
+      )}
     </section>
   );
 }

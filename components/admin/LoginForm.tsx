@@ -27,13 +27,13 @@ export function LoginForm() {
             const data = (await res.json().catch(() => ({}))) as {
               error?: string;
             };
-            setError(data.error ?? "Login fehlgeschlagen.");
+            setError(data.error ?? "Login hat nicht geklappt.");
             return;
           }
           router.push("/admin");
           router.refresh();
         } catch {
-          setError("Netzwerkfehler.");
+          setError("Keine Verbindung. Bitte nochmal versuchen.");
         } finally {
           setLoading(false);
         }
@@ -68,12 +68,15 @@ export function LoginForm() {
         />
       </div>
       {error && (
-        <p className="text-sm text-red-600" role="alert">
+        <div
+          className="rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-sm text-brand-700"
+          role="alert"
+        >
           {error}
-        </p>
+        </div>
       )}
       <button type="submit" className="btn-primary w-full" disabled={loading}>
-        {loading ? "Wird angemeldet…" : "Anmelden"}
+        {loading ? "Anmelden..." : "Anmelden"}
       </button>
     </form>
   );

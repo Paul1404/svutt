@@ -120,26 +120,39 @@ export default async function PublicCategoryPage({
   const koMatches = matchRows.filter((m) => m.stage === "ko");
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-white">
       <AutoRefresh intervalSeconds={30} />
-      <header className="bg-brand-700 text-white sticky top-0 z-10">
+      <header className="sticky top-0 z-10 border-b border-brand-800/20 bg-brand-700 text-white shadow-pop">
         <div className="mx-auto max-w-5xl px-4 py-4">
           <Link
             href={`/t/${tournament.slug}`}
-            className="text-sm text-brand-100 hover:underline"
+            className="text-sm text-brand-100 hover:text-white transition-colors"
           >
             ← {tournament.name}
           </Link>
-          <h1 className="text-xl sm:text-2xl font-bold mt-1">
-            {category.name}
-          </h1>
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
+              {category.name}
+            </h1>
+            <div className="flex items-center gap-1.5 text-xs text-brand-100">
+              <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+              Live
+            </div>
+          </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl px-4 py-6 space-y-8">
+      <main className="mx-auto max-w-5xl px-4 py-8 space-y-10">
         {!category.drawDone ? (
-          <div className="card p-6 text-center text-slate-600">
-            Die Gruppen wurden noch nicht ausgelost.
+          <div className="rounded-xl border border-dashed border-ink-200 bg-white p-12 text-center">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-brand-50 text-brand-600 text-xl">
+              ⏳
+            </div>
+            <h2 className="mt-4 font-semibold text-lg">Losung steht noch aus</h2>
+            <p className="mt-1 text-sm text-ink-500">
+              Die Gruppen werden gleich gezogen. Diese Seite lädt sich
+              automatisch.
+            </p>
           </div>
         ) : (
           <>
@@ -162,8 +175,14 @@ export default async function PublicCategoryPage({
         )}
       </main>
 
-      <footer className="text-center text-xs text-slate-400 pb-6">
-        SVUTT • Aktualisiert automatisch alle 30 Sekunden
+      <footer className="border-t border-ink-100 py-6">
+        <div className="mx-auto max-w-5xl px-4 flex items-center justify-between text-xs text-ink-400">
+          <span>SVUTT</span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            Aktualisiert alle 30 Sekunden
+          </span>
+        </div>
       </footer>
     </div>
   );

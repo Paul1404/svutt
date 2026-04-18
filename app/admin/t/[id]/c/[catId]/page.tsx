@@ -80,7 +80,6 @@ export default async function CategoryDetailPage({
         .orderBy(asc(matchSets.setNumber))
     : [];
 
-  // Build engine groups → standings
   const partsById = new Map(parts.map((p) => [p.id, p]));
   const setsByMatch = new Map<string, { a: number; b: number }[]>();
   for (const s of setRows) {
@@ -117,24 +116,34 @@ export default async function CategoryDetailPage({
     groupMatches.length > 0 &&
     groupMatches.every((m) => m.status === "finished");
 
+  const finishedGroupMatches = groupMatches.filter(
+    (m) => m.status === "finished",
+  ).length;
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       <div>
         <Link
           href={`/admin/t/${tournament.id}`}
-          className="text-sm text-slate-500 hover:underline"
+          className="inline-flex items-center gap-1 text-sm text-ink-500 hover:text-brand-600 transition-colors"
         >
-          ← {tournament.name}
+          <span aria-hidden>←</span> {tournament.name}
         </Link>
-        <h1 className="text-2xl font-bold mt-1">{category.name}</h1>
-        <p className="text-sm text-slate-500">
-          {parts.length} Teilnehmer • Gruppen à {category.groupSize} • Best of{" "}
-          {category.winSets * 2 - 1}
+        <h1 className="mt-3 text-3xl font-bold tracking-tight">
+          {category.name}
+        </h1>
+        <p className="mt-1 text-sm text-ink-500">
+          {parts.length} {parts.length === 1 ? "Teilnehmer" : "Teilnehmer"}
+          <span className="text-ink-300 mx-1.5">·</span>
+          Gruppen à {category.groupSize}
+          <span className="text-ink-300 mx-1.5">·</span>
+          Best of {category.winSets * 2 - 1}
         </p>
       </div>
 
       {!category.drawDone ? (
         <>
+          <Stepper step={1} />
           <ParticipantsPanel categoryId={category.id} participants={parts} />
           <DrawPanel
             categoryId={category.id}
@@ -143,6 +152,14 @@ export default async function CategoryDetailPage({
         </>
       ) : (
         <>
+          <Stepper
+            step={allGroupComplete ? 3 : 2}
+            progress={
+              groupMatches.length > 0
+                ? Math.round((finishedGroupMatches / groupMatches.length) * 100)
+                : 0
+            }
+          />
           <GroupsPanel
             tournamentId={tournament.id}
             category={category}
@@ -163,6 +180,58 @@ export default async function CategoryDetailPage({
           />
         </>
       )}
+    </div>
+  );
+}
+
+function Stepper({ step, progress }: { step: 1 | 2 | 3; progress?: number }) {
+  const steps = [
+    { n: 1, label: "Teilnehmer eintragen" },
+    { n: 2, label: "Gruppenphase" },
+    { n: 3, label: "Finalrunde" },
+  ];
+  return (
+    <div className="card p-4">
+      <ol className="flex items-center gap-3 sm:gap-6 overflow-x-auto">
+        {steps.map((s, i) => {
+          const active = step === s.n;
+          const done = step > s.n;
+          return (
+            <li key={s.n} className="flex items-center gap-3 min-w-0">
+              <div
+                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                  done
+                    ? "bg-brand-600 text-white"
+                    : active
+                      ? "bg-brand-100 text-brand-700 ring-2 ring-brand-600"
+                      : "bg-ink-100 text-ink-400"
+                }`}
+              >
+                {done ? "✓" : s.n}
+              </div>
+              <span
+                className={`text-sm whitespace-nowrap ${
+                  active
+                    ? "font-semibold text-ink-900"
+                    : done
+                      ? "text-ink-600"
+                      : "text-ink-400"
+                }`}
+              >
+                {s.label}
+                {active && s.n === 2 && typeof progress === "number" && (
+                  <span className="ml-2 text-xs text-ink-400 font-normal">
+                    {progress}%
+                  </span>
+                )}
+              </span>
+              {i < steps.length - 1 && (
+                <span className="text-ink-300 hidden sm:inline">―</span>
+              )}
+            </li>
+          );
+        })}
+      </ol>
     </div>
   );
 }

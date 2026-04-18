@@ -9,7 +9,7 @@ export function LogoutButton() {
   return (
     <button
       type="button"
-      className="text-sm text-slate-600 underline"
+      className="text-sm font-medium text-ink-600 hover:text-brand-600 transition-colors"
       disabled={pending}
       onClick={() => {
         start(async () => {
@@ -19,7 +19,7 @@ export function LogoutButton() {
         });
       }}
     >
-      {pending ? "Abmelden…" : "Abmelden"}
+      {pending ? "Abmelden..." : "Abmelden"}
     </button>
   );
 }

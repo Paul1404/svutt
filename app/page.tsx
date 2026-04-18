@@ -6,7 +6,12 @@ import { desc } from "drizzle-orm";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  let list: { id: string; name: string; slug: string; location: string | null }[] = [];
+  let list: {
+    id: string;
+    name: string;
+    slug: string;
+    location: string | null;
+  }[] = [];
   try {
     list = await db
       .select({
@@ -19,38 +24,77 @@ export default async function HomePage() {
       .orderBy(desc(tournaments.createdAt))
       .limit(20);
   } catch {
-    // DB not configured yet; keep list empty.
+    // Datenbank noch nicht bereit. Liste bleibt leer.
   }
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-16">
-      <h1 className="text-4xl font-bold tracking-tight text-slate-900">
-        SVUTT — Tischtennis Turniersoftware
+    <main className="mx-auto max-w-4xl px-4 py-16 sm:py-24">
+      <div className="flex items-center gap-2">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-white font-bold text-sm shadow-soft">
+          S
+        </div>
+        <span className="text-sm font-semibold tracking-tight text-ink-700">
+          SVUTT
+        </span>
+      </div>
+
+      <h1 className="mt-10 text-5xl sm:text-6xl font-bold tracking-tight text-ink-900">
+        Tischtennis-Turniere,
+        <br />
+        <span className="text-brand-600">ohne den Papierkram.</span>
       </h1>
-      <p className="mt-4 text-slate-600">
-        Verwalte Tischtennis-Turniere mit Gruppenphase, automatischer Auslosung,
-        K.O.-Baum inkl. Lucky Loser und Spielzeit-Kalkulation. Ergebnisse landen
-        live auf der Public View — ideal zum Anzeigen an der Turnierhalle.
+      <p className="mt-6 max-w-2xl text-lg text-ink-600 leading-relaxed">
+        Gruppen ziehen, Ergebnisse eintippen, Finalbaum live zeigen. Alles an
+        einem Ort, auch vom Handy am Spieltisch.
       </p>
 
-      <div className="mt-10">
-        <h2 className="text-lg font-semibold">Aktuelle Turniere</h2>
+      <div className="mt-14">
+        <div className="flex items-baseline justify-between">
+          <h2 className="text-xl font-semibold tracking-tight">
+            Aktuelle Turniere
+          </h2>
+          {list.length > 0 && (
+            <span className="text-xs text-ink-500">
+              {list.length} {list.length === 1 ? "Turnier" : "Turniere"}
+            </span>
+          )}
+        </div>
+
         {list.length === 0 ? (
-          <p className="mt-2 text-sm text-slate-500">
-            Noch keine Turniere veröffentlicht.
-          </p>
+          <div className="mt-6 rounded-xl border border-dashed border-ink-200 bg-ink-50/50 p-10 text-center">
+            <p className="text-sm text-ink-600">
+              Noch keine Turniere angelegt.
+            </p>
+            <Link
+              href="/admin"
+              className="mt-3 inline-block text-sm font-medium text-brand-600 hover:text-brand-700"
+            >
+              Zum Admin-Bereich →
+            </Link>
+          </div>
         ) : (
-          <ul className="mt-4 space-y-2">
+          <ul className="mt-6 grid gap-3 sm:grid-cols-2">
             {list.map((t) => (
               <li key={t.id}>
                 <Link
                   href={`/t/${t.slug}`}
-                  className="block rounded-md border border-slate-200 bg-white p-4 hover:border-brand-500"
+                  className="card-hover group block p-5"
                 >
-                  <div className="font-medium">{t.name}</div>
-                  {t.location && (
-                    <div className="text-sm text-slate-500">{t.location}</div>
-                  )}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="font-semibold tracking-tight text-ink-900 group-hover:text-brand-700 transition-colors">
+                        {t.name}
+                      </div>
+                      {t.location && (
+                        <div className="mt-1 text-sm text-ink-500">
+                          {t.location}
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-ink-300 group-hover:text-brand-600 group-hover:translate-x-0.5 transition-all">
+                      →
+                    </span>
+                  </div>
                 </Link>
               </li>
             ))}
@@ -58,9 +102,15 @@ export default async function HomePage() {
         )}
       </div>
 
-      <div className="mt-12 text-sm text-slate-500">
-        <Link href="/admin" className="underline">
-          Admin-Bereich →
+      <div className="mt-20 flex items-center justify-between border-t border-ink-100 pt-6">
+        <p className="text-xs text-ink-400">
+          Open Source auf GitHub
+        </p>
+        <Link
+          href="/admin"
+          className="text-sm font-medium text-ink-600 hover:text-brand-600"
+        >
+          Admin-Bereich
         </Link>
       </div>
     </main>

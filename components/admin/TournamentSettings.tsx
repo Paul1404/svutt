@@ -21,22 +21,30 @@ export function TournamentSettings({ tournament }: { tournament: Tournament }) {
 
   if (!open) {
     return (
-      <div className="card p-4 flex items-center justify-between">
-        <div className="text-sm text-slate-600">
-          Start: <b>{tournament.startTime}</b> • Tische:{" "}
-          <b>{tournament.parallelTables}</b> • Spieldauer:{" "}
-          <b>{tournament.matchDurationMinutes} min</b>
+      <div className="card p-5">
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex gap-6 flex-wrap text-sm">
+            <Stat label="Start" value={`${tournament.startTime} Uhr`} />
+            <Stat
+              label="Tische"
+              value={String(tournament.parallelTables)}
+            />
+            <Stat
+              label="Spieldauer"
+              value={`${tournament.matchDurationMinutes} Min`}
+            />
+          </div>
+          <button className="btn-secondary btn-sm" onClick={() => setOpen(true)}>
+            Anpassen
+          </button>
         </div>
-        <button className="btn-secondary" onClick={() => setOpen(true)}>
-          Bearbeiten
-        </button>
       </div>
     );
   }
 
   return (
     <form
-      className="card p-4 space-y-4"
+      className="card p-5 space-y-4"
       onSubmit={async (e) => {
         e.preventDefault();
         setError(null);
@@ -55,7 +63,7 @@ export function TournamentSettings({ tournament }: { tournament: Tournament }) {
           });
           const data = await res.json();
           if (!res.ok) {
-            setError(data.error ?? "Fehler beim Speichern.");
+            setError(data.error ?? "Speichern hat nicht geklappt.");
             return;
           }
           setOpen(false);
@@ -65,9 +73,10 @@ export function TournamentSettings({ tournament }: { tournament: Tournament }) {
         }
       }}
     >
-      <div className="grid gap-3 sm:grid-cols-2">
+      <h3 className="font-semibold tracking-tight">Turnier anpassen</h3>
+      <div className="grid gap-4 sm:grid-cols-2">
         <div className="sm:col-span-2">
-          <label className="label">Name</label>
+          <label className="label">Turniername</label>
           <input
             className="input"
             value={name}
@@ -93,7 +102,7 @@ export function TournamentSettings({ tournament }: { tournament: Tournament }) {
           />
         </div>
         <div>
-          <label className="label">Parallele Tische</label>
+          <label className="label">Tische gleichzeitig</label>
           <input
             className="input"
             type="number"
@@ -103,7 +112,7 @@ export function TournamentSettings({ tournament }: { tournament: Tournament }) {
             onChange={(e) => setParallelTables(parseInt(e.target.value, 10))}
           />
         </div>
-        <div>
+        <div className="sm:col-span-2">
           <label className="label">Spieldauer (Minuten)</label>
           <input
             className="input"
@@ -117,11 +126,12 @@ export function TournamentSettings({ tournament }: { tournament: Tournament }) {
           />
         </div>
       </div>
-      {error && <p className="text-sm text-red-600">{error}</p>}
-      <div className="flex gap-2">
-        <button className="btn-primary" disabled={saving}>
-          {saving ? "Speichert…" : "Speichern"}
-        </button>
+      {error && (
+        <div className="rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-sm text-brand-700">
+          {error}
+        </div>
+      )}
+      <div className="flex justify-end gap-2">
         <button
           type="button"
           className="btn-secondary"
@@ -130,7 +140,21 @@ export function TournamentSettings({ tournament }: { tournament: Tournament }) {
         >
           Abbrechen
         </button>
+        <button className="btn-primary" disabled={saving}>
+          {saving ? "Speichern..." : "Speichern"}
+        </button>
       </div>
     </form>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div className="text-[10px] uppercase tracking-wider text-ink-500 font-semibold">
+        {label}
+      </div>
+      <div className="mt-0.5 font-semibold tabular-nums">{value}</div>
+    </div>
   );
 }
