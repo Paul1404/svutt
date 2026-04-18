@@ -5,13 +5,46 @@ import { useState } from "react";
 import { Dice } from "@/components/Icon";
 import { HelpTooltip } from "@/components/Tooltip";
 import { useToast } from "@/components/Toast";
+import type { TournamentStructure } from "@/lib/engine/format";
+
+const COPY: Record<
+  TournamentStructure,
+  { title: string; body: string; action: string; minPlayers: number }
+> = {
+  groups_ko: {
+    title: "Gruppen auslosen",
+    body: "Wir verteilen alle Spieler zufällig auf Gruppen und erstellen den Spielplan mit Tischen und Startzeiten. Danach lassen sich keine Spieler mehr hinzufügen.",
+    action: "Jetzt auslosen",
+    minPlayers: 4,
+  },
+  round_robin: {
+    title: "Spielplan erstellen",
+    body: "Alle Teilnehmer spielen gegen alle. Wir bauen den Spielplan und verteilen ihn auf die Tische.",
+    action: "Spielplan erzeugen",
+    minPlayers: 2,
+  },
+  ko_only: {
+    title: "Finalbaum aufbauen",
+    body: "Wir setzen die Teilnehmer in den KO-Baum. Gesetzte Spieler nach Setzliste, der Rest per Los. Nach dem Erstellen lassen sich keine Teilnehmer mehr hinzufügen.",
+    action: "Baum erstellen",
+    minPlayers: 2,
+  },
+  swiss: {
+    title: "Erste Runde auslosen",
+    body: "Wir paaren nach Setzplatz (Top-Hälfte gegen untere Hälfte). Nach jeder Runde kannst du die nächste per Knopfdruck erzeugen.",
+    action: "Runde 1 auslosen",
+    minPlayers: 2,
+  },
+};
 
 export function DrawPanel({
   categoryId,
   participantCount,
+  structure = "groups_ko",
 }: {
   categoryId: string;
   participantCount: number;
+  structure?: TournamentStructure;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -19,7 +52,8 @@ export function DrawPanel({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const canDraw = participantCount >= 4;
+  const copy = COPY[structure];
+  const canDraw = participantCount >= copy.minPlayers;
 
   return (
     <section className="card p-6 space-y-4">
@@ -28,14 +62,8 @@ export function DrawPanel({
           <Dice size={20} />
         </div>
         <div className="flex-1">
-          <h2 className="text-lg font-semibold tracking-tight">
-            Gruppen auslosen
-          </h2>
-          <p className="mt-1 text-sm text-ink-500">
-            Wir verteilen alle Spieler zufällig auf Gruppen und erstellen den
-            Spielplan mit Tischen und Startzeiten. Danach lassen sich keine
-            Spieler mehr hinzufügen.
-          </p>
+          <h2 className="text-lg font-semibold tracking-tight">{copy.title}</h2>
+          <p className="mt-1 text-sm text-ink-500">{copy.body}</p>
         </div>
       </div>
 
@@ -91,13 +119,14 @@ export function DrawPanel({
             }
           }}
         >
-          {loading ? "Losen..." : "Jetzt auslosen"}
+          {loading ? "Losen..." : copy.action}
         </button>
       </div>
 
       {!canDraw && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-          Du brauchst mindestens 4 Spieler. Aktuell sind es {participantCount}.
+          Du brauchst mindestens {copy.minPlayers} Spieler. Aktuell sind es{" "}
+          {participantCount}.
         </div>
       )}
       {error && (

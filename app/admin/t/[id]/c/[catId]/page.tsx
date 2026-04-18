@@ -15,8 +15,16 @@ import { ParticipantsPanel } from "@/components/admin/ParticipantsPanel";
 import { DrawPanel } from "@/components/admin/DrawPanel";
 import { GroupsPanel } from "@/components/admin/GroupsPanel";
 import { BracketPanel } from "@/components/admin/BracketPanel";
+import { SwissPanel } from "@/components/admin/SwissPanel";
 import { CategorySettings } from "@/components/admin/CategorySettings";
 import { computeStandings, type EngineGroup, type Player } from "@/lib/engine";
+import {
+  isTournamentStructure,
+  STRUCTURE_LABELS,
+  DRAW_MODE_LABELS,
+  isDrawMode,
+  type TournamentStructure,
+} from "@/lib/engine/format";
 import { ArrowLeft, Check } from "@/components/Icon";
 
 export const dynamic = "force-dynamic";
@@ -114,6 +122,7 @@ export default async function CategoryDetailPage({
 
   const groupMatches = matchRows.filter((m) => m.stage === "group");
   const koMatches = matchRows.filter((m) => m.stage === "ko");
+  const swissMatches = matchRows.filter((m) => m.stage === "swiss");
   const allGroupComplete =
     groupMatches.length > 0 &&
     groupMatches.every((m) => m.status === "finished");
@@ -121,6 +130,13 @@ export default async function CategoryDetailPage({
   const finishedGroupMatches = groupMatches.filter(
     (m) => m.status === "finished",
   ).length;
+
+  const structure: TournamentStructure = isTournamentStructure(
+    category.structure,
+  )
+    ? category.structure
+    : "groups_ko";
+  const drawMode = isDrawMode(category.drawMode) ? category.drawMode : "random";
 
   return (
     <div className="space-y-10">
@@ -137,7 +153,9 @@ export default async function CategoryDetailPage({
         <p className="mt-1 text-sm text-ink-500">
           {parts.length} Teilnehmer
           <span className="text-ink-300 mx-1.5">·</span>
-          Gruppen à {category.groupSize}
+          {STRUCTURE_LABELS[structure]}
+          <span className="text-ink-300 mx-1.5">·</span>
+          Auslosung: {DRAW_MODE_LABELS[drawMode]}
           <span className="text-ink-300 mx-1.5">·</span>
           Best of {category.winSets * 2 - 1}
           <span className="text-ink-300 mx-1.5">·</span>
@@ -155,17 +173,63 @@ export default async function CategoryDetailPage({
 
       {!category.drawDone ? (
         <>
-          <Stepper step={1} />
+          <Stepper step={1} structure={structure} />
           <ParticipantsPanel categoryId={category.id} participants={parts} />
           <DrawPanel
             categoryId={category.id}
             participantCount={parts.length}
+            structure={structure}
+          />
+        </>
+      ) : structure === "swiss" ? (
+        <>
+          <Stepper step={2} structure={structure} />
+          <SwissPanel
+            category={category}
+            swissMatches={swissMatches}
+            sets={setRows}
+            participants={parts}
+          />
+        </>
+      ) : structure === "ko_only" ? (
+        <>
+          <Stepper step={2} structure={structure} />
+          <BracketPanel
+            tournamentId={tournament.id}
+            category={category}
+            koMatches={koMatches}
+            sets={setRows}
+            participants={parts}
+            canBuild={false}
+          />
+        </>
+      ) : structure === "round_robin" ? (
+        <>
+          <Stepper
+            step={allGroupComplete ? 3 : 2}
+            structure={structure}
+            progress={
+              groupMatches.length > 0
+                ? Math.round((finishedGroupMatches / groupMatches.length) * 100)
+                : 0
+            }
+          />
+          <GroupsPanel
+            tournamentId={tournament.id}
+            category={category}
+            groups={catGroups}
+            members={members}
+            participants={parts}
+            matches={groupMatches}
+            sets={setRows}
+            standings={standings}
           />
         </>
       ) : (
         <>
           <Stepper
             step={allGroupComplete ? 3 : 2}
+            structure={structure}
             progress={
               groupMatches.length > 0
                 ? Math.round((finishedGroupMatches / groupMatches.length) * 100)
@@ -196,12 +260,39 @@ export default async function CategoryDetailPage({
   );
 }
 
-function Stepper({ step, progress }: { step: 1 | 2 | 3; progress?: number }) {
-  const steps = [
-    { n: 1, label: "Teilnehmer eintragen" },
-    { n: 2, label: "Gruppenphase" },
-    { n: 3, label: "Finalrunde" },
-  ];
+function Stepper({
+  step,
+  structure,
+  progress,
+}: {
+  step: 1 | 2 | 3;
+  structure: TournamentStructure;
+  progress?: number;
+}) {
+  const steps =
+    structure === "swiss"
+      ? [
+          { n: 1, label: "Teilnehmer eintragen" },
+          { n: 2, label: "Runden spielen" },
+          { n: 3, label: "Abschluss" },
+        ]
+      : structure === "round_robin"
+        ? [
+            { n: 1, label: "Teilnehmer eintragen" },
+            { n: 2, label: "Jeder gegen jeden" },
+            { n: 3, label: "Abschluss" },
+          ]
+        : structure === "ko_only"
+          ? [
+              { n: 1, label: "Teilnehmer eintragen" },
+              { n: 2, label: "Finalbaum" },
+              { n: 3, label: "Abschluss" },
+            ]
+          : [
+              { n: 1, label: "Teilnehmer eintragen" },
+              { n: 2, label: "Gruppenphase" },
+              { n: 3, label: "Finalrunde" },
+            ];
   return (
     <div className="card p-4">
       <ol className="flex items-center gap-3 sm:gap-6 overflow-x-auto">
