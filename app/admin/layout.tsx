@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { readSession } from "@/lib/auth/session";
 import { LogoutButton } from "@/components/admin/LogoutButton";
+import { ClubMark } from "@/components/ClubMark";
 
 export const dynamic = "force-dynamic";
 
@@ -19,12 +20,10 @@ export default async function AdminLayout({
             <div className="flex items-center gap-8">
               <Link
                 href="/admin"
-                className="flex items-center gap-2 font-semibold tracking-tight"
+                className="flex items-center gap-2.5 font-semibold tracking-tight"
               >
-                <div className="flex h-7 w-7 items-center justify-center rounded-md bg-brand-600 text-white text-xs font-bold shadow-soft">
-                  S
-                </div>
-                <span>SVUTT</span>
+                <ClubMark size="sm" showLabel={false} />
+                <span>SV Untereuerheim</span>
                 <span className="text-xs font-medium text-ink-400 px-1.5 py-0.5 rounded bg-ink-100">
                   Admin
                 </span>

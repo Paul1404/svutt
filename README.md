@@ -1,10 +1,14 @@
-# SVUTT — Tischtennis Turniersoftware
+# SVUTT — Tischtennis-Turniere · SV 1945 Untereuerheim e.V.
 
-Open-source web app for managing table tennis tournaments end-to-end: group
-draw, round-robin schedule, KO bracket (with Lucky Loser), match-time
-calculation, live public view with auto-refresh.
+Web-App der Tischtennis-Abteilung des **SV 1945 Untereuerheim e.V.** zur
+Verwaltung kompletter Turniere: Gruppen ziehen, Round-Robin-Spielplan,
+KO-Baum (inkl. Lucky-Loser), Spielzeit-Kalkulation und öffentliche Live-Ansicht
+mit automatischer Aktualisierung.
 
-Generic — not tied to any particular club.
+Mehr über den Verein: <https://sv-untereuerheim.de> · _Wir sind Untereuerheim_.
+
+Der Code ist Open-Source unter MIT-Lizenz und kann von anderen Vereinen
+ebenfalls genutzt werden — Logo und Vereinsnamen ggf. anpassen.
 
 ## Stack
 

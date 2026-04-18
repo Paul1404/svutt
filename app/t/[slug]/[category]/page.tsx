@@ -177,7 +177,14 @@ export default async function PublicCategoryPage({
 
       <footer className="border-t border-ink-100 py-6">
         <div className="mx-auto max-w-5xl px-4 flex items-center justify-between text-xs text-ink-400">
-          <span>SVUTT</span>
+          <a
+            href="https://sv-untereuerheim.de"
+            target="_blank"
+            rel="noreferrer"
+            className="hover:text-brand-600 transition-colors"
+          >
+            SV 1945 Untereuerheim e.V.
+          </a>
           <span className="inline-flex items-center gap-1.5">
             <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
             Aktualisiert alle 30 Sekunden

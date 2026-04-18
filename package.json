@@ -2,7 +2,7 @@
   "name": "svutt",
   "version": "0.1.0",
   "private": true,
-  "description": "SVUTT — Open-source table tennis tournament management",
+  "description": "SVUTT — Tischtennis-Turnierverwaltung des SV 1945 Untereuerheim e.V.",
   "license": "MIT",
   "scripts": {
     "dev": "next dev",
