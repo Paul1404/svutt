@@ -44,12 +44,16 @@ export const matchRoutes = new Hono()
       .where(eq(categories.id, match.categoryId))
       .limit(1);
     const winSets = cat?.winSets ?? 2;
+    const rules = {
+      setPoints: cat?.setPoints ?? 11,
+      minLead: cat?.setMinLead ?? 2,
+    };
 
-    const errors = validateMatchInput(parsed.data.sets, winSets);
+    const errors = validateMatchInput(parsed.data.sets, winSets, rules);
     if (errors.length > 0) {
       return c.json({ error: errors.join(" ") }, 400);
     }
-    const outcome = computeMatchOutcome(parsed.data.sets, winSets);
+    const outcome = computeMatchOutcome(parsed.data.sets, winSets, rules);
     if (!outcome.winner) {
       return c.json({ error: "Kein Sieger ermittelbar." }, 400);
     }

@@ -97,7 +97,7 @@ pnpm dev
 | `pnpm dev` | Next.js dev server (Turbopack) |
 | `pnpm build` / `pnpm start` | Production build + serve |
 | `pnpm typecheck` | Strict TS type-check |
-| `pnpm test` | Run Vitest engine suite |
+| `pnpm test` | Run Vitest suite — pure engine tests **plus** end-to-end Hono API tests on an in-process Postgres ([PGlite](https://pglite.dev)). No live DB needed. |
 | `pnpm db:generate` | Drizzle Kit — generate migration from schema |
 | `pnpm db:push` | Push schema to DB (dev only) |
 | `pnpm db:migrate` | Apply SQL migrations from `/drizzle` |

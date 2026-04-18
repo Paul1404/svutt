@@ -15,7 +15,9 @@ import { ParticipantsPanel } from "@/components/admin/ParticipantsPanel";
 import { DrawPanel } from "@/components/admin/DrawPanel";
 import { GroupsPanel } from "@/components/admin/GroupsPanel";
 import { BracketPanel } from "@/components/admin/BracketPanel";
+import { CategorySettings } from "@/components/admin/CategorySettings";
 import { computeStandings, type EngineGroup, type Player } from "@/lib/engine";
+import { ArrowLeft, Check } from "@/components/Icon";
 
 export const dynamic = "force-dynamic";
 
@@ -127,19 +129,23 @@ export default async function CategoryDetailPage({
           href={`/admin/t/${tournament.id}`}
           className="inline-flex items-center gap-1 text-sm text-ink-500 hover:text-brand-600 transition-colors"
         >
-          <span aria-hidden>←</span> {tournament.name}
+          <ArrowLeft size={14} /> {tournament.name}
         </Link>
         <h1 className="mt-3 text-3xl font-bold tracking-tight">
           {category.name}
         </h1>
         <p className="mt-1 text-sm text-ink-500">
-          {parts.length} {parts.length === 1 ? "Teilnehmer" : "Teilnehmer"}
+          {parts.length} Teilnehmer
           <span className="text-ink-300 mx-1.5">·</span>
           Gruppen à {category.groupSize}
           <span className="text-ink-300 mx-1.5">·</span>
           Best of {category.winSets * 2 - 1}
+          <span className="text-ink-300 mx-1.5">·</span>
+          Sätze bis {category.setPoints} (+{category.setMinLead})
         </p>
       </div>
+
+      <CategorySettings category={category} tournamentId={tournament.id} />
 
       {!category.drawDone ? (
         <>
@@ -207,7 +213,7 @@ function Stepper({ step, progress }: { step: 1 | 2 | 3; progress?: number }) {
                       : "bg-ink-100 text-ink-400"
                 }`}
               >
-                {done ? "✓" : s.n}
+                {done ? <Check size={14} /> : s.n}
               </div>
               <span
                 className={`text-sm whitespace-nowrap ${

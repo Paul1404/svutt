@@ -6,6 +6,7 @@ import { categories, tournaments } from "@/lib/db/schema";
 import { CreateCategoryForm } from "@/components/admin/CreateCategoryForm";
 import { TournamentSettings } from "@/components/admin/TournamentSettings";
 import { QrShare } from "@/components/admin/QrShare";
+import { ArrowLeft, ArrowRight } from "@/components/Icon";
 
 export const dynamic = "force-dynamic";
 
@@ -48,7 +49,7 @@ export default async function TournamentDetailPage({
           href="/admin"
           className="inline-flex items-center gap-1 text-sm text-ink-500 hover:text-brand-600 transition-colors"
         >
-          <span aria-hidden>←</span> Alle Turniere
+          <ArrowLeft size={14} /> Alle Turniere
         </Link>
 
         <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
@@ -113,7 +114,7 @@ export default async function TournamentDetailPage({
                       </div>
                     </div>
                     <span className="text-ink-300 group-hover:text-brand-600 group-hover:translate-x-0.5 transition-all">
-                      →
+                      <ArrowRight size={14} />
                     </span>
                   </div>
                   <div className="mt-3 flex gap-1.5 flex-wrap">

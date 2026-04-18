@@ -66,8 +66,14 @@ export const categories = pgTable(
     slug: text("slug").notNull(),
     // Preferred group size (4..8). Engine may deviate slightly to avoid tiny groups.
     groupSize: integer("group_size").notNull().default(4),
-    // Sets needed to win a match (best of 2*n-1). Currently only 2 (best of 3) is supported.
+    // Sets needed to win a match (best of 2*n-1). 2 → Best of 3, 3 → Best of 5, etc.
     winSets: integer("win_sets").notNull().default(2),
+    // Points needed to win a single set (TT default: 11).
+    setPoints: integer("set_points").notNull().default(11),
+    // Required lead at end of a set when scores are close (TT default: 2 → "win by 2").
+    setMinLead: integer("set_min_lead").notNull().default(2),
+    // When true, fill empty bracket slots with the best Gruppendritten.
+    luckyLoserEnabled: boolean("lucky_loser_enabled").notNull().default(true),
     sortOrder: integer("sort_order").notNull().default(0),
     // Whether groups have been drawn (frozen). After that no more participants.
     drawDone: boolean("draw_done").notNull().default(false),

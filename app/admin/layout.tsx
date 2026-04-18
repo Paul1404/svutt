@@ -2,6 +2,7 @@ import Link from "next/link";
 import { readSession } from "@/lib/auth/session";
 import { LogoutButton } from "@/components/admin/LogoutButton";
 import { ClubMark } from "@/components/ClubMark";
+import { ExternalLink } from "@/components/Icon";
 
 export const dynamic = "force-dynamic";
 
@@ -42,7 +43,7 @@ export default async function AdminLayout({
                   className="hover:text-brand-600 transition-colors inline-flex items-center gap-1"
                 >
                   Öffentliche Ansicht
-                  <span aria-hidden>↗</span>
+                  <ExternalLink size={12} />
                 </Link>
               </nav>
             </div>

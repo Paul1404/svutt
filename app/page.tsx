@@ -3,6 +3,7 @@ import { db } from "@/lib/db/client";
 import { tournaments } from "@/lib/db/schema";
 import { desc } from "drizzle-orm";
 import { ClubMark } from "@/components/ClubMark";
+import { ArrowRight, ExternalLink } from "@/components/Icon";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +39,7 @@ export default async function HomePage() {
           rel="noreferrer"
           className="text-xs font-medium text-ink-500 hover:text-brand-600 transition-colors inline-flex items-center gap-1"
         >
-          sv-untereuerheim.de <span aria-hidden>↗</span>
+          sv-untereuerheim.de <ExternalLink size={12} />
         </a>
       </div>
 
@@ -76,9 +77,9 @@ export default async function HomePage() {
             </p>
             <Link
               href="/admin"
-              className="mt-3 inline-block text-sm font-medium text-brand-600 hover:text-brand-700"
+              className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-brand-600 hover:text-brand-700"
             >
-              Zum Admin-Bereich →
+              Zum Admin-Bereich <ArrowRight size={14} />
             </Link>
           </div>
         ) : (
@@ -101,7 +102,7 @@ export default async function HomePage() {
                       )}
                     </div>
                     <span className="text-ink-300 group-hover:text-brand-600 group-hover:translate-x-0.5 transition-all">
-                      →
+                      <ArrowRight size={18} />
                     </span>
                   </div>
                 </Link>

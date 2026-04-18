@@ -6,6 +6,7 @@ import type {
   Participant,
 } from "@/lib/db/schema";
 import type { GroupStanding } from "@/lib/engine/types";
+import { ChevronDown } from "@/components/Icon";
 
 type Props = {
   groups: Group[];
@@ -125,7 +126,7 @@ export function PublicGroupView({
                     Spielplan ({gMatches.length})
                   </span>
                   <span className="text-ink-400 transition-transform group-open:rotate-180">
-                    ▾
+                    <ChevronDown size={16} />
                   </span>
                 </summary>
                 <ul className="divide-y divide-ink-100 border-t border-ink-100">

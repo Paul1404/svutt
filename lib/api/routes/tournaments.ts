@@ -135,6 +135,9 @@ export const tournamentRoutes = new Hono()
         slug: data.slug,
         groupSize: data.groupSize ?? 4,
         winSets: data.winSets ?? 2,
+        setPoints: data.setPoints ?? 11,
+        setMinLead: data.setMinLead ?? 2,
+        luckyLoserEnabled: data.luckyLoserEnabled ?? true,
         sortOrder: data.sortOrder ?? 0,
       })
       .returning();
