@@ -23,9 +23,19 @@ import {
   drawGroups,
   generateRoundRobin,
   scheduleMatches,
+  isTournamentStructure,
   type EngineGroup,
   type Player,
+  type TournamentStructure,
+  type DrawMode,
 } from "@/lib/engine";
+import type { SeededPlayer } from "@/lib/engine/draw";
+import { buildKoOnly } from "@/lib/engine/koOnly";
+import { planRoundRobinOnly } from "@/lib/engine/roundRobinOnly";
+import {
+  planSwissRound,
+  type SwissHistoryMatch,
+} from "@/lib/engine/swiss";
 import { conflict, notFound, parseJson } from "../helpers";
 
 export const categoryRoutes = new Hono()
@@ -181,7 +191,7 @@ export const categoryRoutes = new Hono()
     if (!row) return notFound(c, "Teilnehmer");
     return c.json({ ok: true });
   })
-  // Draw groups + generate round-robin + compute schedule
+  // Draw / plan — dispatches on category.structure.
   .post("/:id/draw", async (c) => {
     const id = c.req.param("id");
     const body = await c.req.json().catch(() => ({}));
@@ -209,109 +219,353 @@ export const categoryRoutes = new Hono()
       .where(eq(participants.categoryId, id))
       .orderBy(asc(participants.createdAt));
 
-    if (parts.length < 4) {
-      return c.json({ error: "Mindestens 4 Teilnehmer nötig." }, 400);
+    const structure: TournamentStructure = isTournamentStructure(cat.structure)
+      ? cat.structure
+      : "groups_ko";
+    const drawMode = (cat.drawMode as DrawMode) ?? "random";
+
+    const minCount =
+      structure === "groups_ko" ? 4 : 2;
+    if (parts.length < minCount) {
+      return c.json(
+        { error: `Mindestens ${minCount} Teilnehmer nötig.` },
+        400,
+      );
     }
 
-    const players: Player[] = parts.map((p) => ({
+    const players: SeededPlayer[] = parts.map((p) => ({
       id: p.id,
       name: p.name,
       club: p.club ?? undefined,
+      seed: p.seed ?? null,
     }));
 
-    const drawn = drawGroups(players, {
-      groupSize: cat.groupSize,
-      seed: parsed.data.seed,
-    });
+    const baseDate = tournament.startDate ?? startOfToday();
+    const scheduleCfg = {
+      startTime: tournament.startTime,
+      parallelTables: tournament.parallelTables,
+      matchDurationMinutes: tournament.matchDurationMinutes,
+    };
 
-    // Persist groups + members + round-robin matches + schedule.
-    await db.transaction(async (tx) => {
-      // Clear any previous state (safety, though drawDone guards).
-      await tx.delete(groups).where(eq(groups.categoryId, id));
-      await tx.delete(matches).where(eq(matches.categoryId, id));
+    if (structure === "groups_ko" || structure === "round_robin") {
+      const drawn =
+        structure === "groups_ko"
+          ? drawGroups(players, {
+              groupSize: cat.groupSize,
+              seed: parsed.data.seed,
+              drawMode,
+            })
+          : [
+              {
+                label: planRoundRobinOnly({ players, drawMode }).group.label,
+                position: 0,
+                players: planRoundRobinOnly({ players, drawMode }).group
+                  .players,
+              },
+            ];
 
-      const groupRows = await tx
-        .insert(groups)
-        .values(
-          drawn.map((g) => ({
-            categoryId: id,
-            label: g.label,
-            position: g.position,
+      await db.transaction(async (tx) => {
+        await tx.delete(groups).where(eq(groups.categoryId, id));
+        await tx.delete(matches).where(eq(matches.categoryId, id));
+
+        const groupRows = await tx
+          .insert(groups)
+          .values(
+            drawn.map((g) => ({
+              categoryId: id,
+              label: g.label,
+              position: g.position,
+            })),
+          )
+          .returning();
+
+        const groupByLabel = new Map(groupRows.map((g) => [g.label, g]));
+        const memberInserts = drawn.flatMap((g) =>
+          g.players.map((p, idx) => ({
+            groupId: groupByLabel.get(g.label)!.id,
+            participantId: p.id,
+            position: idx + 1,
           })),
-        )
-        .returning();
-
-      const groupByLabel = new Map(groupRows.map((g) => [g.label, g]));
-      const memberInserts = drawn.flatMap((g) =>
-        g.players.map((p, idx) => ({
-          groupId: groupByLabel.get(g.label)!.id,
-          participantId: p.id,
-          position: idx + 1,
-        })),
-      );
-      if (memberInserts.length > 0) {
-        await tx.insert(groupMembers).values(memberInserts);
-      }
-
-      // Round-robin per group → collect all matches, schedule globally.
-      const allMatchInserts: (typeof matches.$inferInsert)[] = [];
-      for (const dg of drawn) {
-        const group = groupByLabel.get(dg.label)!;
-        const plan = generateRoundRobin(dg.players);
-        for (const m of plan) {
-          allMatchInserts.push({
-            categoryId: id,
-            stage: "group",
-            groupId: group.id,
-            round: m.round,
-            matchIndex: m.matchIndex,
-            participantAId: m.a.id,
-            participantBId: m.b.id,
-          });
+        );
+        if (memberInserts.length > 0) {
+          await tx.insert(groupMembers).values(memberInserts);
         }
-      }
 
-      // Order: interleave by round so parallel tables see different groups.
-      allMatchInserts.sort(
-        (x, y) =>
-          (x.round ?? 0) - (y.round ?? 0) ||
-          (x.matchIndex ?? 0) - (y.matchIndex ?? 0),
-      );
+        const allMatchInserts: (typeof matches.$inferInsert)[] = [];
+        for (const dg of drawn) {
+          const group = groupByLabel.get(dg.label)!;
+          const plan = generateRoundRobin(dg.players);
+          for (const m of plan) {
+            allMatchInserts.push({
+              categoryId: id,
+              stage: "group",
+              groupId: group.id,
+              round: m.round,
+              matchIndex: m.matchIndex,
+              participantAId: m.a.id,
+              participantBId: m.b.id,
+            });
+          }
+        }
 
-      // Schedule using tournament config.
-      const scheduled = scheduleMatches(
-        allMatchInserts.map((_m, i) => `tmp-${i}`),
-        {
+        allMatchInserts.sort(
+          (x, y) =>
+            (x.round ?? 0) - (y.round ?? 0) ||
+            (x.matchIndex ?? 0) - (y.matchIndex ?? 0),
+        );
+
+        const scheduled = scheduleMatches(
+          allMatchInserts.map((_m, i) => `tmp-${i}`),
+          scheduleCfg,
+        );
+        allMatchInserts.forEach((m, i) => {
+          const s = scheduled[i]!;
+          m.playOrder = s.playOrder;
+          m.tableNumber = s.tableNumber;
+          m.scheduledAt = applyWallClock(baseDate, s.wallClock);
+        });
+
+        if (allMatchInserts.length > 0) {
+          await tx.insert(matches).values(allMatchInserts);
+        }
+
+        await tx
+          .update(categories)
+          .set({
+            drawDone: true,
+            // Round-robin has no separate bracket stage.
+            ...(structure === "round_robin" ? { bracketDone: true } : {}),
+          })
+          .where(eq(categories.id, id));
+
+        await tx
+          .update(tournaments)
+          .set({ status: "running", updatedAt: new Date() })
+          .where(eq(tournaments.id, cat.tournamentId));
+      });
+
+      return c.json({ ok: true });
+    }
+
+    if (structure === "ko_only") {
+      const bracket = buildKoOnly({ players, seed: parsed.data.seed });
+
+      await db.transaction(async (tx) => {
+        await tx.delete(groups).where(eq(groups.categoryId, id));
+        await tx.delete(matches).where(eq(matches.categoryId, id));
+
+        await insertBracketMatches(tx, id, bracket.matches, {
+          baseDate,
           startTime: tournament.startTime,
           parallelTables: tournament.parallelTables,
           matchDurationMinutes: tournament.matchDurationMinutes,
-        },
-      );
-      const baseDate = tournament.startDate ?? startOfToday();
+          startOrder: 0,
+        });
 
-      allMatchInserts.forEach((m, i) => {
-        const s = scheduled[i]!;
-        m.playOrder = s.playOrder;
-        m.tableNumber = s.tableNumber;
-        m.scheduledAt = applyWallClock(baseDate, s.wallClock);
+        await tx
+          .update(categories)
+          .set({ drawDone: true, bracketDone: true })
+          .where(eq(categories.id, id));
+
+        await tx
+          .update(tournaments)
+          .set({ status: "running", updatedAt: new Date() })
+          .where(eq(tournaments.id, cat.tournamentId));
       });
 
-      if (allMatchInserts.length > 0) {
-        await tx.insert(matches).values(allMatchInserts);
+      return c.json({ ok: true });
+    }
+
+    if (structure === "swiss") {
+      const plan = planSwissRound({ players });
+
+      await db.transaction(async (tx) => {
+        await tx.delete(groups).where(eq(groups.categoryId, id));
+        await tx.delete(matches).where(eq(matches.categoryId, id));
+
+        const scheduled = scheduleMatches(
+          plan.matches.map((_m, i) => `tmp-${i}`),
+          scheduleCfg,
+        );
+        const inserts: (typeof matches.$inferInsert)[] = plan.matches.map(
+          (m, i) => ({
+            categoryId: id,
+            stage: "swiss" as const,
+            round: m.round,
+            matchIndex: m.matchIndex,
+            participantAId: m.a,
+            participantBId: m.b,
+            playOrder: scheduled[i]!.playOrder,
+            tableNumber: scheduled[i]!.tableNumber,
+            scheduledAt: applyWallClock(baseDate, scheduled[i]!.wallClock),
+          }),
+        );
+        if (inserts.length > 0) await tx.insert(matches).values(inserts);
+
+        await tx
+          .update(categories)
+          .set({ drawDone: true })
+          .where(eq(categories.id, id));
+
+        await tx
+          .update(tournaments)
+          .set({ status: "running", updatedAt: new Date() })
+          .where(eq(tournaments.id, cat.tournamentId));
+      });
+
+      return c.json({ ok: true, byePlayerId: plan.byePlayerId });
+    }
+
+    return c.json({ error: "Unbekannte Turnierstruktur." }, 400);
+  })
+  // Plan the next Swiss round from previous results. Only valid when
+  // structure === "swiss" and the previous round is fully finished.
+  .post("/:id/swiss/round", async (c) => {
+    const id = c.req.param("id");
+    const [cat] = await db
+      .select()
+      .from(categories)
+      .where(eq(categories.id, id))
+      .limit(1);
+    if (!cat) return notFound(c, "Spielklasse");
+    if (cat.structure !== "swiss") {
+      return conflict(c, "Diese Spielklasse ist kein Schweizer System.");
+    }
+    if (!cat.drawDone) {
+      return conflict(c, "Die erste Runde muss zuerst gelost sein.");
+    }
+    if (cat.bracketDone) {
+      return conflict(c, "Das Turnier ist bereits abgeschlossen.");
+    }
+
+    const [tournament] = await db
+      .select()
+      .from(tournaments)
+      .where(eq(tournaments.id, cat.tournamentId))
+      .limit(1);
+    if (!tournament) return notFound(c, "Turnier");
+
+    const parts = await db
+      .select()
+      .from(participants)
+      .where(eq(participants.categoryId, id))
+      .orderBy(asc(participants.createdAt));
+
+    const swissMatches = await db
+      .select()
+      .from(matches)
+      .where(and(eq(matches.categoryId, id), eq(matches.stage, "swiss")))
+      .orderBy(asc(matches.round), asc(matches.matchIndex));
+    const setRows = swissMatches.length
+      ? await db
+          .select()
+          .from(matchSets)
+          .where(
+            inArray(
+              matchSets.matchId,
+              swissMatches.map((m) => m.id),
+            ),
+          )
+          .orderBy(asc(matchSets.setNumber))
+      : [];
+
+    // Require latest round fully finished before pairing the next one.
+    const maxRound = swissMatches.reduce((m, r) => Math.max(m, r.round), -1);
+    const lastRoundMatches = swissMatches.filter((m) => m.round === maxRound);
+    const unfinished = lastRoundMatches.filter(
+      (m) => m.status !== "finished" && m.participantBId !== null,
+    );
+    if (unfinished.length > 0) {
+      return c.json(
+        { error: "Erst alle Spiele der letzten Runde abschließen." },
+        400,
+      );
+    }
+
+    if (maxRound + 1 >= cat.swissRounds) {
+      return conflict(c, "Alle Schweizer Runden sind bereits gespielt.");
+    }
+
+    const setsByMatch = new Map<string, { a: number; b: number }[]>();
+    for (const s of setRows) {
+      const arr = setsByMatch.get(s.matchId) ?? [];
+      arr.push({ a: s.pointsA, b: s.pointsB });
+      setsByMatch.set(s.matchId, arr);
+    }
+    const history: SwissHistoryMatch[] = swissMatches.map((m) => ({
+      round: m.round,
+      a: m.participantAId!,
+      b: m.participantBId,
+      sets: setsByMatch.get(m.id) ?? [],
+    }));
+
+    const players: SeededPlayer[] = parts.map((p) => ({
+      id: p.id,
+      name: p.name,
+      club: p.club ?? undefined,
+      seed: p.seed ?? null,
+    }));
+
+    const plan = planSwissRound({ players, history });
+
+    const baseDate = tournament.startDate ?? startOfToday();
+    const scheduleCfg = {
+      startTime: tournament.startTime,
+      parallelTables: tournament.parallelTables,
+      matchDurationMinutes: tournament.matchDurationMinutes,
+    };
+
+    await db.transaction(async (tx) => {
+      const orderOffset = await tx
+        .select({ n: matches.playOrder })
+        .from(matches)
+        .where(eq(matches.categoryId, id))
+        .orderBy(desc(matches.playOrder))
+        .limit(1);
+      const startOrder = (orderOffset[0]?.n ?? -1) + 1;
+
+      const scheduled = scheduleMatches(
+        plan.matches.map((_m, i) => `tmp-${i}`),
+        scheduleCfg,
+      );
+      const inserts: (typeof matches.$inferInsert)[] = plan.matches.map(
+        (m, i) => ({
+          categoryId: id,
+          stage: "swiss" as const,
+          round: m.round,
+          matchIndex: m.matchIndex,
+          participantAId: m.a,
+          participantBId: m.b,
+          playOrder: startOrder + scheduled[i]!.playOrder,
+          tableNumber: scheduled[i]!.tableNumber,
+          scheduledAt: applyWallClock(
+            baseDate,
+            formatFromMinutes(
+              parseHHMM(tournament.startTime) +
+                Math.floor(
+                  (startOrder + scheduled[i]!.playOrder) /
+                    tournament.parallelTables,
+                ) *
+                  tournament.matchDurationMinutes,
+            ),
+          ),
+        }),
+      );
+      if (inserts.length > 0) await tx.insert(matches).values(inserts);
+
+      if (plan.round + 1 >= cat.swissRounds) {
+        await tx
+          .update(categories)
+          .set({ bracketDone: true })
+          .where(eq(categories.id, id));
       }
-
-      await tx
-        .update(categories)
-        .set({ drawDone: true })
-        .where(eq(categories.id, id));
-
-      await tx
-        .update(tournaments)
-        .set({ status: "running", updatedAt: new Date() })
-        .where(eq(tournaments.id, cat.tournamentId));
     });
 
-    return c.json({ ok: true });
+    return c.json({
+      ok: true,
+      round: plan.round,
+      byePlayerId: plan.byePlayerId,
+    });
   })
   // Rebuild the KO bracket from current standings
   .post("/:id/bracket", async (c) => {
@@ -324,6 +578,13 @@ export const categoryRoutes = new Hono()
     if (!cat) return notFound(c, "Spielklasse");
     if (!cat.drawDone)
       return conflict(c, "Auslosung muss erst abgeschlossen sein.");
+
+    if (cat.structure !== "groups_ko") {
+      return conflict(
+        c,
+        "Finalbaum gibt es nur bei Gruppen → KO. Andere Strukturen erzeugen ihren Spielplan beim Auslosen.",
+      );
+    }
 
     const [tournament] = await db
       .select()
@@ -524,6 +785,91 @@ function applyWallClock(base: Date, hhmm: string): Date {
   const d = new Date(base);
   d.setHours(h ?? 10, m ?? 0, 0, 0);
   return d;
+}
+
+/**
+ * Persist a freshly-built KO bracket (groups_ko or ko_only). Inserts every
+ * bracket match, then back-fills sourceMatch*Id references from the local
+ * bracket ids.
+ */
+async function insertBracketMatches(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  tx: any,
+  categoryId: string,
+  bracketMatches: readonly {
+    id: string;
+    round: number;
+    matchIndex: number;
+    label: string;
+    a:
+      | { kind: "player"; playerId: string }
+      | { kind: "pending"; fromMatchId: string }
+      | { kind: "empty" };
+    b:
+      | { kind: "player"; playerId: string }
+      | { kind: "pending"; fromMatchId: string }
+      | { kind: "empty" };
+  }[],
+  schedule: {
+    baseDate: Date;
+    startTime: string;
+    parallelTables: number;
+    matchDurationMinutes: number;
+    startOrder: number;
+  },
+) {
+  const { baseDate, startTime, parallelTables, matchDurationMinutes, startOrder } =
+    schedule;
+  const inserts: (typeof matches.$inferInsert & { _bid: string })[] =
+    bracketMatches.map((bm, idx) => ({
+      _bid: bm.id,
+      categoryId,
+      stage: "ko" as const,
+      round: bm.round,
+      matchIndex: bm.matchIndex,
+      koLabel: bm.label,
+      participantAId: bm.a.kind === "player" ? bm.a.playerId : null,
+      participantBId: bm.b.kind === "player" ? bm.b.playerId : null,
+      playOrder: startOrder + idx,
+      tableNumber: ((startOrder + idx) % parallelTables) + 1,
+      scheduledAt: applyWallClock(
+        baseDate,
+        formatFromMinutes(
+          parseHHMM(startTime) +
+            Math.floor((startOrder + idx) / parallelTables) *
+              matchDurationMinutes,
+        ),
+      ),
+    }));
+
+  const insertedRows = inserts.length
+    ? await tx
+        .insert(matches)
+        .values(inserts.map(({ _bid: _b, ...rest }) => rest))
+        .returning()
+    : [];
+
+  const bidToDbId = new Map<string, string>();
+  insertedRows.forEach((row: { id: string }, i: number) => {
+    bidToDbId.set(inserts[i]!._bid, row.id);
+  });
+
+  for (const bm of bracketMatches) {
+    const dbId = bidToDbId.get(bm.id);
+    if (!dbId) continue;
+    const update: { sourceMatchAId?: string; sourceMatchBId?: string } = {};
+    if (bm.a.kind === "pending") {
+      const srcDb = bidToDbId.get(bm.a.fromMatchId);
+      if (srcDb) update.sourceMatchAId = srcDb;
+    }
+    if (bm.b.kind === "pending") {
+      const srcDb = bidToDbId.get(bm.b.fromMatchId);
+      if (srcDb) update.sourceMatchBId = srcDb;
+    }
+    if (Object.keys(update).length > 0) {
+      await tx.update(matches).set(update).where(eq(matches.id, dbId));
+    }
+  }
 }
 
 export { loadEngineGroups };

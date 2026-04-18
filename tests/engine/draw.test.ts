@@ -167,7 +167,7 @@ describe("drawGroups — seeded_snake mode", () => {
     expect(groupOf("s1")).not.toBe(groupOf("s2"));
     // Also top seeds of each group are 1 and 2.
     const topSeedsByGroup = groups.map(
-      (g) => Math.min(...g.players.map((p) => (p.seed as number) ?? 99)),
+      (g) => Math.min(...g.players.map((p) => (p as SeededPlayer).seed ?? 99)),
     );
     expect(topSeedsByGroup.sort()).toEqual([1, 2]);
   });

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DRAW_MODES, TOURNAMENT_STRUCTURES } from "./engine/format";
 
 const slug = z
   .string()
@@ -32,11 +33,14 @@ export const updateTournamentSchema = createTournamentSchema.partial().extend({
 export const createCategorySchema = z.object({
   name: z.string().trim().min(1).max(80),
   slug,
-  groupSize: z.number().int().min(4).max(8).default(4),
+  groupSize: z.number().int().min(3).max(8).default(4),
   winSets: z.number().int().min(1).max(4).default(2),
   setPoints: z.number().int().min(1).max(50).default(11),
   setMinLead: z.number().int().min(1).max(10).default(2),
   luckyLoserEnabled: z.boolean().default(true),
+  structure: z.enum(TOURNAMENT_STRUCTURES).default("groups_ko"),
+  drawMode: z.enum(DRAW_MODES).default("random"),
+  swissRounds: z.number().int().min(1).max(20).default(5),
   sortOrder: z.number().int().optional(),
 });
 
@@ -57,6 +61,8 @@ export const singleParticipantSchema = z.object({
 export const drawSchema = z.object({
   seed: z.union([z.string(), z.number()]).optional(),
 });
+
+export const swissRoundSchema = z.object({});
 
 export const setScoreSchema = z.object({
   a: z.number().int().min(0).max(40),
