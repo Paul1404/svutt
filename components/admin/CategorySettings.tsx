@@ -3,6 +3,16 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import type { Category } from "@/lib/db/schema";
+import {
+  DRAW_MODES,
+  DRAW_MODE_LABELS,
+  TOURNAMENT_STRUCTURES,
+  STRUCTURE_LABELS,
+  type DrawMode,
+  type TournamentStructure,
+  isDrawMode,
+  isTournamentStructure,
+} from "@/lib/engine/format";
 import { AlertTriangle, Settings, Sparkles, Trash, Users } from "@/components/Icon";
 import { HelpTooltip } from "@/components/Tooltip";
 import { useToast } from "@/components/Toast";
@@ -21,6 +31,26 @@ const WIN_SETS_OPTIONS: { value: number; label: string }[] = [
 ];
 const SET_POINT_CHIPS = [7, 11, 15, 21];
 const LEAD_CHIPS = [1, 2];
+const SWISS_ROUND_CHIPS = [3, 4, 5, 6, 7];
+
+const STRUCTURE_DESCRIPTIONS: Record<TournamentStructure, string> = {
+  groups_ko:
+    "Klassisch: Gruppen­phase (jede:r gegen jede:n), danach KO-Finalbaum.",
+  round_robin:
+    "Alle spielen gegen alle. Eine einzige Rangliste, kein KO.",
+  ko_only:
+    "Direkter KO-Baum aus der Setzliste. Keine Gruppen, keine zweite Chance.",
+  swiss:
+    "Feste Rundenzahl, gepaart nach Punktgleichstand. Geeignet für viele Teilnehmer an kurzem Tag.",
+};
+
+const DRAW_MODE_DESCRIPTIONS: Record<DrawMode, string> = {
+  random: "Rein zufällig, optional deterministisch per Seed.",
+  seeded_snake:
+    "Spieler werden nach ihrer Setzposition (Feld „Setzplatz“) im Schlangenverfahren auf die Gruppen verteilt. Top-Gesetzte landen in verschiedenen Gruppen.",
+  manual:
+    "Du ziehst jeden Spieler selbst in eine Gruppe oder einen Platz im Baum.",
+};
 
 export function CategorySettings({
   category,
@@ -46,6 +76,13 @@ export function CategorySettings({
   const [luckyLoserEnabled, setLuckyLoserEnabled] = useState(
     category.luckyLoserEnabled,
   );
+  const [structure, setStructure] = useState<TournamentStructure>(
+    isTournamentStructure(category.structure) ? category.structure : "groups_ko",
+  );
+  const [drawMode, setDrawMode] = useState<DrawMode>(
+    isDrawMode(category.drawMode) ? category.drawMode : "random",
+  );
+  const [swissRounds, setSwissRounds] = useState(category.swissRounds ?? 5);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -61,6 +98,8 @@ export function CategorySettings({
         participantCount: participantCount ?? 0,
         groupSize,
         luckyLoserEnabled,
+        structure,
+        swissRounds,
         matchDurationMinutes,
         parallelTables,
       }),
@@ -68,6 +107,8 @@ export function CategorySettings({
       participantCount,
       groupSize,
       luckyLoserEnabled,
+      structure,
+      swissRounds,
       matchDurationMinutes,
       parallelTables,
     ],
@@ -80,12 +121,32 @@ export function CategorySettings({
   const showSuggestion =
     !drawn && suggested !== null && suggested !== groupSize;
 
+  const currentStructure: TournamentStructure = isTournamentStructure(
+    category.structure,
+  )
+    ? category.structure
+    : "groups_ko";
+  const currentDrawMode: DrawMode = isDrawMode(category.drawMode)
+    ? category.drawMode
+    : "random";
+
   if (!open) {
     return (
       <div className="card p-5">
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div className="flex flex-wrap gap-6 text-sm">
-            <Stat label="Gruppen à" value={String(category.groupSize)} />
+            <Stat
+              label="Struktur"
+              value={STRUCTURE_LABELS[currentStructure]}
+            />
+            <Stat label="Auslosung" value={DRAW_MODE_LABELS[currentDrawMode]} />
+            {currentStructure === "groups_ko" ||
+            currentStructure === "round_robin" ? (
+              <Stat label="Gruppen à" value={String(category.groupSize)} />
+            ) : null}
+            {currentStructure === "swiss" && (
+              <Stat label="Runden" value={String(category.swissRounds)} />
+            )}
             <Stat
               label="Modus"
               value={
@@ -98,10 +159,12 @@ export function CategorySettings({
               label="Sätze"
               value={`${category.setPoints} Pkt, +${category.setMinLead}`}
             />
-            <Stat
-              label="Lucky Loser"
-              value={category.luckyLoserEnabled ? "an" : "aus"}
-            />
+            {currentStructure === "groups_ko" && (
+              <Stat
+                label="Lucky Loser"
+                value={category.luckyLoserEnabled ? "an" : "aus"}
+              />
+            )}
           </div>
           <button
             className="btn-secondary btn-sm inline-flex items-center gap-1.5"
@@ -133,6 +196,9 @@ export function CategorySettings({
                   : {
                       groupSize,
                       winSets,
+                      structure,
+                      drawMode,
+                      swissRounds,
                     }),
                 setPoints,
                 setMinLead,
@@ -184,35 +250,120 @@ export function CategorySettings({
 
             <div>
               <div className="flex items-center gap-1 mb-1.5">
-                <span className="label mb-0">Spieler pro Gruppe</span>
-                <HelpTooltip label="Spieler pro Gruppe">
-                  Jede:r spielt in der Gruppe gegen alle anderen. 4 ist klassisch
-                  (6 Spiele pro Gruppe). Bei ungerader Teilnehmerzahl verteilen
-                  wir die Überhänge automatisch, damit keine winzige Gruppe
-                  entsteht.
+                <span className="label mb-0">Struktur</span>
+                <HelpTooltip label="Turnier­struktur">
+                  <strong>Gruppen → KO</strong>: klassisch. Jede:r spielt in
+                  einer Gruppe gegen alle, die Besten kommen ins KO.{" "}
+                  <strong>Jeder gegen jeden</strong>: eine große Rangliste,
+                  kein KO. <strong>KO-System</strong>: direkter Finalbaum aus
+                  der Setzliste. <strong>Schweizer System</strong>: feste
+                  Rundenzahl, in jeder Runde werden Spieler mit ähnlich vielen
+                  Siegen gepaart.
                 </HelpTooltip>
               </div>
               <ChipGroup
-                options={GROUP_SIZE_OPTIONS.map((n) => ({
-                  value: n,
-                  label: String(n),
+                options={TOURNAMENT_STRUCTURES.map((s) => ({
+                  value: s,
+                  label: STRUCTURE_LABELS[s],
                 }))}
-                value={groupSize}
-                onChange={setGroupSize}
+                value={structure}
+                onChange={(v) => setStructure(v)}
                 disabled={drawn}
               />
-              {showSuggestion && (
-                <button
-                  type="button"
-                  onClick={() => setGroupSize(suggested)}
-                  className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-brand-200 bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700 hover:bg-brand-100 transition-colors"
-                >
-                  <Sparkles size={12} />
-                  Für {participantCount} Teilnehmer: Gruppengröße{" "}
-                  <strong>{suggested}</strong> übernehmen
-                </button>
-              )}
+              <p className="mt-1.5 text-xs text-ink-500">
+                {STRUCTURE_DESCRIPTIONS[structure]}
+              </p>
             </div>
+
+            <div>
+              <div className="flex items-center gap-1 mb-1.5">
+                <span className="label mb-0">Auslosung</span>
+                <HelpTooltip label="Auslosungs­art">
+                  <strong>Zufällig</strong>: die App mischt. Mit Seed
+                  reproduzierbar. <strong>Gesetzt</strong>: nach Setzplatz
+                  (Feld „Setzposition“ beim Teilnehmer), Top-Gesetzte landen
+                  in verschiedenen Gruppen bzw. Ästen des Baums.{" "}
+                  <strong>Manuell</strong>: du verteilst selbst
+                  (Drag &amp; Drop, folgt).
+                </HelpTooltip>
+              </div>
+              <ChipGroup
+                options={DRAW_MODES.filter((m) => m !== "manual").map(
+                  (m) => ({ value: m, label: DRAW_MODE_LABELS[m] }),
+                )}
+                value={drawMode === "manual" ? "random" : drawMode}
+                onChange={(v) => setDrawMode(v)}
+                disabled={drawn}
+              />
+              <p className="mt-1.5 text-xs text-ink-500">
+                {DRAW_MODE_DESCRIPTIONS[drawMode]}
+              </p>
+            </div>
+
+            {(structure === "groups_ko" || structure === "round_robin") && (
+              <div>
+                <div className="flex items-center gap-1 mb-1.5">
+                  <span className="label mb-0">
+                    {structure === "round_robin"
+                      ? "Gruppen­größe (Referenz)"
+                      : "Spieler pro Gruppe"}
+                  </span>
+                  <HelpTooltip label="Spieler pro Gruppe">
+                    Jede:r spielt in der Gruppe gegen alle anderen. 4 ist klassisch
+                    (6 Spiele pro Gruppe). Bei ungerader Teilnehmerzahl verteilen
+                    wir die Überhänge automatisch, damit keine winzige Gruppe
+                    entsteht. Bei „Jeder gegen jeden“ wird ohnehin eine einzige
+                    Gruppe gebildet — der Wert dient nur der Ablage.
+                  </HelpTooltip>
+                </div>
+                <ChipGroup
+                  options={GROUP_SIZE_OPTIONS.map((n) => ({
+                    value: n,
+                    label: String(n),
+                  }))}
+                  value={groupSize}
+                  onChange={setGroupSize}
+                  disabled={drawn}
+                />
+                {showSuggestion && structure === "groups_ko" && (
+                  <button
+                    type="button"
+                    onClick={() => setGroupSize(suggested)}
+                    className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-brand-200 bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700 hover:bg-brand-100 transition-colors"
+                  >
+                    <Sparkles size={12} />
+                    Für {participantCount} Teilnehmer: Gruppengröße{" "}
+                    <strong>{suggested}</strong> übernehmen
+                  </button>
+                )}
+              </div>
+            )}
+
+            {structure === "swiss" && (
+              <div>
+                <div className="flex items-center gap-1 mb-1.5">
+                  <span className="label mb-0">Runden</span>
+                  <HelpTooltip label="Schweizer Runden">
+                    Feste Rundenanzahl. Richtwert: <strong>ceil(log₂(N))</strong>
+                    , mindestens 3. Für 16 Teilnehmer also 4 Runden, für 32
+                    → 5.
+                  </HelpTooltip>
+                </div>
+                <ChipGroup
+                  options={SWISS_ROUND_CHIPS.map((n) => ({
+                    value: n,
+                    label: String(n),
+                  }))}
+                  value={swissRounds}
+                  onChange={setSwissRounds}
+                  disabled={drawn}
+                  allowCustom
+                  customMin={1}
+                  customMax={15}
+                  customLabel="Andere"
+                />
+              </div>
+            )}
 
             <div>
               <div className="flex items-center gap-1 mb-1.5">
@@ -431,9 +582,9 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-type ChipOption<T extends number> = { value: T; label: string };
+type ChipOption<T extends number | string> = { value: T; label: string };
 
-function ChipGroup<T extends number>({
+function ChipGroup<T extends number | string>({
   options,
   value,
   onChange,
@@ -462,7 +613,7 @@ function ChipGroup<T extends number>({
         const active = value === opt.value;
         return (
           <button
-            key={opt.value}
+            key={String(opt.value)}
             type="button"
             role="radio"
             aria-checked={active}
@@ -531,8 +682,8 @@ function PreviewPanel({
 
       {!hasCount ? (
         <p className="text-xs text-ink-500 leading-relaxed">
-          Füge Teilnehmer hinzu, dann siehst du hier die Gruppen­aufteilung, die
-          Runden im KO und eine Zeit­schätzung.
+          Füge Teilnehmer hinzu, dann siehst du hier den Spielplan und eine
+          Zeit­schätzung.
         </p>
       ) : (
         <>
@@ -546,14 +697,29 @@ function PreviewPanel({
           </p>
 
           <div className="grid grid-cols-2 gap-x-3 gap-y-2 pt-2 border-t border-ink-200/80 text-xs">
-            <PreviewStat
-              label="Gruppen­spiele"
-              value={String(preview.groupMatches)}
-            />
-            <PreviewStat
-              label="KO-Spiele"
-              value={preview.hasKO ? String(preview.koMatches) : "—"}
-            />
+            {preview.structure === "swiss" ? (
+              <>
+                <PreviewStat
+                  label="Runden"
+                  value={String(preview.swissRounds)}
+                />
+                <PreviewStat
+                  label="Spiele / Runde"
+                  value={String(preview.swissMatchesPerRound)}
+                />
+              </>
+            ) : (
+              <>
+                <PreviewStat
+                  label="Gruppen­spiele"
+                  value={String(preview.groupMatches)}
+                />
+                <PreviewStat
+                  label="KO-Spiele"
+                  value={preview.hasKO ? String(preview.koMatches) : "—"}
+                />
+              </>
+            )}
             <PreviewStat
               label="Spiele gesamt"
               value={String(preview.totalMatches)}
@@ -566,13 +732,16 @@ function PreviewPanel({
 
           <div className="pt-2 border-t border-ink-200/80 text-[11px] text-ink-500 leading-relaxed">
             Basierend auf {winSets === 1 ? "Bo1" : `Best of ${winSets * 2 - 1}`}
-            {preview.luckyLoserSlots > 0 &&
+            {preview.structure === "groups_ko" && preview.luckyLoserSlots > 0 &&
               `, ${preview.luckyLoserSlots} Lucky-Loser-Plätze`}
-            {preview.hasKO &&
+            {preview.structure === "groups_ko" &&
+              preview.hasKO &&
               preview.luckyLoserSlots === 0 &&
               preview.koSize > preview.groupCount &&
               !luckyLoserEnabled &&
               `, ${preview.koSize - preview.groupCount} Freilose`}
+            {preview.structure === "swiss" && preview.swissByesPerRound > 0 &&
+              `, 1 Freilos pro Runde`}
             .
           </div>
         </>

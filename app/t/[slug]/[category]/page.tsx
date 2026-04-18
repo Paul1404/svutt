@@ -12,9 +12,14 @@ import {
   tournaments,
 } from "@/lib/db/schema";
 import { computeStandings, type EngineGroup, type Player } from "@/lib/engine";
+import {
+  isTournamentStructure,
+  type TournamentStructure,
+} from "@/lib/engine/format";
 import { AutoRefresh } from "@/components/public/AutoRefresh";
 import { PublicGroupView } from "@/components/public/PublicGroupView";
 import { PublicBracket } from "@/components/public/PublicBracket";
+import { PublicSwissView } from "@/components/public/PublicSwissView";
 import { ArrowLeft } from "@/components/Icon";
 
 export const dynamic = "force-dynamic";
@@ -119,6 +124,13 @@ export default async function PublicCategoryPage({
 
   const groupMatches = matchRows.filter((m) => m.stage === "group");
   const koMatches = matchRows.filter((m) => m.stage === "ko");
+  const swissMatches = matchRows.filter((m) => m.stage === "swiss");
+
+  const structure: TournamentStructure = isTournamentStructure(
+    category.structure,
+  )
+    ? category.structure
+    : "groups_ko";
 
   return (
     <div className="min-h-screen bg-white">
@@ -142,6 +154,20 @@ export default async function PublicCategoryPage({
           <div className="rounded-xl border border-dashed border-ink-200 bg-white p-10 text-center">
             <p className="text-sm text-ink-600">Losung steht noch aus.</p>
           </div>
+        ) : structure === "swiss" ? (
+          <PublicSwissView
+            participants={parts}
+            matches={swissMatches}
+            sets={setRows}
+          />
+        ) : structure === "ko_only" ? (
+          koMatches.length > 0 ? (
+            <PublicBracket
+              koMatches={koMatches}
+              sets={setRows}
+              participants={parts}
+            />
+          ) : null
         ) : (
           <>
             <PublicGroupView

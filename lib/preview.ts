@@ -1,6 +1,9 @@
 import { computeGroupShape, nextPowerOfTwo } from "./engine";
+import type { TournamentStructure } from "./engine/format";
+import { suggestedSwissRounds } from "./engine/swiss";
 
 export type StructurePreview = {
+  structure: TournamentStructure;
   participantCount: number;
   groupShape: number[];
   groupCount: number;
@@ -9,6 +12,9 @@ export type StructurePreview = {
   koSize: number;
   koMatches: number;
   luckyLoserSlots: number;
+  swissRounds: number;
+  swissMatchesPerRound: number;
+  swissByesPerRound: number;
   totalMatches: number;
   estimatedMinutes: number;
   summary: string;
@@ -18,6 +24,8 @@ export type PreviewInput = {
   participantCount: number;
   groupSize: number;
   luckyLoserEnabled: boolean;
+  structure?: TournamentStructure;
+  swissRounds?: number;
   matchDurationMinutes?: number;
   parallelTables?: number;
 };
@@ -26,11 +34,93 @@ export function computePreview({
   participantCount,
   groupSize,
   luckyLoserEnabled,
+  structure = "groups_ko",
+  swissRounds: swissRoundsInput,
   matchDurationMinutes = 11,
   parallelTables = 1,
 }: PreviewInput): StructurePreview {
-  if (participantCount < 2) {
+  const minPlayers = structure === "groups_ko" ? 4 : 2;
+  const empty: StructurePreview = {
+    structure,
+    participantCount,
+    groupShape: [],
+    groupCount: 0,
+    groupMatches: 0,
+    hasKO: false,
+    koSize: 0,
+    koMatches: 0,
+    luckyLoserSlots: 0,
+    swissRounds: 0,
+    swissMatchesPerRound: 0,
+    swissByesPerRound: 0,
+    totalMatches: 0,
+    estimatedMinutes: 0,
+    summary: "Zu wenige Teilnehmer für einen Wettbewerb.",
+  };
+  if (participantCount < minPlayers) return empty;
+
+  const tables = Math.max(1, parallelTables);
+  const duration = matchDurationMinutes > 0 ? matchDurationMinutes : 11;
+
+  if (structure === "round_robin") {
+    const shape = [participantCount];
+    const groupMatches = (participantCount * (participantCount - 1)) / 2;
+    const estimatedMinutes = Math.ceil((groupMatches * duration) / tables);
     return {
+      structure,
+      participantCount,
+      groupShape: shape,
+      groupCount: 1,
+      groupMatches,
+      hasKO: false,
+      koSize: 0,
+      koMatches: 0,
+      luckyLoserSlots: 0,
+      swissRounds: 0,
+      swissMatchesPerRound: 0,
+      swissByesPerRound: 0,
+      totalMatches: groupMatches,
+      estimatedMinutes,
+      summary: `Jeder gegen jeden · ${groupMatches} Spiele, 1 Rangliste.`,
+    };
+  }
+
+  if (structure === "ko_only") {
+    const koSize = nextPowerOfTwo(participantCount);
+    const koMatches = koSize - 1;
+    const byes = koSize - participantCount;
+    const estimatedMinutes = Math.ceil((koMatches * duration) / tables);
+    const label = koRoundLabel(koSize);
+    return {
+      structure,
+      participantCount,
+      groupShape: [],
+      groupCount: 0,
+      groupMatches: 0,
+      hasKO: true,
+      koSize,
+      koMatches,
+      luckyLoserSlots: 0,
+      swissRounds: 0,
+      swissMatchesPerRound: 0,
+      swissByesPerRound: 0,
+      totalMatches: koMatches,
+      estimatedMinutes,
+      summary: `KO-Baum ${label}${byes > 0 ? ` (+${byes} Freilos)` : ""}.`,
+    };
+  }
+
+  if (structure === "swiss") {
+    const rounds = Math.max(
+      1,
+      swissRoundsInput ?? suggestedSwissRounds(participantCount),
+    );
+    const byesPerRound = participantCount % 2 === 1 ? 1 : 0;
+    const matchesPerRound = Math.floor(participantCount / 2);
+    const totalMatches = matchesPerRound * rounds;
+    const estimatedMinutes = Math.ceil((totalMatches * duration) / tables);
+    return {
+      structure,
       participantCount,
       groupShape: [],
       groupCount: 0,
@@ -39,11 +129,18 @@ export function computePreview({
       koSize: 0,
       koMatches: 0,
       luckyLoserSlots: 0,
-      totalMatches: 0,
-      estimatedMinutes: 0,
-      summary: "Zu wenige Teilnehmer für einen Wettbewerb.",
+      swissRounds: rounds,
+      swissMatchesPerRound: matchesPerRound,
+      swissByesPerRound: byesPerRound,
+      totalMatches,
+      estimatedMinutes,
+      summary: `Schweizer System · ${rounds} Runden à ${matchesPerRound} Spielen${
+        byesPerRound > 0 ? " (je 1 Freilos)" : ""
+      }.`,
     };
   }
+
+  // default: groups_ko (original logic)
   const shape = computeGroupShape(participantCount, groupSize);
   const groupCount = shape.length;
   const groupMatches = shape.reduce((acc, n) => acc + (n * (n - 1)) / 2, 0);
@@ -55,13 +152,12 @@ export function computePreview({
     hasKO && luckyLoserEnabled ? Math.max(0, koSize - groupCount) : 0;
 
   const totalMatches = groupMatches + koMatches;
-  const tables = Math.max(1, parallelTables);
-  const duration = matchDurationMinutes > 0 ? matchDurationMinutes : 11;
   const estimatedMinutes = Math.ceil((totalMatches * duration) / tables);
 
   const summary = buildSummary(shape, groupCount, koSize, luckyLoserSlots, hasKO);
 
   return {
+    structure,
     participantCount,
     groupShape: shape,
     groupCount,
@@ -70,10 +166,21 @@ export function computePreview({
     koSize,
     koMatches,
     luckyLoserSlots,
+    swissRounds: 0,
+    swissMatchesPerRound: 0,
+    swissByesPerRound: 0,
     totalMatches,
     estimatedMinutes,
     summary,
   };
+}
+
+function koRoundLabel(size: number): string {
+  if (size <= 2) return "· nur Finale";
+  if (size === 4) return "ab Halbfinale";
+  if (size === 8) return "ab Viertelfinale";
+  if (size === 16) return "ab Achtelfinale";
+  return `ab Runde der ${size}`;
 }
 
 function buildSummary(

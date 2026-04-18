@@ -15,6 +15,13 @@
       "when": 1745000000000,
       "tag": "0001_category_match_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1745600000000,
+      "tag": "0002_tournament_structure",
+      "breakpoints": true
     }
   ]
 }

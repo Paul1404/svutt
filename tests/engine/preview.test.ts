@@ -85,6 +85,87 @@ describe("computePreview", () => {
   });
 });
 
+describe("computePreview — structure-specific", () => {
+  it("round_robin: one group with C(N,2) matches, no KO", () => {
+    const p = computePreview({
+      participantCount: 6,
+      groupSize: 4,
+      luckyLoserEnabled: true,
+      structure: "round_robin",
+    });
+    expect(p.structure).toBe("round_robin");
+    expect(p.groupCount).toBe(1);
+    expect(p.groupMatches).toBe(15);
+    expect(p.hasKO).toBe(false);
+    expect(p.totalMatches).toBe(15);
+    expect(p.summary).toMatch(/Jeder gegen jeden/);
+  });
+
+  it("ko_only: bracket size = next power of two, byes = size - N", () => {
+    const p = computePreview({
+      participantCount: 5,
+      groupSize: 4,
+      luckyLoserEnabled: true,
+      structure: "ko_only",
+    });
+    expect(p.structure).toBe("ko_only");
+    expect(p.koSize).toBe(8);
+    expect(p.koMatches).toBe(7);
+    expect(p.totalMatches).toBe(7);
+    expect(p.summary).toContain("KO-Baum");
+    expect(p.summary).toContain("+3 Freilos");
+  });
+
+  it("ko_only: 8 players produces a Viertelfinale start without byes", () => {
+    const p = computePreview({
+      participantCount: 8,
+      groupSize: 4,
+      luckyLoserEnabled: true,
+      structure: "ko_only",
+    });
+    expect(p.koSize).toBe(8);
+    expect(p.summary).not.toContain("Freilos");
+  });
+
+  it("swiss: rounds × matchesPerRound plus bye count", () => {
+    const p = computePreview({
+      participantCount: 9,
+      groupSize: 4,
+      luckyLoserEnabled: true,
+      structure: "swiss",
+      swissRounds: 5,
+    });
+    expect(p.structure).toBe("swiss");
+    expect(p.swissRounds).toBe(5);
+    expect(p.swissMatchesPerRound).toBe(4);
+    expect(p.swissByesPerRound).toBe(1);
+    expect(p.totalMatches).toBe(20);
+    expect(p.summary).toContain("Schweizer System");
+    expect(p.summary).toContain("5 Runden");
+  });
+
+  it("swiss: falls back to suggested rounds when not provided", () => {
+    const p = computePreview({
+      participantCount: 16,
+      groupSize: 4,
+      luckyLoserEnabled: true,
+      structure: "swiss",
+    });
+    expect(p.swissRounds).toBeGreaterThanOrEqual(3);
+  });
+
+  it("structure: 'round_robin' requires only 2 players (not 4)", () => {
+    const p = computePreview({
+      participantCount: 2,
+      groupSize: 4,
+      luckyLoserEnabled: true,
+      structure: "round_robin",
+    });
+    expect(p.groupCount).toBe(1);
+    expect(p.totalMatches).toBe(1);
+  });
+});
+
 describe("formatDuration", () => {
   it("formats short, medium, and long durations", () => {
     expect(formatDuration(0)).toBe("—");
