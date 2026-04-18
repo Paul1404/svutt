@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Plus } from "@/components/Icon";
 
 function toSlug(s: string): string {
   return s
@@ -22,13 +23,20 @@ export function CreateCategoryForm({ tournamentId }: { tournamentId: string }) {
   const [slugEdited, setSlugEdited] = useState(false);
   const [groupSize, setGroupSize] = useState(4);
   const [winSets, setWinSets] = useState(2);
+  const [setPoints, setSetPoints] = useState(11);
+  const [setMinLead, setSetMinLead] = useState(2);
+  const [luckyLoserEnabled, setLuckyLoserEnabled] = useState(true);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   if (!open) {
     return (
-      <button className="btn-secondary" onClick={() => setOpen(true)}>
-        <span className="text-base leading-none">+</span> Spielklasse hinzufügen
+      <button
+        className="btn-secondary inline-flex items-center gap-1.5"
+        onClick={() => setOpen(true)}
+      >
+        <Plus size={14} /> Spielklasse hinzufügen
       </button>
     );
   }
@@ -51,6 +59,9 @@ export function CreateCategoryForm({ tournamentId }: { tournamentId: string }) {
                 slug: slug || toSlug(name),
                 groupSize,
                 winSets,
+                setPoints,
+                setMinLead,
+                luckyLoserEnabled,
               }),
             },
           );
@@ -64,6 +75,7 @@ export function CreateCategoryForm({ tournamentId }: { tournamentId: string }) {
           setName("");
           setSlug("");
           setSlugEdited(false);
+          setShowAdvanced(false);
         } finally {
           setSaving(false);
         }
@@ -97,6 +109,10 @@ export function CreateCategoryForm({ tournamentId }: { tournamentId: string }) {
             pattern="[a-z0-9-]+"
             required
           />
+          <p className="mt-1.5 text-xs text-ink-500">
+            Wird in der öffentlichen URL verwendet — nur Kleinbuchstaben, Zahlen
+            und Bindestriche.
+          </p>
         </div>
         <div>
           <label className="label">Spieler pro Gruppe</label>
@@ -108,7 +124,10 @@ export function CreateCategoryForm({ tournamentId }: { tournamentId: string }) {
             value={groupSize}
             onChange={(e) => setGroupSize(parseInt(e.target.value, 10))}
           />
-          <p className="mt-1.5 text-xs text-ink-500">4 bis 8 Spieler.</p>
+          <p className="mt-1.5 text-xs text-ink-500">
+            4 bis 8 Spieler. Bei knapper Teilnehmerzahl werden Gruppen leicht
+            vergrößert oder verkleinert.
+          </p>
         </div>
         <div>
           <label className="label">Spielmodus</label>
@@ -123,6 +142,65 @@ export function CreateCategoryForm({ tournamentId }: { tournamentId: string }) {
           </select>
         </div>
       </div>
+
+      <div>
+        <button
+          type="button"
+          className="text-xs font-medium text-ink-500 hover:text-brand-600"
+          onClick={() => setShowAdvanced((v) => !v)}
+        >
+          {showAdvanced ? "− " : "+ "}Erweiterte Tischtennis-Regeln
+        </button>
+      </div>
+      {showAdvanced && (
+        <div className="grid gap-4 sm:grid-cols-2 rounded-xl border border-ink-200 bg-ink-50/40 p-4">
+          <div>
+            <label className="label">Satz-Punkte</label>
+            <input
+              className="input"
+              type="number"
+              min={1}
+              max={50}
+              value={setPoints}
+              onChange={(e) => setSetPoints(parseInt(e.target.value, 10))}
+            />
+            <p className="mt-1.5 text-xs text-ink-500">
+              Standard: 11. Schulturnier z.B. 15 oder 21.
+            </p>
+          </div>
+          <div>
+            <label className="label">Mindestvorsprung</label>
+            <input
+              className="input"
+              type="number"
+              min={1}
+              max={10}
+              value={setMinLead}
+              onChange={(e) => setSetMinLead(parseInt(e.target.value, 10))}
+            />
+            <p className="mt-1.5 text-xs text-ink-500">
+              Standard: 2 (Einstand-Regel ab 10:10).
+            </p>
+          </div>
+          <label className="sm:col-span-2 flex items-start gap-3 cursor-pointer rounded-lg border border-ink-200 bg-white p-3 hover:border-brand-300 transition-colors">
+            <input
+              type="checkbox"
+              className="mt-0.5"
+              checked={luckyLoserEnabled}
+              onChange={(e) => setLuckyLoserEnabled(e.target.checked)}
+            />
+            <span className="text-sm">
+              <span className="font-medium">Lucky Loser zulassen</span>
+              <span className="block text-xs text-ink-500 mt-0.5">
+                Wenn die Anzahl der Gruppen keine Zweierpotenz ist, werden die
+                besten Gruppendritten in den Finalbaum nachgerückt. Wenn aus,
+                bleiben Plätze frei (Freilos).
+              </span>
+            </span>
+          </label>
+        </div>
+      )}
+
       {error && (
         <div className="rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-sm text-brand-700">
           {error}

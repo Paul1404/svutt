@@ -2,12 +2,19 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "SVUTT Tischtennis-Turniere",
+  title: {
+    default: "SV 1945 Untereuerheim — Tischtennis-Turniere",
+    template: "%s · SV Untereuerheim Tischtennis",
+  },
   description:
-    "Tischtennis-Turniere einfach verwalten. Gruppen ziehen, Ergebnisse eingeben, Finalrunde live zeigen.",
+    "Tischtennis-Turniere des SV 1945 Untereuerheim e.V. — Gruppen, Ergebnisse und Finalrunde live verfolgen.",
   icons: {
-    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/logo.png", type: "image/png", sizes: "any" },
+    ],
     shortcut: "/icon.svg",
+    apple: "/logo.png",
   },
 };
 

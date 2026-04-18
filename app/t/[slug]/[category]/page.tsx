@@ -15,6 +15,7 @@ import { computeStandings, type EngineGroup, type Player } from "@/lib/engine";
 import { AutoRefresh } from "@/components/public/AutoRefresh";
 import { PublicGroupView } from "@/components/public/PublicGroupView";
 import { PublicBracket } from "@/components/public/PublicBracket";
+import { ArrowLeft, Hourglass } from "@/components/Icon";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -126,9 +127,9 @@ export default async function PublicCategoryPage({
         <div className="mx-auto max-w-5xl px-4 py-4">
           <Link
             href={`/t/${tournament.slug}`}
-            className="text-sm text-brand-100 hover:text-white transition-colors"
+            className="inline-flex items-center gap-1 text-sm text-brand-100 hover:text-white transition-colors"
           >
-            ← {tournament.name}
+            <ArrowLeft size={14} /> {tournament.name}
           </Link>
           <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
@@ -145,8 +146,8 @@ export default async function PublicCategoryPage({
       <main className="mx-auto max-w-5xl px-4 py-8 space-y-10">
         {!category.drawDone ? (
           <div className="rounded-xl border border-dashed border-ink-200 bg-white p-12 text-center">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-brand-50 text-brand-600 text-xl">
-              ⏳
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-brand-50 text-brand-600">
+              <Hourglass size={20} />
             </div>
             <h2 className="mt-4 font-semibold text-lg">Losung steht noch aus</h2>
             <p className="mt-1 text-sm text-ink-500">
@@ -177,7 +178,14 @@ export default async function PublicCategoryPage({
 
       <footer className="border-t border-ink-100 py-6">
         <div className="mx-auto max-w-5xl px-4 flex items-center justify-between text-xs text-ink-400">
-          <span>SVUTT</span>
+          <a
+            href="https://sv-untereuerheim.de"
+            target="_blank"
+            rel="noreferrer"
+            className="hover:text-brand-600 transition-colors"
+          >
+            SV 1945 Untereuerheim e.V.
+          </a>
           <span className="inline-flex items-center gap-1.5">
             <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
             Aktualisiert alle 30 Sekunden

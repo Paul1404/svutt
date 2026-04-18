@@ -9,6 +9,7 @@ import type {
   Participant,
 } from "@/lib/db/schema";
 import { MatchResultDialog } from "./MatchResultDialog";
+import { Trophy } from "@/components/Icon";
 
 type Props = {
   tournamentId: string;
@@ -93,8 +94,8 @@ export function BracketPanel({
     <section className="card p-6 space-y-5">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="flex items-start gap-4">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 text-xl">
-            🏆
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+            <Trophy size={20} />
           </div>
           <div>
             <h2 className="text-lg font-semibold tracking-tight">

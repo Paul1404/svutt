@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Dice } from "@/components/Icon";
 
 export function DrawPanel({
   categoryId,
@@ -20,8 +21,8 @@ export function DrawPanel({
   return (
     <section className="card p-6 space-y-4">
       <div className="flex items-start gap-4">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 text-xl">
-          🎲
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+          <Dice size={20} />
         </div>
         <div className="flex-1">
           <h2 className="text-lg font-semibold tracking-tight">

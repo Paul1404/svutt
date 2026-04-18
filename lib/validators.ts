@@ -34,6 +34,9 @@ export const createCategorySchema = z.object({
   slug,
   groupSize: z.number().int().min(4).max(8).default(4),
   winSets: z.number().int().min(2).max(4).default(2),
+  setPoints: z.number().int().min(1).max(50).default(11),
+  setMinLead: z.number().int().min(1).max(10).default(2),
+  luckyLoserEnabled: z.boolean().default(true),
   sortOrder: z.number().int().optional(),
 });
 

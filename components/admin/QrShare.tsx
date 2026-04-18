@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import QRCode from "qrcode";
+import { Share } from "@/components/Icon";
 
 export function QrShare({ slug }: { slug: string }) {
   const [dataUrl, setDataUrl] = useState<string | null>(null);
@@ -31,7 +32,7 @@ export function QrShare({ slug }: { slug: string }) {
         className="btn-secondary btn-sm"
         onClick={() => setOpen(true)}
       >
-        <span aria-hidden>🔗</span> Teilen
+        <Share size={14} /> Teilen
       </button>
     );
   }

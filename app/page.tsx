@@ -2,6 +2,8 @@ import Link from "next/link";
 import { db } from "@/lib/db/client";
 import { tournaments } from "@/lib/db/schema";
 import { desc } from "drizzle-orm";
+import { ClubMark } from "@/components/ClubMark";
+import { ArrowRight, ExternalLink } from "@/components/Icon";
 
 export const dynamic = "force-dynamic";
 
@@ -29,23 +31,31 @@ export default async function HomePage() {
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-16 sm:py-24">
-      <div className="flex items-center gap-2">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-white font-bold text-sm shadow-soft">
-          S
-        </div>
-        <span className="text-sm font-semibold tracking-tight text-ink-700">
-          SVUTT
-        </span>
+      <div className="flex items-center justify-between gap-4">
+        <ClubMark size="md" labelClassName="text-ink-700" />
+        <a
+          href="https://sv-untereuerheim.de"
+          target="_blank"
+          rel="noreferrer"
+          className="text-xs font-medium text-ink-500 hover:text-brand-600 transition-colors inline-flex items-center gap-1"
+        >
+          sv-untereuerheim.de <ExternalLink size={12} />
+        </a>
       </div>
 
-      <h1 className="mt-10 text-5xl sm:text-6xl font-bold tracking-tight text-ink-900">
-        Tischtennis-Turniere,
+      <p className="mt-12 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-brand-700">
+        <span className="h-1.5 w-1.5 rounded-full bg-brand-600" />
+        Tischtennis · Abteilung
+      </p>
+      <h1 className="mt-3 text-5xl sm:text-6xl font-bold tracking-tight text-ink-900">
+        Turniere des
         <br />
-        <span className="text-brand-600">ohne den Papierkram.</span>
+        <span className="text-brand-600">SV 1945 Untereuerheim.</span>
       </h1>
       <p className="mt-6 max-w-2xl text-lg text-ink-600 leading-relaxed">
-        Gruppen ziehen, Ergebnisse eintippen, Finalbaum live zeigen. Alles an
-        einem Ort, auch vom Handy am Spieltisch.
+        Gruppen, Ergebnisse und der Finalbaum — live aus der Halle. Vom
+        Spieltisch direkt aufs Handy, für Spieler:innen, Schiris und alle, die
+        zuschauen.
       </p>
 
       <div className="mt-14">
@@ -67,9 +77,9 @@ export default async function HomePage() {
             </p>
             <Link
               href="/admin"
-              className="mt-3 inline-block text-sm font-medium text-brand-600 hover:text-brand-700"
+              className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-brand-600 hover:text-brand-700"
             >
-              Zum Admin-Bereich →
+              Zum Admin-Bereich <ArrowRight size={14} />
             </Link>
           </div>
         ) : (
@@ -92,7 +102,7 @@ export default async function HomePage() {
                       )}
                     </div>
                     <span className="text-ink-300 group-hover:text-brand-600 group-hover:translate-x-0.5 transition-all">
-                      →
+                      <ArrowRight size={18} />
                     </span>
                   </div>
                 </Link>
@@ -102,16 +112,24 @@ export default async function HomePage() {
         )}
       </div>
 
-      <div className="mt-20 flex items-center justify-between border-t border-ink-100 pt-6">
-        <p className="text-xs text-ink-400">
-          Open Source auf GitHub
+      <div className="mt-20 border-t border-ink-100 pt-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="text-xs text-ink-500 leading-relaxed">
+            <div className="font-semibold text-ink-700">
+              SV 1945 Untereuerheim e.V.
+            </div>
+            <div>Triebweg 9 · 97508 Grettstadt-Untereuerheim</div>
+          </div>
+          <Link
+            href="/admin"
+            className="text-sm font-medium text-ink-600 hover:text-brand-600"
+          >
+            Admin-Bereich
+          </Link>
+        </div>
+        <p className="mt-3 text-[11px] uppercase tracking-wider text-ink-400">
+          Wir sind Untereuerheim
         </p>
-        <Link
-          href="/admin"
-          className="text-sm font-medium text-ink-600 hover:text-brand-600"
-        >
-          Admin-Bereich
-        </Link>
       </div>
     </main>
   );

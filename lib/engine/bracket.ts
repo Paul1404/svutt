@@ -16,6 +16,12 @@ export type BracketInput = {
   >[];
   /** Override rank-3 pool (otherwise computed from standings). */
   rank3Pool?: { playerId: PlayerId; groupLabel: string; row: StandingRow }[];
+  /**
+   * Whether to fill remaining slots with the best Gruppendritten ("Lucky Loser").
+   * When false, missing slots stay empty (effectively a bye for the seeded player).
+   * Defaults to true.
+   */
+  luckyLoserEnabled?: boolean;
 };
 
 export type BuiltBracket = Bracket & {
@@ -61,6 +67,7 @@ export function buildBracket(input: BracketInput): BuiltBracket {
 
   const size = nextPowerOfTwo(numGroups);
   const missing = size - numGroups;
+  const luckyLoserEnabled = input.luckyLoserEnabled !== false;
 
   // Collect Lucky Loser candidates: the third-ranked player from every group.
   const pool = (input.rank3Pool ?? buildRank3Pool(standings)).slice();
@@ -73,7 +80,7 @@ export function buildBracket(input: BracketInput): BuiltBracket {
     return x.groupLabel.localeCompare(y.groupLabel);
   });
 
-  const luckyLosers = pool.slice(0, missing);
+  const luckyLosers = luckyLoserEnabled ? pool.slice(0, missing) : [];
 
   // Slot ordering: winners in group order, then lucky losers.
   const slots: BracketSlot[] = [];

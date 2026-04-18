@@ -1,10 +1,14 @@
-# SVUTT — Tischtennis Turniersoftware
+# SVUTT — Tischtennis-Turniere · SV 1945 Untereuerheim e.V.
 
-Open-source web app for managing table tennis tournaments end-to-end: group
-draw, round-robin schedule, KO bracket (with Lucky Loser), match-time
-calculation, live public view with auto-refresh.
+Web-App der Tischtennis-Abteilung des **SV 1945 Untereuerheim e.V.** zur
+Verwaltung kompletter Turniere: Gruppen ziehen, Round-Robin-Spielplan,
+KO-Baum (inkl. Lucky-Loser), Spielzeit-Kalkulation und öffentliche Live-Ansicht
+mit automatischer Aktualisierung.
 
-Generic — not tied to any particular club.
+Mehr über den Verein: <https://sv-untereuerheim.de> · _Wir sind Untereuerheim_.
+
+Der Code ist Open-Source unter MIT-Lizenz und kann von anderen Vereinen
+ebenfalls genutzt werden — Logo und Vereinsnamen ggf. anpassen.
 
 ## Stack
 
@@ -93,7 +97,7 @@ pnpm dev
 | `pnpm dev` | Next.js dev server (Turbopack) |
 | `pnpm build` / `pnpm start` | Production build + serve |
 | `pnpm typecheck` | Strict TS type-check |
-| `pnpm test` | Run Vitest engine suite |
+| `pnpm test` | Run Vitest suite — pure engine tests **plus** end-to-end Hono API tests on an in-process Postgres ([PGlite](https://pglite.dev)). No live DB needed. |
 | `pnpm db:generate` | Drizzle Kit — generate migration from schema |
 | `pnpm db:push` | Push schema to DB (dev only) |
 | `pnpm db:migrate` | Apply SQL migrations from `/drizzle` |

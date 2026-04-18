@@ -3,6 +3,7 @@ import { db } from "@/lib/db/client";
 import { tournaments } from "@/lib/db/schema";
 import { desc } from "drizzle-orm";
 import { CreateTournamentForm } from "@/components/admin/CreateTournamentForm";
+import { ArrowRight, Plus, AlertTriangle } from "@/components/Icon";
 
 export const dynamic = "force-dynamic";
 
@@ -45,7 +46,7 @@ export default async function AdminHomePage() {
       {dbError && (
         <div className="card border-brand-200 bg-brand-50/50 p-4">
           <div className="flex items-start gap-3">
-            <span className="text-brand-600 text-lg leading-none">!</span>
+            <span className="text-brand-600"><AlertTriangle size={20} /></span>
             <div className="text-sm text-brand-800">
               <div className="font-semibold">Keine Datenbank erreichbar</div>
               <p className="mt-1">{dbError}</p>
@@ -61,8 +62,8 @@ export default async function AdminHomePage() {
       <div>
         {list.length === 0 ? (
           <div className="rounded-xl border border-dashed border-ink-200 bg-white p-12 text-center">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-brand-50 text-brand-600 font-bold text-xl">
-              +
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-brand-50 text-brand-600">
+              <Plus size={20} />
             </div>
             <h3 className="mt-4 font-semibold">Noch kein Turnier angelegt</h3>
             <p className="mt-1 text-sm text-ink-500">
@@ -95,7 +96,7 @@ export default async function AdminHomePage() {
                     <div className="mt-4 flex items-center justify-between text-xs text-ink-400 font-mono">
                       <span>/{t.slug}</span>
                       <span className="text-ink-300 group-hover:text-brand-600 group-hover:translate-x-0.5 transition-all">
-                        →
+                        <ArrowRight size={14} />
                       </span>
                     </div>
                   </Link>

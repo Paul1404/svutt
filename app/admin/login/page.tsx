@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { readSession } from "@/lib/auth/session";
 import { LoginForm } from "@/components/admin/LoginForm";
+import { ClubMark } from "@/components/ClubMark";
 
 export const dynamic = "force-dynamic";
 
@@ -13,12 +14,15 @@ export default async function LoginPage() {
       <div className="w-full max-w-sm">
         <Link
           href="/"
-          className="flex items-center justify-center gap-2 mb-8"
+          className="flex flex-col items-center gap-3 mb-8"
         >
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-600 text-white font-bold shadow-pop">
-            S
+          <ClubMark size="lg" showLabel={false} />
+          <div className="text-center">
+            <div className="font-semibold tracking-tight text-lg">
+              SV Untereuerheim
+            </div>
+            <div className="text-xs text-ink-500">Tischtennis-Turniere</div>
           </div>
-          <span className="font-semibold tracking-tight text-lg">SVUTT</span>
         </Link>
 
         <div className="card p-7">

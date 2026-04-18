@@ -334,7 +334,10 @@ export const categoryRoutes = new Hono()
 
     const { engineGroups } = await loadEngineGroups(id);
 
-    const bracket = buildBracket({ groups: engineGroups });
+    const bracket = buildBracket({
+      groups: engineGroups,
+      luckyLoserEnabled: cat.luckyLoserEnabled,
+    });
 
     await db.transaction(async (tx) => {
       // Wipe existing KO matches (and reset cache).

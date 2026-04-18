@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { eq, asc } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { categories, tournaments } from "@/lib/db/schema";
+import { ArrowLeft, ArrowRight, Calendar, MapPin } from "@/components/Icon";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -42,7 +43,7 @@ export default async function PublicTournamentPage({
             href="/"
             className="inline-flex items-center gap-1 text-sm text-brand-100 hover:text-white transition-colors"
           >
-            <span aria-hidden>←</span> Alle Turniere
+            <ArrowLeft size={14} /> Alle Turniere
           </Link>
           <h1 className="mt-4 text-3xl sm:text-5xl font-bold tracking-tight">
             {tournament.name}
@@ -51,13 +52,13 @@ export default async function PublicTournamentPage({
             <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-brand-100">
               {tournament.location && (
                 <span className="inline-flex items-center gap-1.5 text-sm">
-                  <span aria-hidden>📍</span>
+                  <MapPin size={14} />
                   {tournament.location}
                 </span>
               )}
               {tournament.startDate && (
                 <span className="inline-flex items-center gap-1.5 text-sm">
-                  <span aria-hidden>📅</span>
+                  <Calendar size={14} />
                   {new Date(tournament.startDate).toLocaleDateString("de-DE", {
                     weekday: "long",
                     day: "numeric",
@@ -115,8 +116,8 @@ export default async function PublicTournamentPage({
                       </span>
                     </div>
                     <div className="mt-4 flex items-center justify-end text-xs text-ink-400">
-                      <span className="text-ink-300 group-hover:text-brand-600 group-hover:translate-x-0.5 transition-all">
-                        Ansehen →
+                      <span className="text-ink-300 group-hover:text-brand-600 group-hover:translate-x-0.5 transition-all inline-flex items-center gap-1">
+                        Ansehen <ArrowRight size={12} />
                       </span>
                     </div>
                   </Link>
