@@ -38,12 +38,7 @@ export function PublicBracket({ koMatches, sets, participants }: Props) {
 
   return (
     <section className="space-y-5">
-      <div>
-        <h2 className="text-xl font-semibold tracking-tight">Finalrunde</h2>
-        <p className="mt-1 text-sm text-ink-500">
-          K.O.-System. Wer gewinnt, zieht eine Runde weiter.
-        </p>
-      </div>
+      <h2 className="text-xl font-semibold tracking-tight">Finalrunde</h2>
 
       <div className="overflow-x-auto -mx-4 px-4">
         <div className="flex gap-5 min-w-max pb-2">

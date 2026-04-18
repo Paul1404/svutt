@@ -43,12 +43,7 @@ export function PublicGroupView({
 
   return (
     <section className="space-y-5">
-      <div>
-        <h2 className="text-xl font-semibold tracking-tight">Gruppenphase</h2>
-        <p className="mt-1 text-sm text-ink-500">
-          Die beiden Erstplatzierten ziehen in die Finalrunde ein.
-        </p>
-      </div>
+      <h2 className="text-xl font-semibold tracking-tight">Gruppenphase</h2>
 
       <div className="grid gap-5 md:grid-cols-2">
         {groups.map((g) => {

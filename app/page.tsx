@@ -43,26 +43,11 @@ export default async function HomePage() {
         </a>
       </div>
 
-      <p className="mt-12 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-brand-700">
-        <span className="h-1.5 w-1.5 rounded-full bg-brand-600" />
-        Tischtennis · Abteilung
-      </p>
-      <h1 className="mt-3 text-5xl sm:text-6xl font-bold tracking-tight text-ink-900">
-        Turniere des
-        <br />
-        <span className="text-brand-600">SV 1945 Untereuerheim.</span>
-      </h1>
-      <p className="mt-6 max-w-2xl text-lg text-ink-600 leading-relaxed">
-        Gruppen, Ergebnisse und der Finalbaum — live aus der Halle. Vom
-        Spieltisch direkt aufs Handy, für Spieler:innen, Schiris und alle, die
-        zuschauen.
-      </p>
-
-      <div className="mt-14">
+      <div className="mt-12">
         <div className="flex items-baseline justify-between">
-          <h2 className="text-xl font-semibold tracking-tight">
-            Aktuelle Turniere
-          </h2>
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-ink-900">
+            Turniere
+          </h1>
           {list.length > 0 && (
             <span className="text-xs text-ink-500">
               {list.length} {list.length === 1 ? "Turnier" : "Turniere"}
@@ -127,9 +112,6 @@ export default async function HomePage() {
             Admin-Bereich
           </Link>
         </div>
-        <p className="mt-3 text-[11px] uppercase tracking-wider text-ink-400">
-          Wir sind Untereuerheim
-        </p>
       </div>
     </main>
   );

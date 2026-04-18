@@ -15,7 +15,7 @@ import { computeStandings, type EngineGroup, type Player } from "@/lib/engine";
 import { AutoRefresh } from "@/components/public/AutoRefresh";
 import { PublicGroupView } from "@/components/public/PublicGroupView";
 import { PublicBracket } from "@/components/public/PublicBracket";
-import { ArrowLeft, Hourglass } from "@/components/Icon";
+import { ArrowLeft } from "@/components/Icon";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -131,29 +131,16 @@ export default async function PublicCategoryPage({
           >
             <ArrowLeft size={14} /> {tournament.name}
           </Link>
-          <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
-              {category.name}
-            </h1>
-            <div className="flex items-center gap-1.5 text-xs text-brand-100">
-              <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-              Live
-            </div>
-          </div>
+          <h1 className="mt-2 text-xl sm:text-2xl font-bold tracking-tight">
+            {category.name}
+          </h1>
         </div>
       </header>
 
       <main className="mx-auto max-w-5xl px-4 py-8 space-y-10">
         {!category.drawDone ? (
-          <div className="rounded-xl border border-dashed border-ink-200 bg-white p-12 text-center">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-brand-50 text-brand-600">
-              <Hourglass size={20} />
-            </div>
-            <h2 className="mt-4 font-semibold text-lg">Losung steht noch aus</h2>
-            <p className="mt-1 text-sm text-ink-500">
-              Die Gruppen werden gleich gezogen. Diese Seite lädt sich
-              automatisch.
-            </p>
+          <div className="rounded-xl border border-dashed border-ink-200 bg-white p-10 text-center">
+            <p className="text-sm text-ink-600">Losung steht noch aus.</p>
           </div>
         ) : (
           <>
@@ -177,7 +164,7 @@ export default async function PublicCategoryPage({
       </main>
 
       <footer className="border-t border-ink-100 py-6">
-        <div className="mx-auto max-w-5xl px-4 flex items-center justify-between text-xs text-ink-400">
+        <div className="mx-auto max-w-5xl px-4 text-xs text-ink-400">
           <a
             href="https://sv-untereuerheim.de"
             target="_blank"
@@ -186,10 +173,6 @@ export default async function PublicCategoryPage({
           >
             SV 1945 Untereuerheim e.V.
           </a>
-          <span className="inline-flex items-center gap-1.5">
-            <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
-            Aktualisiert alle 30 Sekunden
-          </span>
         </div>
       </footer>
     </div>

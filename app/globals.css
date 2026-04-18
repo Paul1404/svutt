@@ -47,12 +47,6 @@
   }
   body {
     @apply bg-white min-h-screen;
-    background-image:
-      radial-gradient(
-        ellipse 80% 50% at 50% -20%,
-        rgb(254 226 226 / 0.5),
-        transparent
-      );
   }
   *:focus-visible {
     @apply outline-none ring-2 ring-brand-500/60 ring-offset-2 ring-offset-white rounded;
