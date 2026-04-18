@@ -6,3 +6,7 @@ export * from "./roundRobin";
 export * from "./standings";
 export * from "./bracket";
 export * from "./schedule";
+export * from "./format";
+export * as swiss from "./swiss";
+export * as koOnly from "./koOnly";
+export * as roundRobinOnly from "./roundRobinOnly";

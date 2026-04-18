@@ -1,5 +1,8 @@
 import type { Player } from "./types";
+import type { DrawMode } from "./format";
 import { createRng, shuffle, type Rng } from "./rng";
+
+export type SeededPlayer = Player & { seed?: number | null };
 
 export type DrawnGroup = {
   label: string;
@@ -12,6 +15,13 @@ export type DrawOptions = {
   groupSize: number;
   /** Optional deterministic seed. */
   seed?: number | string;
+  /**
+   * How to order players before snake-distribution.
+   * - "random" (default): shuffle using the RNG seed.
+   * - "seeded_snake": sort by participants.seed asc (unseeded last, stable by
+   *   insertion order). Produces a reproducible, strength-spread draw.
+   */
+  drawMode?: DrawMode;
 };
 
 const GROUP_LABELS = [
@@ -56,18 +66,23 @@ export function computeGroupShape(
 /**
  * Draw groups from the given player pool.
  *
- * Distribution is snake-draft across groups when seeds exist (so Top seeds are
- * spread apart), otherwise a plain shuffle.
+ * For `drawMode: "seeded_snake"`, players are ordered by their `seed` field
+ * (ascending, unseeded last, stable) and then snake-distributed so the top
+ * seeds land in different groups. Otherwise the pool is shuffled deterministic-
+ * ally by `opts.seed`.
  */
 export function drawGroups(
-  players: Player[],
+  players: SeededPlayer[],
   opts: DrawOptions,
 ): DrawnGroup[] {
   const rng = createRng(opts.seed ?? players.map((p) => p.id).join("|"));
   const shape = computeGroupShape(players.length, opts.groupSize);
   if (shape.length === 0) return [];
 
-  const shuffled = shuffle(players, rng);
+  const shuffled =
+    opts.drawMode === "seeded_snake"
+      ? orderBySeed(players)
+      : shuffle(players, rng);
 
   // Snake distribution: group 0,1,2,…,n-1, then n-1,…,1,0, then 0,…
   const groups: Player[][] = Array.from({ length: shape.length }, () => []);
@@ -102,6 +117,24 @@ export function drawGroups(
     position: i,
     players: ps,
   }));
+}
+
+/**
+ * Stable sort: players with a `seed` first (asc), unseeded last in original
+ * order. Seed 1 is the top seed.
+ */
+export function orderBySeed<T extends { seed?: number | null }>(
+  players: readonly T[],
+): T[] {
+  return players
+    .map((p, i) => ({ p, i }))
+    .sort((x, y) => {
+      const sx = typeof x.p.seed === "number" ? x.p.seed : Number.POSITIVE_INFINITY;
+      const sy = typeof y.p.seed === "number" ? y.p.seed : Number.POSITIVE_INFINITY;
+      if (sx !== sy) return sx - sy;
+      return x.i - y.i;
+    })
+    .map((e) => e.p);
 }
 
 export function groupLabel(index: number): string {
