@@ -22,7 +22,21 @@ export const tournamentStatusEnum = pgEnum("tournament_status", [
 export const matchStageEnum = pgEnum("match_stage", [
   "group",
   "ko",
+  "swiss",
 ]);
+
+// Tournament format the admin picks for a category. Stored as plain text so
+// adding new formats is a pure engine change without a DB migration.
+export const TOURNAMENT_STRUCTURES = [
+  "groups_ko",
+  "round_robin",
+  "ko_only",
+  "swiss",
+] as const;
+export type TournamentStructure = (typeof TOURNAMENT_STRUCTURES)[number];
+
+export const DRAW_MODES = ["random", "seeded_snake", "manual"] as const;
+export type DrawMode = (typeof DRAW_MODES)[number];
 
 export const matchStatusEnum = pgEnum("match_status", [
   "pending",
@@ -74,6 +88,12 @@ export const categories = pgTable(
     setMinLead: integer("set_min_lead").notNull().default(2),
     // When true, fill empty bracket slots with the best Gruppendritten.
     luckyLoserEnabled: boolean("lucky_loser_enabled").notNull().default(true),
+    // Tournament structure: "groups_ko" (default), "round_robin", "ko_only", "swiss".
+    structure: text("structure").notNull().default("groups_ko"),
+    // Draw mode: "random" (default), "seeded_snake", "manual".
+    drawMode: text("draw_mode").notNull().default("random"),
+    // Number of rounds for Swiss-system tournaments.
+    swissRounds: integer("swiss_rounds").notNull().default(5),
     sortOrder: integer("sort_order").notNull().default(0),
     // Whether groups have been drawn (frozen). After that no more participants.
     drawDone: boolean("draw_done").notNull().default(false),
