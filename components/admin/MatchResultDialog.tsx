@@ -1,8 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Match, MatchSetRow, Participant } from "@/lib/db/schema";
+import { useToast } from "@/components/Toast";
 
 type Props = {
   match: Match;
@@ -22,6 +23,8 @@ export function MatchResultDialog({
   onClose,
 }: Props) {
   const router = useRouter();
+  const toast = useToast();
+  const priorSets = sets;
   const initial: EditSet[] =
     sets.length > 0
       ? sets.map((s) => ({ a: String(s.pointsA), b: String(s.pointsB) }))
@@ -33,6 +36,17 @@ export function MatchResultDialog({
   const [rows, setRows] = useState<EditSet[]>(initial);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", onKey);
+    const first = dialogRef.current?.querySelector<HTMLInputElement>("input");
+    first?.focus();
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
   async function save() {
     const parsed = rows
@@ -55,6 +69,25 @@ export function MatchResultDialog({
         setError(data.error ?? "Speichern hat nicht geklappt.");
         return;
       }
+      toast.show({
+        message: `Ergebnis gespeichert: ${playerA.name} gegen ${playerB.name}.`,
+        undo: async () => {
+          if (priorSets.length > 0) {
+            await fetch(`/api/matches/${match.id}/result`, {
+              method: "PUT",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({
+                sets: priorSets.map((s) => ({ a: s.pointsA, b: s.pointsB })),
+              }),
+            });
+          } else {
+            await fetch(`/api/matches/${match.id}/result`, {
+              method: "DELETE",
+            });
+          }
+          router.refresh();
+        },
+      });
       router.refresh();
       onClose();
     } finally {
@@ -67,6 +100,25 @@ export function MatchResultDialog({
     setSaving(true);
     try {
       await fetch(`/api/matches/${match.id}/result`, { method: "DELETE" });
+      toast.show({
+        message: "Ergebnis gelöscht.",
+        undo:
+          priorSets.length > 0
+            ? async () => {
+                await fetch(`/api/matches/${match.id}/result`, {
+                  method: "PUT",
+                  headers: { "content-type": "application/json" },
+                  body: JSON.stringify({
+                    sets: priorSets.map((s) => ({
+                      a: s.pointsA,
+                      b: s.pointsB,
+                    })),
+                  }),
+                });
+                router.refresh();
+              }
+            : undefined,
+      });
       router.refresh();
       onClose();
     } finally {
@@ -78,8 +130,13 @@ export function MatchResultDialog({
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-ink-950/50 backdrop-blur-sm p-4"
       onClick={onClose}
+      role="presentation"
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="match-result-heading"
         className="card w-full max-w-md shadow-pop"
         onClick={(e) => e.stopPropagation()}
       >
@@ -87,7 +144,10 @@ export function MatchResultDialog({
           <div className="text-xs font-semibold uppercase tracking-wider text-brand-600 mb-1">
             Ergebnis eintragen
           </div>
-          <h3 className="text-lg font-semibold tracking-tight leading-snug">
+          <h3
+            id="match-result-heading"
+            className="text-lg font-semibold tracking-tight leading-snug"
+          >
             {playerA.name}{" "}
             <span className="text-ink-400 font-normal">gegen</span>{" "}
             {playerB.name}

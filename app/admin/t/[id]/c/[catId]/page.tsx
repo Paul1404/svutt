@@ -145,7 +145,13 @@ export default async function CategoryDetailPage({
         </p>
       </div>
 
-      <CategorySettings category={category} tournamentId={tournament.id} />
+      <CategorySettings
+        category={category}
+        tournamentId={tournament.id}
+        participantCount={parts.length}
+        parallelTables={tournament.parallelTables}
+        matchDurationMinutes={tournament.matchDurationMinutes}
+      />
 
       {!category.drawDone ? (
         <>

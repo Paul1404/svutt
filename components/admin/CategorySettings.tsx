@@ -1,18 +1,42 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { Category } from "@/lib/db/schema";
-import { AlertTriangle, Settings, Trash } from "@/components/Icon";
+import { AlertTriangle, Settings, Sparkles, Trash, Users } from "@/components/Icon";
+import { HelpTooltip } from "@/components/Tooltip";
+import { useToast } from "@/components/Toast";
+import {
+  computePreview,
+  formatDuration,
+  suggestGroupSize,
+} from "@/lib/preview";
+
+const GROUP_SIZE_OPTIONS = [3, 4, 5, 6, 7, 8];
+const WIN_SETS_OPTIONS: { value: number; label: string }[] = [
+  { value: 1, label: "Bo1" },
+  { value: 2, label: "Bo3" },
+  { value: 3, label: "Bo5" },
+  { value: 4, label: "Bo7" },
+];
+const SET_POINT_CHIPS = [7, 11, 15, 21];
+const LEAD_CHIPS = [1, 2];
 
 export function CategorySettings({
   category,
   tournamentId,
+  participantCount,
+  parallelTables,
+  matchDurationMinutes,
 }: {
   category: Category;
   tournamentId: string;
+  participantCount?: number;
+  parallelTables?: number;
+  matchDurationMinutes?: number;
 }) {
   const router = useRouter();
+  const toast = useToast();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(category.name);
   const [groupSize, setGroupSize] = useState(category.groupSize);
@@ -31,13 +55,45 @@ export function CategorySettings({
   const drawn = category.drawDone;
   const deleteMatches = deleteTyped.trim() === category.slug;
 
+  const preview = useMemo(
+    () =>
+      computePreview({
+        participantCount: participantCount ?? 0,
+        groupSize,
+        luckyLoserEnabled,
+        matchDurationMinutes,
+        parallelTables,
+      }),
+    [
+      participantCount,
+      groupSize,
+      luckyLoserEnabled,
+      matchDurationMinutes,
+      parallelTables,
+    ],
+  );
+
+  const suggested =
+    participantCount && participantCount >= 2
+      ? suggestGroupSize(participantCount)
+      : null;
+  const showSuggestion =
+    !drawn && suggested !== null && suggested !== groupSize;
+
   if (!open) {
     return (
       <div className="card p-5">
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div className="flex flex-wrap gap-6 text-sm">
             <Stat label="Gruppen à" value={String(category.groupSize)} />
-            <Stat label="Modus" value={`Best of ${category.winSets * 2 - 1}`} />
+            <Stat
+              label="Modus"
+              value={
+                category.winSets === 1
+                  ? "Bo1"
+                  : `Best of ${category.winSets * 2 - 1}`
+              }
+            />
             <Stat
               label="Sätze"
               value={`${category.setPoints} Pkt, +${category.setMinLead}`}
@@ -61,7 +117,7 @@ export function CategorySettings({
   return (
     <div className="space-y-4">
       <form
-        className="card p-5 space-y-4"
+        className="card p-5 space-y-5"
         onSubmit={async (e) => {
           e.preventDefault();
           setError(null);
@@ -89,100 +145,179 @@ export function CategorySettings({
               return;
             }
             setOpen(false);
+            toast.show({ message: "Einstellungen gespeichert." });
             router.refresh();
           } finally {
             setSaving(false);
           }
         }}
       >
-        <h3 className="font-semibold tracking-tight">Spielklasse anpassen</h3>
-        {drawn && (
-          <p className="text-xs text-ink-500">
-            Gruppen sind bereits gezogen — Gruppengröße und Spielmodus lassen
-            sich nicht mehr ändern.
+        <div>
+          <h3 className="font-semibold tracking-tight">Spielklasse anpassen</h3>
+          <p className="mt-0.5 text-xs text-ink-500">
+            Alle Regeln lassen sich auf diese Spielklasse zuschneiden. Die
+            Vorschau rechts zeigt, was dabei herauskommt.
           </p>
-        )}
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="sm:col-span-2">
-            <label className="label">Name</label>
-            <input
-              className="input"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-            />
-          </div>
-          <div>
-            <label className="label">Spieler pro Gruppe</label>
-            <input
-              className="input"
-              type="number"
-              min={4}
-              max={8}
-              value={groupSize}
-              disabled={drawn}
-              onChange={(e) => setGroupSize(parseInt(e.target.value, 10))}
-            />
-          </div>
-          <div>
-            <label className="label">Spielmodus</label>
-            <select
-              className="input"
-              value={winSets}
-              disabled={drawn}
-              onChange={(e) => setWinSets(parseInt(e.target.value, 10))}
-            >
-              <option value={2}>Best of 3</option>
-              <option value={3}>Best of 5</option>
-              <option value={4}>Best of 7</option>
-            </select>
-          </div>
-          <div>
-            <label className="label">Satz-Punkte</label>
-            <input
-              className="input"
-              type="number"
-              min={1}
-              max={50}
-              value={setPoints}
-              onChange={(e) => setSetPoints(parseInt(e.target.value, 10))}
-            />
-            <p className="mt-1.5 text-xs text-ink-500">
-              Standard: 11.
-            </p>
-          </div>
-          <div>
-            <label className="label">Mindestvorsprung</label>
-            <input
-              className="input"
-              type="number"
-              min={1}
-              max={10}
-              value={setMinLead}
-              onChange={(e) => setSetMinLead(parseInt(e.target.value, 10))}
-            />
-            <p className="mt-1.5 text-xs text-ink-500">
-              Standard: 2 (Einstand).
-            </p>
-          </div>
-          <label className="sm:col-span-2 flex items-start gap-3 cursor-pointer rounded-lg border border-ink-200 bg-white p-3 hover:border-brand-300 transition-colors">
-            <input
-              type="checkbox"
-              className="mt-0.5"
-              checked={luckyLoserEnabled}
-              onChange={(e) => setLuckyLoserEnabled(e.target.checked)}
-            />
-            <span className="text-sm">
-              <span className="font-medium">Lucky Loser zulassen</span>
-              <span className="block text-xs text-ink-500 mt-0.5">
-                Bessere Gruppendritte rücken nach, wenn die Gruppenanzahl keine
-                Zweierpotenz ist. Wenn aus: leere Plätze (Freilos).
-              </span>
-            </span>
-          </label>
         </div>
+        {drawn && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            Gruppen sind bereits gezogen — Gruppengröße und Spielmodus lassen
+            sich nicht mehr ändern. Satz-Regeln bleiben anpassbar.
+          </div>
+        )}
+
+        <div className="grid gap-6 lg:grid-cols-[1fr_minmax(0,18rem)]">
+          <div className="space-y-5">
+            <div>
+              <label className="label" htmlFor="cat-name">
+                Name der Spielklasse
+              </label>
+              <input
+                id="cat-name"
+                className="input"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="z.B. Herren Einzel"
+                required
+              />
+            </div>
+
+            <div>
+              <div className="flex items-center gap-1 mb-1.5">
+                <span className="label mb-0">Spieler pro Gruppe</span>
+                <HelpTooltip label="Spieler pro Gruppe">
+                  Jede:r spielt in der Gruppe gegen alle anderen. 4 ist klassisch
+                  (6 Spiele pro Gruppe). Bei ungerader Teilnehmerzahl verteilen
+                  wir die Überhänge automatisch, damit keine winzige Gruppe
+                  entsteht.
+                </HelpTooltip>
+              </div>
+              <ChipGroup
+                options={GROUP_SIZE_OPTIONS.map((n) => ({
+                  value: n,
+                  label: String(n),
+                }))}
+                value={groupSize}
+                onChange={setGroupSize}
+                disabled={drawn}
+              />
+              {showSuggestion && (
+                <button
+                  type="button"
+                  onClick={() => setGroupSize(suggested)}
+                  className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-brand-200 bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700 hover:bg-brand-100 transition-colors"
+                >
+                  <Sparkles size={12} />
+                  Für {participantCount} Teilnehmer: Gruppengröße{" "}
+                  <strong>{suggested}</strong> übernehmen
+                </button>
+              )}
+            </div>
+
+            <div>
+              <div className="flex items-center gap-1 mb-1.5">
+                <span className="label mb-0">Spielmodus</span>
+                <HelpTooltip label="Best of — wie viele Sätze bis zum Sieg?">
+                  <strong>Bo1</strong> = ein Satz entscheidet.{" "}
+                  <strong>Bo3</strong> = zwei Gewinnsätze (klassisch im Breiten­sport).{" "}
+                  <strong>Bo5</strong> = drei Gewinnsätze (Vereins­meisterschaft).{" "}
+                  <strong>Bo7</strong> = vier Gewinnsätze (Profis).
+                </HelpTooltip>
+              </div>
+              <ChipGroup
+                options={WIN_SETS_OPTIONS}
+                value={winSets}
+                onChange={setWinSets}
+                disabled={drawn}
+              />
+            </div>
+
+            <div>
+              <div className="flex items-center gap-1 mb-1.5">
+                <span className="label mb-0">Satz-Punkte</span>
+                <HelpTooltip label="Punkte pro Satz">
+                  Wie viele Punkte braucht es, um einen Satz zu gewinnen. Die
+                  offizielle Regel ist <strong>11</strong>. Früher war{" "}
+                  <strong>21</strong> Standard, beides geht hier.
+                </HelpTooltip>
+              </div>
+              <ChipGroup
+                options={SET_POINT_CHIPS.map((n) => ({
+                  value: n,
+                  label: String(n),
+                }))}
+                value={setPoints}
+                onChange={setSetPoints}
+                allowCustom
+                customMin={1}
+                customMax={50}
+                customLabel="Andere"
+              />
+            </div>
+
+            <div>
+              <div className="flex items-center gap-1 mb-1.5">
+                <span className="label mb-0">Mindestvorsprung</span>
+                <HelpTooltip label="Vorsprung am Satzende">
+                  Wenn beide knapp sind, muss man mit diesem Vorsprung gewinnen
+                  (Einstand). Standard im Tischtennis: <strong>2</strong>{" "}
+                  (also 12:10, 13:11 …). Für ganz schnelle Spiele{" "}
+                  <strong>1</strong>.
+                </HelpTooltip>
+              </div>
+              <ChipGroup
+                options={LEAD_CHIPS.map((n) => ({
+                  value: n,
+                  label: `+${n}`,
+                }))}
+                value={setMinLead}
+                onChange={setSetMinLead}
+                allowCustom
+                customMin={1}
+                customMax={10}
+                customLabel="Andere"
+              />
+            </div>
+
+            <label className="flex items-start gap-3 cursor-pointer rounded-lg border border-ink-200 bg-white p-3 hover:border-brand-300 transition-colors">
+              <input
+                type="checkbox"
+                className="mt-0.5"
+                checked={luckyLoserEnabled}
+                onChange={(e) => setLuckyLoserEnabled(e.target.checked)}
+              />
+              <span className="text-sm">
+                <span className="font-medium inline-flex items-center gap-1">
+                  Lucky Loser zulassen
+                  <HelpTooltip label="Lucky Loser">
+                    Wenn die Gruppenanzahl keine Zweierpotenz ist (z.B. 3, 5, 6
+                    Gruppen), rücken die besten Gruppendritten ins KO nach.
+                    Alternative: leere Plätze als Freilos — die Gesetzten ziehen
+                    kampflos weiter.
+                  </HelpTooltip>
+                </span>
+                <span className="block text-xs text-ink-500 mt-0.5">
+                  Fülle Freilose mit den besten Dritten, statt kampflose Runden
+                  zuzulassen.
+                </span>
+              </span>
+            </label>
+          </div>
+
+          <PreviewPanel
+            participantCount={participantCount}
+            groupSize={groupSize}
+            winSets={winSets}
+            luckyLoserEnabled={luckyLoserEnabled}
+            preview={preview}
+          />
+        </div>
+
         {error && (
-          <div className="rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-sm text-brand-700">
+          <div
+            role="alert"
+            className="rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-sm text-brand-700"
+          >
             {error}
           </div>
         )}
@@ -292,6 +427,169 @@ function Stat({ label, value }: { label: string; value: string }) {
         {label}
       </div>
       <div className="mt-0.5 font-semibold tabular-nums">{value}</div>
+    </div>
+  );
+}
+
+type ChipOption<T extends number> = { value: T; label: string };
+
+function ChipGroup<T extends number>({
+  options,
+  value,
+  onChange,
+  disabled,
+  allowCustom,
+  customMin,
+  customMax,
+  customLabel,
+}: {
+  options: ChipOption<T>[];
+  value: T;
+  onChange: (v: T) => void;
+  disabled?: boolean;
+  allowCustom?: boolean;
+  customMin?: number;
+  customMax?: number;
+  customLabel?: string;
+}) {
+  const isCustom = allowCustom && !options.some((o) => o.value === value);
+  return (
+    <div
+      role="radiogroup"
+      className="flex flex-wrap gap-1.5 items-center"
+    >
+      {options.map((opt) => {
+        const active = value === opt.value;
+        return (
+          <button
+            key={opt.value}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            disabled={disabled}
+            onClick={() => onChange(opt.value)}
+            className={`rounded-lg border px-3 py-1.5 text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+              active
+                ? "border-brand-600 bg-brand-600 text-white"
+                : "border-ink-200 bg-white text-ink-700 hover:border-brand-300 hover:text-brand-700"
+            }`}
+          >
+            {opt.label}
+          </button>
+        );
+      })}
+      {allowCustom && (
+        <div className="inline-flex items-center gap-1.5 rounded-lg border border-ink-200 bg-white px-2 py-1">
+          <span className="text-xs text-ink-500">
+            {customLabel ?? "Andere"}:
+          </span>
+          <input
+            type="number"
+            min={customMin}
+            max={customMax}
+            disabled={disabled}
+            value={isCustom ? value : ""}
+            placeholder="—"
+            onChange={(e) => {
+              const n = parseInt(e.target.value, 10);
+              if (!Number.isNaN(n)) onChange(n as T);
+            }}
+            className="w-14 bg-transparent text-sm font-semibold tabular-nums outline-none disabled:opacity-50"
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PreviewPanel({
+  participantCount,
+  groupSize,
+  winSets,
+  luckyLoserEnabled,
+  preview,
+}: {
+  participantCount?: number;
+  groupSize: number;
+  winSets: number;
+  luckyLoserEnabled: boolean;
+  preview: ReturnType<typeof computePreview>;
+}) {
+  const hasCount = typeof participantCount === "number" && participantCount >= 2;
+
+  return (
+    <aside
+      aria-label="Live-Vorschau der Turnierstruktur"
+      className="rounded-xl border border-ink-200 bg-ink-50/50 p-4 space-y-3 h-fit lg:sticky lg:top-24"
+    >
+      <div className="flex items-center gap-1.5">
+        <Sparkles size={14} className="text-brand-600" />
+        <span className="text-xs font-semibold uppercase tracking-wider text-ink-600">
+          Live-Vorschau
+        </span>
+      </div>
+
+      {!hasCount ? (
+        <p className="text-xs text-ink-500 leading-relaxed">
+          Füge Teilnehmer hinzu, dann siehst du hier die Gruppen­aufteilung, die
+          Runden im KO und eine Zeit­schätzung.
+        </p>
+      ) : (
+        <>
+          <div className="flex items-center gap-1.5 text-sm font-semibold text-ink-900">
+            <Users size={14} className="text-ink-500" />
+            {participantCount} Teilnehmer
+          </div>
+
+          <p className="text-sm text-ink-800 leading-relaxed">
+            {preview.summary}
+          </p>
+
+          <div className="grid grid-cols-2 gap-x-3 gap-y-2 pt-2 border-t border-ink-200/80 text-xs">
+            <PreviewStat
+              label="Gruppen­spiele"
+              value={String(preview.groupMatches)}
+            />
+            <PreviewStat
+              label="KO-Spiele"
+              value={preview.hasKO ? String(preview.koMatches) : "—"}
+            />
+            <PreviewStat
+              label="Spiele gesamt"
+              value={String(preview.totalMatches)}
+            />
+            <PreviewStat
+              label="Geschätzte Dauer"
+              value={formatDuration(preview.estimatedMinutes)}
+            />
+          </div>
+
+          <div className="pt-2 border-t border-ink-200/80 text-[11px] text-ink-500 leading-relaxed">
+            Basierend auf {winSets === 1 ? "Bo1" : `Best of ${winSets * 2 - 1}`}
+            {preview.luckyLoserSlots > 0 &&
+              `, ${preview.luckyLoserSlots} Lucky-Loser-Plätze`}
+            {preview.hasKO &&
+              preview.luckyLoserSlots === 0 &&
+              preview.koSize > preview.groupCount &&
+              !luckyLoserEnabled &&
+              `, ${preview.koSize - preview.groupCount} Freilose`}
+            .
+          </div>
+        </>
+      )}
+    </aside>
+  );
+}
+
+function PreviewStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div className="text-[10px] uppercase tracking-wider text-ink-500 font-semibold">
+        {label}
+      </div>
+      <div className="mt-0.5 font-semibold tabular-nums text-ink-900">
+        {value}
+      </div>
     </div>
   );
 }

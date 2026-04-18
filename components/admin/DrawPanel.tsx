@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Dice } from "@/components/Icon";
+import { HelpTooltip } from "@/components/Tooltip";
+import { useToast } from "@/components/Toast";
 
 export function DrawPanel({
   categoryId,
@@ -12,6 +14,7 @@ export function DrawPanel({
   participantCount: number;
 }) {
   const router = useRouter();
+  const toast = useToast();
   const [seed, setSeed] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,7 +41,14 @@ export function DrawPanel({
 
       <div className="flex gap-3 items-end flex-wrap">
         <div className="flex-1 min-w-[200px] max-w-sm">
-          <label className="label">Seed (optional)</label>
+          <div className="flex items-center gap-1 mb-1.5">
+            <span className="label mb-0">Seed (optional)</span>
+            <HelpTooltip label="Seed">
+              Ein kurzer Text, aus dem die Losung berechnet wird. Gleicher
+              Seed = gleiches Ergebnis. Praktisch, wenn du die Losung
+              vorher öffentlich ankündigst oder reproduzieren musst.
+            </HelpTooltip>
+          </div>
           <input
             className="input"
             value={seed}
@@ -46,7 +56,7 @@ export function DrawPanel({
             placeholder="z.B. svutt-2026"
           />
           <p className="mt-1.5 text-xs text-ink-500">
-            Gleicher Seed heißt gleiche Losung. Leer lassen für eine zufällige.
+            Leer lassen für eine zufällige Losung.
           </p>
         </div>
         <button
@@ -72,6 +82,9 @@ export function DrawPanel({
                 setError(data.error ?? "Losung hat nicht geklappt.");
                 return;
               }
+              toast.show({
+                message: "Losung erstellt und Spielplan erzeugt.",
+              });
               router.refresh();
             } finally {
               setLoading(false);

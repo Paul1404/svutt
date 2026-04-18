@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { Participant } from "@/lib/db/schema";
+import { useToast } from "@/components/Toast";
 
 export function ParticipantsPanel({
   categoryId,
@@ -12,18 +13,38 @@ export function ParticipantsPanel({
   participants: Participant[];
 }) {
   const router = useRouter();
+  const toast = useToast();
   const [bulk, setBulk] = useState("");
   const [club, setClub] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  async function removeParticipant(pid: string, name: string) {
-    if (!confirm(`${name} wirklich entfernen?`)) return;
+  async function removeParticipant(
+    pid: string,
+    name: string,
+    clubName: string | null,
+  ) {
     const res = await fetch(
       `/api/categories/${categoryId}/participants/${pid}`,
       { method: "DELETE" },
     );
-    if (res.ok) router.refresh();
+    if (res.ok) {
+      toast.show({
+        message: `${name} entfernt.`,
+        undo: async () => {
+          await fetch(`/api/categories/${categoryId}/participants`, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              names: name,
+              club: clubName || undefined,
+            }),
+          });
+          router.refresh();
+        },
+      });
+      router.refresh();
+    }
   }
 
   const nameCount = bulk
@@ -75,6 +96,15 @@ export function ParticipantsPanel({
               setError(data.error ?? "Speichern hat nicht geklappt.");
               return;
             }
+            const added = Array.isArray(data?.participants)
+              ? data.participants.length
+              : nameCount;
+            toast.show({
+              message:
+                added === 1
+                  ? "1 Teilnehmer hinzugefügt."
+                  : `${added} Teilnehmer hinzugefügt.`,
+            });
             setBulk("");
             setClub("");
             router.refresh();
@@ -149,8 +179,8 @@ export function ParticipantsPanel({
                 </div>
                 <button
                   type="button"
-                  className="text-xs text-ink-400 hover:text-brand-600 opacity-0 group-hover:opacity-100 transition-opacity"
-                  onClick={() => removeParticipant(p.id, p.name)}
+                  className="text-xs text-ink-400 hover:text-brand-600 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
+                  onClick={() => removeParticipant(p.id, p.name, p.club)}
                   aria-label={`${p.name} entfernen`}
                 >
                   Entfernen

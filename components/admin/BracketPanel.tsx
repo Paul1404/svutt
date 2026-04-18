@@ -10,6 +10,7 @@ import type {
 } from "@/lib/db/schema";
 import { MatchResultDialog } from "./MatchResultDialog";
 import { Trophy } from "@/components/Icon";
+import { useToast } from "@/components/Toast";
 
 type Props = {
   tournamentId: string;
@@ -34,6 +35,7 @@ export function BracketPanel({
   canBuild,
 }: Props) {
   const router = useRouter();
+  const toast = useToast();
   const [loading, setLoading] = useState(false);
   const [openMatchId, setOpenMatchId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -82,6 +84,9 @@ export function BracketPanel({
         setError(data.error ?? "Finalbaum konnte nicht erstellt werden.");
         return;
       }
+      toast.show({
+        message: "Finalbaum erstellt.",
+      });
       router.refresh();
     } finally {
       setLoading(false);

@@ -30,7 +30,7 @@ export default async function HomePage() {
   }
 
   return (
-    <main className="mx-auto max-w-4xl px-4 py-16 sm:py-24">
+    <main id="main" tabIndex={-1} className="mx-auto max-w-4xl px-4 py-16 sm:py-24">
       <div className="flex items-center justify-between gap-4">
         <ClubMark size="md" labelClassName="text-ink-700" />
         <a
