@@ -29,16 +29,8 @@ export default async function PublicTournamentPage({
 
   return (
     <div className="min-h-screen bg-white">
-      <header className="relative overflow-hidden bg-brand-700 text-white">
-        <div
-          className="absolute inset-0 opacity-20"
-          aria-hidden
-          style={{
-            backgroundImage:
-              "radial-gradient(circle at 20% 20%, rgb(255 255 255 / 0.4), transparent 50%), radial-gradient(circle at 80% 80%, rgb(255 255 255 / 0.2), transparent 50%)",
-          }}
-        />
-        <div className="relative mx-auto max-w-4xl px-4 py-10 sm:py-14">
+      <header className="bg-brand-700 text-white">
+        <div className="mx-auto max-w-4xl px-4 py-10 sm:py-14">
           <Link
             href="/"
             className="inline-flex items-center gap-1 text-sm text-brand-100 hover:text-white transition-colors"
@@ -100,7 +92,7 @@ export default async function PublicTournamentPage({
                 ? { label: "Finalrunde", cls: "badge-red" }
                 : c.drawDone
                   ? { label: "Gruppenphase", cls: "badge-green" }
-                  : { label: "Startet bald", cls: "badge-amber" };
+                  : { label: "Ausstehend", cls: "badge-slate" };
               return (
                 <li key={c.id}>
                   <Link
