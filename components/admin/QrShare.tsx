@@ -39,7 +39,7 @@ export function QrShare({ slug }: { slug: string }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink-950/50 backdrop-blur-sm p-4"
+      className="dialog-overlay fixed inset-0 z-50 flex items-center justify-center p-4"
       onClick={() => setOpen(false)}
     >
       <div

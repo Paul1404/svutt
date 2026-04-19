@@ -430,7 +430,7 @@ export function CategorySettings({
               />
             </div>
 
-            <label className="flex items-start gap-3 cursor-pointer rounded-lg border border-ink-200 bg-white p-3 hover:border-brand-300 transition-colors">
+            <label className="flex items-start gap-3 cursor-pointer rounded-lg border border-ink-200 bg-surface p-3 hover:border-brand-300 transition-colors">
               <input
                 type="checkbox"
                 className="mt-0.5"
@@ -622,7 +622,7 @@ function ChipGroup<T extends number | string>({
             className={`rounded-lg border px-3 py-1.5 text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
               active
                 ? "border-brand-600 bg-brand-600 text-white"
-                : "border-ink-200 bg-white text-ink-700 hover:border-brand-300 hover:text-brand-700"
+                : "border-ink-200 bg-surface text-ink-700 hover:border-brand-300 hover:text-brand-700"
             }`}
           >
             {opt.label}
@@ -630,7 +630,7 @@ function ChipGroup<T extends number | string>({
         );
       })}
       {allowCustom && (
-        <div className="inline-flex items-center gap-1.5 rounded-lg border border-ink-200 bg-white px-2 py-1">
+        <div className="inline-flex items-center gap-1.5 rounded-lg border border-ink-200 bg-surface px-2 py-1">
           <span className="text-xs text-ink-500">
             {customLabel ?? "Andere"}:
           </span>

@@ -86,7 +86,7 @@ export default async function TournamentDetailPage({
         </div>
 
         {cats.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-ink-200 bg-white p-10 text-center">
+          <div className="rounded-xl border border-dashed border-ink-200 bg-surface p-10 text-center">
             <p className="text-sm text-ink-600">
               Noch keine Spielklasse angelegt.
             </p>

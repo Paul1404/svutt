@@ -61,7 +61,7 @@ export default async function AdminHomePage() {
 
       <div>
         {list.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-ink-200 bg-white p-12 text-center">
+          <div className="rounded-xl border border-dashed border-ink-200 bg-surface p-12 text-center">
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-brand-50 text-brand-600">
               <Plus size={20} />
             </div>

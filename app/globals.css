@@ -25,6 +25,13 @@
   --color-ink-900: #18181b;
   --color-ink-950: #09090b;
 
+  /* Semantic surface tokens so the whole UI can switch palettes. */
+  --color-surface: #ffffff;
+  --color-surface-2: #fafafa;
+  --color-page: #ffffff;
+  --color-page-2: #fafafa;
+  --color-overlay: rgb(9 9 11 / 0.5);
+
   --font-sans:
     "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     "Helvetica Neue", sans-serif;
@@ -40,16 +47,49 @@
 @source "../components";
 @source "../lib";
 
+/* Dark mode: swap ink shades so every `text-ink-*`, `bg-ink-*`, `border-ink-*`
+   utility keeps its semantic meaning. Surface tokens become dark too. */
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --color-ink-50: #09090b;
+  --color-ink-100: #18181b;
+  --color-ink-200: #27272a;
+  --color-ink-300: #3f3f46;
+  --color-ink-400: #52525b;
+  --color-ink-500: #a1a1aa;
+  --color-ink-600: #d4d4d8;
+  --color-ink-700: #e4e4e7;
+  --color-ink-800: #f4f4f5;
+  --color-ink-900: #fafafa;
+  --color-ink-950: #ffffff;
+
+  --color-surface: #18181b;
+  --color-surface-2: #27272a;
+  --color-page: #09090b;
+  --color-page-2: #111113;
+  --color-overlay: rgb(0 0 0 / 0.7);
+
+  --shadow-soft: 0 1px 2px 0 rgb(0 0 0 / 0.5), 0 1px 3px 0 rgb(0 0 0 / 0.5);
+  --shadow-lift: 0 4px 14px -2px rgb(0 0 0 / 0.45), 0 2px 6px -2px rgb(0 0 0 / 0.3);
+  --shadow-pop: 0 10px 30px -10px rgb(239 68 68 / 0.35), 0 4px 12px -4px rgb(0 0 0 / 0.6);
+}
+
 @layer base {
   html {
-    @apply text-ink-900 antialiased;
+    @apply antialiased;
+    color: var(--color-ink-900);
     font-feature-settings: "cv11", "ss01", "ss03";
   }
   body {
-    @apply bg-white min-h-screen;
+    background: var(--color-page);
+    @apply min-h-screen;
   }
   *:focus-visible {
-    @apply outline-none ring-2 ring-brand-500/60 ring-offset-2 ring-offset-white rounded;
+    outline: none;
+    box-shadow:
+      0 0 0 2px var(--color-page),
+      0 0 0 4px color-mix(in srgb, var(--color-brand-500) 60%, transparent);
+    border-radius: 0.25rem;
   }
   @media (prefers-reduced-motion: reduce) {
     *,
@@ -83,7 +123,7 @@
   @apply btn bg-brand-600 text-white shadow-soft hover:bg-brand-700 hover:shadow-pop active:translate-y-px;
 }
 @utility btn-secondary {
-  @apply btn bg-white text-ink-800 border border-ink-200 hover:border-ink-300 hover:bg-ink-50 active:translate-y-px;
+  @apply btn bg-surface text-ink-800 border border-ink-200 hover:border-ink-300 hover:bg-surface-2 active:translate-y-px;
 }
 @utility btn-ghost {
   @apply btn bg-transparent text-ink-700 hover:bg-ink-100 active:translate-y-px;
@@ -95,13 +135,13 @@
   @apply px-3 py-1.5 text-xs rounded-md;
 }
 @utility input {
-  @apply block w-full rounded-lg border border-ink-200 bg-white px-3.5 py-2.5 text-sm text-ink-900 placeholder:text-ink-400 shadow-soft transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20;
+  @apply block w-full rounded-lg border border-ink-200 bg-surface px-3.5 py-2.5 text-sm text-ink-900 placeholder:text-ink-400 shadow-soft transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20;
 }
 @utility label {
   @apply block text-xs font-semibold uppercase tracking-wider text-ink-600 mb-1.5;
 }
 @utility card {
-  @apply rounded-xl border border-ink-200/80 bg-white shadow-soft;
+  @apply rounded-xl border border-ink-200/80 bg-surface shadow-soft;
 }
 @utility card-hover {
   @apply card transition-all duration-150 hover:border-brand-300 hover:shadow-lift hover:-translate-y-0.5;
@@ -119,11 +159,62 @@
   @apply badge bg-amber-50 text-amber-800 ring-amber-200;
 }
 @utility badge-slate {
-  @apply badge bg-ink-50 text-ink-700 ring-ink-200;
+  @apply badge bg-ink-100 text-ink-700 ring-ink-200;
 }
 @utility kbd {
-  @apply inline-flex items-center rounded-md border border-ink-200 bg-ink-50 px-1.5 py-0.5 text-[10px] font-mono text-ink-600;
+  @apply inline-flex items-center rounded-md border border-ink-200 bg-ink-100 px-1.5 py-0.5 text-[10px] font-mono text-ink-600;
 }
 @utility divider {
   @apply h-px w-full bg-gradient-to-r from-transparent via-ink-200 to-transparent;
+}
+
+/* Emerald / amber badges need dark-mode friendly variants. */
+html[data-theme="dark"] .badge-green {
+  background: rgb(16 185 129 / 0.12);
+  color: #6ee7b7;
+  --tw-ring-color: rgb(16 185 129 / 0.4);
+}
+html[data-theme="dark"] .badge-amber {
+  background: rgb(245 158 11 / 0.12);
+  color: #fcd34d;
+  --tw-ring-color: rgb(245 158 11 / 0.4);
+}
+html[data-theme="dark"] .badge-red {
+  background: rgb(239 68 68 / 0.15);
+  color: #fca5a5;
+  --tw-ring-color: rgb(239 68 68 / 0.4);
+}
+
+/* Modal overlay uses the semantic overlay token so backdrop darkens nicely
+   in dark mode too. */
+.dialog-overlay {
+  background: var(--color-overlay);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* Step indicator for the tournament wizard. */
+.wizard-step-dot {
+  @apply flex h-8 w-8 items-center justify-center rounded-full border text-xs font-semibold transition-colors;
+}
+.wizard-step-dot[data-state="done"] {
+  @apply border-brand-600 bg-brand-600 text-white;
+}
+.wizard-step-dot[data-state="current"] {
+  @apply border-brand-600 text-brand-700;
+  background: var(--color-surface);
+}
+html[data-theme="dark"] .wizard-step-dot[data-state="current"] {
+  color: var(--color-brand-400);
+  border-color: var(--color-brand-500);
+}
+.wizard-step-dot[data-state="upcoming"] {
+  @apply border-ink-200 text-ink-400;
+  background: var(--color-surface);
+}
+.wizard-step-line {
+  @apply h-px flex-1 bg-ink-200;
+}
+.wizard-step-line[data-state="done"] {
+  @apply bg-brand-500;
 }

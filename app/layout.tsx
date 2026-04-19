@@ -18,13 +18,27 @@ export const metadata: Metadata = {
   },
 };
 
+// Runs before React hydrates to prevent a flash of the wrong theme.
+const NO_FLASH_SCRIPT = `
+try {
+  var s = localStorage.getItem('svutt-theme');
+  var t = s === 'light' || s === 'dark'
+    ? s
+    : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  document.documentElement.setAttribute('data-theme', t);
+} catch (_) {}
+`;
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <html lang="de">
+    <html lang="de" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: NO_FLASH_SCRIPT }} />
+      </head>
       <body>
         <a href="#main" className="skip-link">
           Zum Inhalt springen

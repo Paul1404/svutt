@@ -182,7 +182,7 @@ export function CreateCategoryForm({ tournamentId }: { tournamentId: string }) {
               Standard: 2 (Einstand-Regel ab 10:10).
             </p>
           </div>
-          <label className="sm:col-span-2 flex items-start gap-3 cursor-pointer rounded-lg border border-ink-200 bg-white p-3 hover:border-brand-300 transition-colors">
+          <label className="sm:col-span-2 flex items-start gap-3 cursor-pointer rounded-lg border border-ink-200 bg-surface p-3 hover:border-brand-300 transition-colors">
             <input
               type="checkbox"
               className="mt-0.5"
