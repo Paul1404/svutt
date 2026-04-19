@@ -3,6 +3,15 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Plus } from "@/components/Icon";
+import { ChipGroup } from "@/components/admin/ChipGroup";
+import {
+  DRAW_MODES,
+  DRAW_MODE_LABELS,
+  TOURNAMENT_STRUCTURES,
+  STRUCTURE_LABELS,
+  type DrawMode,
+  type TournamentStructure,
+} from "@/lib/engine/format";
 
 function toSlug(s: string): string {
   return s
@@ -15,18 +24,48 @@ function toSlug(s: string): string {
     .slice(0, 64);
 }
 
+const GROUP_SIZE_OPTIONS = [3, 4, 5, 6, 7, 8];
+const WIN_SETS_OPTIONS: { value: number; label: string }[] = [
+  { value: 1, label: "Bo1" },
+  { value: 2, label: "Bo3" },
+  { value: 3, label: "Bo5" },
+  { value: 4, label: "Bo7" },
+];
+const SET_POINT_CHIPS = [7, 11, 15, 21];
+const LEAD_CHIPS = [1, 2];
+const SWISS_ROUND_CHIPS = [3, 4, 5, 6, 7];
+
+const STRUCTURE_DESCRIPTIONS: Record<TournamentStructure, string> = {
+  groups_ko:
+    "Klassisch: Gruppenphase (jede:r gegen jede:n), danach KO-Finalbaum.",
+  round_robin: "Alle spielen gegen alle. Eine einzige Rangliste, kein KO.",
+  ko_only:
+    "Direkter KO-Baum aus der Setzliste. Keine Gruppen, keine zweite Chance.",
+  swiss:
+    "Feste Rundenzahl, gepaart nach Punktgleichstand. Geeignet für viele Teilnehmer an kurzem Tag.",
+};
+
+const DRAW_MODE_DESCRIPTIONS: Record<DrawMode, string> = {
+  random: "Rein zufällig, optional deterministisch per Seed.",
+  seeded_snake:
+    "Spieler werden nach Setzposition im Schlangenverfahren verteilt. Top-Gesetzte landen in verschiedenen Gruppen.",
+  manual: "Du ziehst jeden Spieler selbst in eine Gruppe oder einen Platz.",
+};
+
 export function CreateCategoryForm({ tournamentId }: { tournamentId: string }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [slugEdited, setSlugEdited] = useState(false);
+  const [structure, setStructure] = useState<TournamentStructure>("groups_ko");
+  const [drawMode, setDrawMode] = useState<DrawMode>("random");
   const [groupSize, setGroupSize] = useState(4);
+  const [swissRounds, setSwissRounds] = useState(5);
   const [winSets, setWinSets] = useState(2);
   const [setPoints, setSetPoints] = useState(11);
   const [setMinLead, setSetMinLead] = useState(2);
   const [luckyLoserEnabled, setLuckyLoserEnabled] = useState(true);
-  const [showAdvanced, setShowAdvanced] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -41,9 +80,14 @@ export function CreateCategoryForm({ tournamentId }: { tournamentId: string }) {
     );
   }
 
+  const showGroupSize =
+    structure === "groups_ko" || structure === "round_robin";
+  const showSwissRounds = structure === "swiss";
+  const showLuckyLoser = structure === "groups_ko";
+
   return (
     <form
-      className="card p-5 space-y-4 max-w-xl"
+      className="card p-5 space-y-5 max-w-2xl"
       onSubmit={async (e) => {
         e.preventDefault();
         setError(null);
@@ -57,7 +101,10 @@ export function CreateCategoryForm({ tournamentId }: { tournamentId: string }) {
               body: JSON.stringify({
                 name,
                 slug: slug || toSlug(name),
+                structure,
+                drawMode,
                 groupSize,
+                swissRounds,
                 winSets,
                 setPoints,
                 setMinLead,
@@ -75,7 +122,14 @@ export function CreateCategoryForm({ tournamentId }: { tournamentId: string }) {
           setName("");
           setSlug("");
           setSlugEdited(false);
-          setShowAdvanced(false);
+          setStructure("groups_ko");
+          setDrawMode("random");
+          setGroupSize(4);
+          setSwissRounds(5);
+          setWinSets(2);
+          setSetPoints(11);
+          setSetMinLead(2);
+          setLuckyLoserEnabled(true);
         } finally {
           setSaving(false);
         }
@@ -114,91 +168,143 @@ export function CreateCategoryForm({ tournamentId }: { tournamentId: string }) {
             und Bindestriche.
           </p>
         </div>
-        <div>
-          <label className="label">Spieler pro Gruppe</label>
-          <input
-            className="input"
-            type="number"
-            min={4}
-            max={8}
-            value={groupSize}
-            onChange={(e) => setGroupSize(parseInt(e.target.value, 10))}
-          />
-          <p className="mt-1.5 text-xs text-ink-500">
-            4 bis 8 Spieler. Bei knapper Teilnehmerzahl werden Gruppen leicht
-            vergrößert oder verkleinert.
-          </p>
-        </div>
-        <div>
-          <label className="label">Spielmodus</label>
-          <select
-            className="input"
-            value={winSets}
-            onChange={(e) => setWinSets(parseInt(e.target.value, 10))}
-          >
-            <option value={2}>Best of 3 (2 Gewinnsätze)</option>
-            <option value={3}>Best of 5 (3 Gewinnsätze)</option>
-            <option value={4}>Best of 7 (4 Gewinnsätze)</option>
-          </select>
-        </div>
       </div>
 
       <div>
-        <button
-          type="button"
-          className="text-xs font-medium text-ink-500 hover:text-brand-600"
-          onClick={() => setShowAdvanced((v) => !v)}
-        >
-          {showAdvanced ? "− " : "+ "}Erweiterte Tischtennis-Regeln
-        </button>
+        <label className="label">Struktur</label>
+        <ChipGroup
+          options={TOURNAMENT_STRUCTURES.map((s) => ({
+            value: s,
+            label: STRUCTURE_LABELS[s],
+          }))}
+          value={structure}
+          onChange={(v) => setStructure(v)}
+        />
+        <p className="mt-1.5 text-xs text-ink-500">
+          {STRUCTURE_DESCRIPTIONS[structure]}
+        </p>
       </div>
-      {showAdvanced && (
-        <div className="grid gap-4 sm:grid-cols-2 rounded-xl border border-ink-200 bg-ink-50/40 p-4">
-          <div>
-            <label className="label">Satz-Punkte</label>
-            <input
-              className="input"
-              type="number"
-              min={1}
-              max={50}
-              value={setPoints}
-              onChange={(e) => setSetPoints(parseInt(e.target.value, 10))}
-            />
-            <p className="mt-1.5 text-xs text-ink-500">
-              Standard: 11. Schulturnier z.B. 15 oder 21.
-            </p>
-          </div>
-          <div>
-            <label className="label">Mindestvorsprung</label>
-            <input
-              className="input"
-              type="number"
-              min={1}
-              max={10}
-              value={setMinLead}
-              onChange={(e) => setSetMinLead(parseInt(e.target.value, 10))}
-            />
-            <p className="mt-1.5 text-xs text-ink-500">
-              Standard: 2 (Einstand-Regel ab 10:10).
-            </p>
-          </div>
-          <label className="sm:col-span-2 flex items-start gap-3 cursor-pointer rounded-lg border border-ink-200 bg-surface p-3 hover:border-brand-300 transition-colors">
-            <input
-              type="checkbox"
-              className="mt-0.5"
-              checked={luckyLoserEnabled}
-              onChange={(e) => setLuckyLoserEnabled(e.target.checked)}
-            />
-            <span className="text-sm">
-              <span className="font-medium">Lucky Loser zulassen</span>
-              <span className="block text-xs text-ink-500 mt-0.5">
-                Wenn die Anzahl der Gruppen keine Zweierpotenz ist, werden die
-                besten Gruppendritten in den Finalbaum nachgerückt. Wenn aus,
-                bleiben Plätze frei (Freilos).
-              </span>
-            </span>
+
+      <div>
+        <label className="label">Auslosung</label>
+        <ChipGroup
+          options={DRAW_MODES.filter((m) => m !== "manual").map((m) => ({
+            value: m,
+            label: DRAW_MODE_LABELS[m],
+          }))}
+          value={drawMode === "manual" ? "random" : drawMode}
+          onChange={(v) => setDrawMode(v)}
+        />
+        <p className="mt-1.5 text-xs text-ink-500">
+          {DRAW_MODE_DESCRIPTIONS[drawMode]}
+        </p>
+      </div>
+
+      {showGroupSize && (
+        <div>
+          <label className="label">
+            {structure === "round_robin"
+              ? "Gruppengröße (Referenz)"
+              : "Spieler pro Gruppe"}
           </label>
+          <ChipGroup
+            options={GROUP_SIZE_OPTIONS.map((n) => ({
+              value: n,
+              label: String(n),
+            }))}
+            value={groupSize}
+            onChange={setGroupSize}
+          />
+          <p className="mt-1.5 text-xs text-ink-500">
+            3 bis 8 Spieler. Bei knapper Teilnehmerzahl werden Gruppen leicht
+            vergrößert oder verkleinert.
+          </p>
         </div>
+      )}
+
+      {showSwissRounds && (
+        <div>
+          <label className="label">Runden</label>
+          <ChipGroup
+            options={SWISS_ROUND_CHIPS.map((n) => ({
+              value: n,
+              label: String(n),
+            }))}
+            value={swissRounds}
+            onChange={setSwissRounds}
+            allowCustom
+            customMin={1}
+            customMax={15}
+            customLabel="Andere"
+          />
+          <p className="mt-1.5 text-xs text-ink-500">
+            Richtwert: ceil(log₂(N)), mindestens 3.
+          </p>
+        </div>
+      )}
+
+      <div>
+        <label className="label">Spielmodus</label>
+        <ChipGroup
+          options={WIN_SETS_OPTIONS}
+          value={winSets}
+          onChange={setWinSets}
+        />
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label className="label">Satz-Punkte</label>
+          <ChipGroup
+            options={SET_POINT_CHIPS.map((n) => ({
+              value: n,
+              label: String(n),
+            }))}
+            value={setPoints}
+            onChange={setSetPoints}
+            allowCustom
+            customMin={1}
+            customMax={50}
+            customLabel="Andere"
+          />
+          <p className="mt-1.5 text-xs text-ink-500">
+            Standard: 11. Schulturnier z.B. 15 oder 21.
+          </p>
+        </div>
+        <div>
+          <label className="label">Mindestvorsprung</label>
+          <ChipGroup
+            options={LEAD_CHIPS.map((n) => ({ value: n, label: `+${n}` }))}
+            value={setMinLead}
+            onChange={setSetMinLead}
+            allowCustom
+            customMin={1}
+            customMax={10}
+            customLabel="Andere"
+          />
+          <p className="mt-1.5 text-xs text-ink-500">
+            Standard: 2 (Einstand-Regel ab 10:10).
+          </p>
+        </div>
+      </div>
+
+      {showLuckyLoser && (
+        <label className="flex items-start gap-3 cursor-pointer rounded-lg border border-ink-200 bg-surface p-3 hover:border-brand-300 transition-colors">
+          <input
+            type="checkbox"
+            className="mt-0.5"
+            checked={luckyLoserEnabled}
+            onChange={(e) => setLuckyLoserEnabled(e.target.checked)}
+          />
+          <span className="text-sm">
+            <span className="font-medium">Lucky Loser zulassen</span>
+            <span className="block text-xs text-ink-500 mt-0.5">
+              Wenn die Anzahl der Gruppen keine Zweierpotenz ist, werden die
+              besten Gruppendritten in den Finalbaum nachgerückt. Wenn aus,
+              bleiben Plätze frei (Freilos).
+            </span>
+          </span>
+        </label>
       )}
 
       {error && (
