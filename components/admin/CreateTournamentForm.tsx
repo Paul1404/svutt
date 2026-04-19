@@ -17,6 +17,43 @@ import {
   Users,
   X,
 } from "@/components/Icon";
+import { ChipGroup } from "@/components/admin/ChipGroup";
+import {
+  DRAW_MODES,
+  DRAW_MODE_LABELS,
+  TOURNAMENT_STRUCTURES,
+  STRUCTURE_LABELS,
+  type DrawMode,
+  type TournamentStructure,
+} from "@/lib/engine/format";
+
+const CAT_GROUP_SIZE_OPTIONS = [3, 4, 5, 6, 7, 8];
+const CAT_WIN_SETS_OPTIONS: { value: number; label: string }[] = [
+  { value: 1, label: "Bo1" },
+  { value: 2, label: "Bo3" },
+  { value: 3, label: "Bo5" },
+  { value: 4, label: "Bo7" },
+];
+const CAT_SET_POINT_CHIPS = [7, 11, 15, 21];
+const CAT_LEAD_CHIPS = [1, 2];
+const CAT_SWISS_ROUND_CHIPS = [3, 4, 5, 6, 7];
+
+const CAT_STRUCTURE_DESCRIPTIONS: Record<TournamentStructure, string> = {
+  groups_ko:
+    "Klassisch: Gruppenphase (jede:r gegen jede:n), danach KO-Finalbaum.",
+  round_robin: "Alle spielen gegen alle. Eine einzige Rangliste, kein KO.",
+  ko_only:
+    "Direkter KO-Baum aus der Setzliste. Keine Gruppen, keine zweite Chance.",
+  swiss:
+    "Feste Rundenzahl, gepaart nach Punktgleichstand. Geeignet für viele Teilnehmer an kurzem Tag.",
+};
+
+const CAT_DRAW_MODE_DESCRIPTIONS: Record<DrawMode, string> = {
+  random: "Rein zufällig, optional deterministisch per Seed.",
+  seeded_snake:
+    "Spieler werden nach Setzposition im Schlangenverfahren verteilt.",
+  manual: "Du ziehst jeden Spieler selbst in eine Gruppe oder einen Platz.",
+};
 
 function toSlug(s: string): string {
   return s
@@ -62,8 +99,15 @@ export function CreateTournamentForm() {
   const [catName, setCatName] = useState("");
   const [catSlug, setCatSlug] = useState("");
   const [catSlugEdited, setCatSlugEdited] = useState(false);
+  const [catStructure, setCatStructure] =
+    useState<TournamentStructure>("groups_ko");
+  const [catDrawMode, setCatDrawMode] = useState<DrawMode>("random");
   const [catGroupSize, setCatGroupSize] = useState(4);
+  const [catSwissRounds, setCatSwissRounds] = useState(5);
   const [catWinSets, setCatWinSets] = useState(2);
+  const [catSetPoints, setCatSetPoints] = useState(11);
+  const [catSetMinLead, setCatSetMinLead] = useState(2);
+  const [catLuckyLoserEnabled, setCatLuckyLoserEnabled] = useState(true);
 
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -98,8 +142,14 @@ export function CreateTournamentForm() {
     setCatName("");
     setCatSlug("");
     setCatSlugEdited(false);
+    setCatStructure("groups_ko");
+    setCatDrawMode("random");
     setCatGroupSize(4);
+    setCatSwissRounds(5);
     setCatWinSets(2);
+    setCatSetPoints(11);
+    setCatSetMinLead(2);
+    setCatLuckyLoserEnabled(true);
     setError(null);
     setSaving(false);
     setCreatedTournamentId(null);
@@ -200,8 +250,14 @@ export function CreateTournamentForm() {
             body: JSON.stringify({
               name: trimmedCatName,
               slug: effectiveCatSlug,
+              structure: catStructure,
+              drawMode: catDrawMode,
               groupSize: catGroupSize,
+              swissRounds: catSwissRounds,
               winSets: catWinSets,
+              setPoints: catSetPoints,
+              setMinLead: catSetMinLead,
+              luckyLoserEnabled: catLuckyLoserEnabled,
             }),
           },
         );
@@ -348,10 +404,22 @@ export function CreateTournamentForm() {
                   setCatSlugEdited(true);
                 }}
                 slugLooksValid={catSlugLooksValid}
+                structure={catStructure}
+                setStructure={setCatStructure}
+                drawMode={catDrawMode}
+                setDrawMode={setCatDrawMode}
                 groupSize={catGroupSize}
                 setGroupSize={setCatGroupSize}
+                swissRounds={catSwissRounds}
+                setSwissRounds={setCatSwissRounds}
                 winSets={catWinSets}
                 setWinSets={setCatWinSets}
+                setPoints={catSetPoints}
+                setSetPoints={setCatSetPoints}
+                setMinLead={catSetMinLead}
+                setSetMinLead={setCatSetMinLead}
+                luckyLoserEnabled={catLuckyLoserEnabled}
+                setLuckyLoserEnabled={setCatLuckyLoserEnabled}
               />
             )}
             {step.key === "review" && (
@@ -366,8 +434,14 @@ export function CreateTournamentForm() {
                 createCategory={createCategory}
                 catName={trimmedCatName}
                 catSlug={effectiveCatSlug}
+                catStructure={catStructure}
+                catDrawMode={catDrawMode}
                 catGroupSize={catGroupSize}
+                catSwissRounds={catSwissRounds}
                 catWinSets={catWinSets}
+                catSetPoints={catSetPoints}
+                catSetMinLead={catSetMinLead}
+                catLuckyLoserEnabled={catLuckyLoserEnabled}
               />
             )}
           </div>
@@ -715,10 +789,22 @@ function CategoryStep({
   slug,
   setSlug,
   slugLooksValid,
+  structure,
+  setStructure,
+  drawMode,
+  setDrawMode,
   groupSize,
   setGroupSize,
+  swissRounds,
+  setSwissRounds,
   winSets,
   setWinSets,
+  setPoints,
+  setSetPoints,
+  setMinLead,
+  setSetMinLead,
+  luckyLoserEnabled,
+  setLuckyLoserEnabled,
 }: {
   enabled: boolean;
   setEnabled: (v: boolean) => void;
@@ -727,11 +813,28 @@ function CategoryStep({
   slug: string;
   setSlug: (v: string) => void;
   slugLooksValid: boolean;
+  structure: TournamentStructure;
+  setStructure: (v: TournamentStructure) => void;
+  drawMode: DrawMode;
+  setDrawMode: (v: DrawMode) => void;
   groupSize: number;
   setGroupSize: (v: number) => void;
+  swissRounds: number;
+  setSwissRounds: (v: number) => void;
   winSets: number;
   setWinSets: (v: number) => void;
+  setPoints: number;
+  setSetPoints: (v: number) => void;
+  setMinLead: number;
+  setSetMinLead: (v: number) => void;
+  luckyLoserEnabled: boolean;
+  setLuckyLoserEnabled: (v: boolean) => void;
 }) {
+  const showGroupSize =
+    structure === "groups_ko" || structure === "round_robin";
+  const showSwissRounds = structure === "swiss";
+  const showLuckyLoser = structure === "groups_ko";
+
   return (
     <div>
       <StepHeader
@@ -761,7 +864,7 @@ function CategoryStep({
 
       <div
         aria-hidden={!enabled}
-        className={`mt-4 space-y-4 transition-opacity ${
+        className={`mt-4 space-y-5 transition-opacity ${
           enabled ? "opacity-100" : "opacity-40 pointer-events-none"
         }`}
       >
@@ -805,46 +908,150 @@ function CategoryStep({
               </p>
             )}
           </div>
+        </div>
+
+        <div>
+          <label className="label">Struktur</label>
+          <ChipGroup
+            options={TOURNAMENT_STRUCTURES.map((s) => ({
+              value: s,
+              label: STRUCTURE_LABELS[s],
+            }))}
+            value={structure}
+            onChange={(v) => setStructure(v)}
+            disabled={!enabled}
+          />
+          <p className="mt-1.5 text-xs text-ink-500">
+            {CAT_STRUCTURE_DESCRIPTIONS[structure]}
+          </p>
+        </div>
+
+        <div>
+          <label className="label">Auslosung</label>
+          <ChipGroup
+            options={DRAW_MODES.filter((m) => m !== "manual").map((m) => ({
+              value: m,
+              label: DRAW_MODE_LABELS[m],
+            }))}
+            value={drawMode === "manual" ? "random" : drawMode}
+            onChange={(v) => setDrawMode(v)}
+            disabled={!enabled}
+          />
+          <p className="mt-1.5 text-xs text-ink-500">
+            {CAT_DRAW_MODE_DESCRIPTIONS[drawMode]}
+          </p>
+        </div>
+
+        {showGroupSize && (
           <div>
-            <label className="label" htmlFor="wiz-cat-size">
-              Spieler pro Gruppe
+            <label className="label">
+              {structure === "round_robin"
+                ? "Gruppengröße (Referenz)"
+                : "Spieler pro Gruppe"}
             </label>
-            <input
-              id="wiz-cat-size"
-              className="input"
-              type="number"
-              min={3}
-              max={8}
-              value={Number.isFinite(groupSize) ? groupSize : ""}
-              onChange={(e) =>
-                setGroupSize(clampInt(parseInt(e.target.value, 10), 3, 8, 4))
-              }
-              onBlur={(e) =>
-                setGroupSize(clampInt(parseInt(e.target.value, 10), 3, 8, 4))
-              }
+            <ChipGroup
+              options={CAT_GROUP_SIZE_OPTIONS.map((n) => ({
+                value: n,
+                label: String(n),
+              }))}
+              value={groupSize}
+              onChange={setGroupSize}
               disabled={!enabled}
             />
             <p className="mt-1.5 text-xs text-ink-500">
               3–8 Spieler. Richtwert: 4.
             </p>
           </div>
+        )}
+
+        {showSwissRounds && (
           <div>
-            <label className="label" htmlFor="wiz-cat-mode">
-              Spielmodus
-            </label>
-            <select
-              id="wiz-cat-mode"
-              className="input"
-              value={winSets}
-              onChange={(e) => setWinSets(parseInt(e.target.value, 10))}
+            <label className="label">Runden</label>
+            <ChipGroup
+              options={CAT_SWISS_ROUND_CHIPS.map((n) => ({
+                value: n,
+                label: String(n),
+              }))}
+              value={swissRounds}
+              onChange={setSwissRounds}
               disabled={!enabled}
-            >
-              <option value={2}>Best of 3 (2 Gewinnsätze)</option>
-              <option value={3}>Best of 5 (3 Gewinnsätze)</option>
-              <option value={4}>Best of 7 (4 Gewinnsätze)</option>
-            </select>
+              allowCustom
+              customMin={1}
+              customMax={15}
+              customLabel="Andere"
+            />
+          </div>
+        )}
+
+        <div>
+          <label className="label">Spielmodus</label>
+          <ChipGroup
+            options={CAT_WIN_SETS_OPTIONS}
+            value={winSets}
+            onChange={setWinSets}
+            disabled={!enabled}
+          />
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="label">Satz-Punkte</label>
+            <ChipGroup
+              options={CAT_SET_POINT_CHIPS.map((n) => ({
+                value: n,
+                label: String(n),
+              }))}
+              value={setPoints}
+              onChange={setSetPoints}
+              disabled={!enabled}
+              allowCustom
+              customMin={1}
+              customMax={50}
+              customLabel="Andere"
+            />
+            <p className="mt-1.5 text-xs text-ink-500">
+              Standard: 11. Schulturnier z.B. 15 oder 21.
+            </p>
+          </div>
+          <div>
+            <label className="label">Mindestvorsprung</label>
+            <ChipGroup
+              options={CAT_LEAD_CHIPS.map((n) => ({
+                value: n,
+                label: `+${n}`,
+              }))}
+              value={setMinLead}
+              onChange={setSetMinLead}
+              disabled={!enabled}
+              allowCustom
+              customMin={1}
+              customMax={10}
+              customLabel="Andere"
+            />
+            <p className="mt-1.5 text-xs text-ink-500">
+              Standard: 2 (Einstand-Regel ab 10:10).
+            </p>
           </div>
         </div>
+
+        {showLuckyLoser && (
+          <label className="flex items-start gap-3 cursor-pointer rounded-lg border border-ink-200 bg-surface p-3 hover:border-brand-300 transition-colors">
+            <input
+              type="checkbox"
+              className="mt-0.5"
+              checked={luckyLoserEnabled}
+              onChange={(e) => setLuckyLoserEnabled(e.target.checked)}
+              disabled={!enabled}
+            />
+            <span className="text-sm">
+              <span className="font-medium">Lucky Loser zulassen</span>
+              <span className="block text-xs text-ink-500 mt-0.5">
+                Füllt Freilose mit den besten Gruppendritten, statt kampflose
+                Runden zuzulassen.
+              </span>
+            </span>
+          </label>
+        )}
       </div>
 
       <div className="mt-5 rounded-xl border border-ink-200 bg-surface-2/60 p-4 text-sm text-ink-600">
@@ -858,11 +1065,10 @@ function CategoryStep({
           </li>
           <li>
             Mit einem Klick auf <span className="font-medium">„Auslosen“</span>{" "}
-            werden die Spieler zufällig auf Gruppen A, B, C … verteilt.
+            werden die Spieler entsprechend der Auslosungsart verteilt.
           </li>
           <li>
-            Jede Gruppe spielt „Jeder gegen Jeden“ – danach geht es in die
-            Finalrunde (KO).
+            Anschließend läuft das Turnier nach der gewählten Struktur ab.
           </li>
         </ol>
       </div>
@@ -906,8 +1112,14 @@ function ReviewStep({
   createCategory,
   catName,
   catSlug,
+  catStructure,
+  catDrawMode,
   catGroupSize,
+  catSwissRounds,
   catWinSets,
+  catSetPoints,
+  catSetMinLead,
+  catLuckyLoserEnabled,
 }: {
   name: string;
   slug: string;
@@ -919,8 +1131,14 @@ function ReviewStep({
   createCategory: boolean;
   catName: string;
   catSlug: string;
+  catStructure: TournamentStructure;
+  catDrawMode: DrawMode;
   catGroupSize: number;
+  catSwissRounds: number;
   catWinSets: number;
+  catSetPoints: number;
+  catSetMinLead: number;
+  catLuckyLoserEnabled: boolean;
 }) {
   const date = startDate
     ? new Date(`${startDate}T00:00:00`).toLocaleDateString("de-DE", {
@@ -931,11 +1149,17 @@ function ReviewStep({
       })
     : "";
   const modeLabel =
-    catWinSets === 2
-      ? "Best of 3"
-      : catWinSets === 3
-        ? "Best of 5"
-        : "Best of 7";
+    catWinSets === 1
+      ? "Best of 1"
+      : catWinSets === 2
+        ? "Best of 3"
+        : catWinSets === 3
+          ? "Best of 5"
+          : "Best of 7";
+  const showGroupSize =
+    catStructure === "groups_ko" || catStructure === "round_robin";
+  const showSwissRounds = catStructure === "swiss";
+  const showLuckyLoser = catStructure === "groups_ko";
   return (
     <div>
       <StepHeader
@@ -965,8 +1189,28 @@ function ReviewStep({
           </div>
           <ReviewRow label="Name" value={catName} />
           <ReviewRow label="URL" value={`/c/${catSlug}`} />
-          <ReviewRow label="Gruppengröße" value={`${catGroupSize} Spieler`} />
+          <ReviewRow label="Struktur" value={STRUCTURE_LABELS[catStructure]} />
+          <ReviewRow label="Auslosung" value={DRAW_MODE_LABELS[catDrawMode]} />
+          {showGroupSize && (
+            <ReviewRow
+              label="Gruppengröße"
+              value={`${catGroupSize} Spieler`}
+            />
+          )}
+          {showSwissRounds && (
+            <ReviewRow label="Runden" value={String(catSwissRounds)} />
+          )}
           <ReviewRow label="Modus" value={modeLabel} />
+          <ReviewRow
+            label="Sätze"
+            value={`${catSetPoints} Pkt, +${catSetMinLead}`}
+          />
+          {showLuckyLoser && (
+            <ReviewRow
+              label="Lucky Loser"
+              value={catLuckyLoserEnabled ? "an" : "aus"}
+            />
+          )}
         </div>
       ) : (
         <p className="mt-4 text-xs text-ink-500">
