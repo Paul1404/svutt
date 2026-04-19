@@ -8,11 +8,13 @@ import {
   Calendar,
   Check,
   Clock,
+  Dice,
   Hourglass,
   MapPin,
   Plus,
   Sparkles,
   Trophy,
+  Users,
   X,
 } from "@/components/Icon";
 
@@ -27,12 +29,13 @@ function toSlug(s: string): string {
     .slice(0, 64);
 }
 
-type StepKey = "name" | "schedule" | "tables" | "review";
+type StepKey = "name" | "schedule" | "tables" | "category" | "review";
 
 const STEPS: { key: StepKey; title: string; subtitle: string }[] = [
   { key: "name", title: "Turnier", subtitle: "Name und URL" },
   { key: "schedule", title: "Wann & Wo", subtitle: "Datum, Zeit, Ort" },
   { key: "tables", title: "Ablauf", subtitle: "Tische und Spieldauer" },
+  { key: "category", title: "Spielklasse", subtitle: "Erste Gruppe (optional)" },
   { key: "review", title: "Übersicht", subtitle: "Kurz prüfen" },
 ];
 
@@ -55,8 +58,18 @@ export function CreateTournamentForm() {
   const [parallelTables, setParallelTables] = useState(3);
   const [matchDurationMinutes, setMatchDurationMinutes] = useState(11);
 
+  const [createCategory, setCreateCategory] = useState(true);
+  const [catName, setCatName] = useState("");
+  const [catSlug, setCatSlug] = useState("");
+  const [catSlugEdited, setCatSlugEdited] = useState(false);
+  const [catGroupSize, setCatGroupSize] = useState(4);
+  const [catWinSets, setCatWinSets] = useState(2);
+
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [createdTournamentId, setCreatedTournamentId] = useState<string | null>(
+    null,
+  );
   const dialogRef = useRef<HTMLDivElement>(null);
 
   const step = STEPS[stepIdx]!;
@@ -66,6 +79,10 @@ export function CreateTournamentForm() {
   const trimmedName = name.trim();
   const effectiveSlug = (slug || toSlug(trimmedName)).trim();
   const slugLooksValid = /^[a-z0-9-]{2,64}$/.test(effectiveSlug);
+
+  const trimmedCatName = catName.trim();
+  const effectiveCatSlug = (catSlug || toSlug(trimmedCatName)).trim();
+  const catSlugLooksValid = /^[a-z0-9-]{2,64}$/.test(effectiveCatSlug);
 
   function reset() {
     setStepIdx(0);
@@ -77,8 +94,15 @@ export function CreateTournamentForm() {
     setStartTime("10:00");
     setParallelTables(3);
     setMatchDurationMinutes(11);
+    setCreateCategory(true);
+    setCatName("");
+    setCatSlug("");
+    setCatSlugEdited(false);
+    setCatGroupSize(4);
+    setCatWinSets(2);
     setError(null);
     setSaving(false);
+    setCreatedTournamentId(null);
   }
 
   function close() {
@@ -123,6 +147,15 @@ export function CreateTournamentForm() {
         matchDurationMinutes <= 120
       );
     }
+    if (idx === 3) {
+      if (!createCategory) return true;
+      return (
+        trimmedCatName.length >= 1 &&
+        catSlugLooksValid &&
+        catGroupSize >= 3 &&
+        catGroupSize <= 8
+      );
+    }
     return true;
   }
 
@@ -130,31 +163,61 @@ export function CreateTournamentForm() {
     setError(null);
     setSaving(true);
     try {
-      const startDateIso = startDate
-        ? new Date(`${startDate}T${startTime || "10:00"}:00`).toISOString()
-        : undefined;
-      const res = await fetch("/api/tournaments", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          name: trimmedName,
-          slug: effectiveSlug,
-          location: location.trim() || undefined,
-          startDate: startDateIso,
-          startTime,
-          parallelTables,
-          matchDurationMinutes,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error ?? "Speichern hat nicht geklappt.");
-        // jump back to the first invalid step on error
-        if (data.error?.toLowerCase?.().includes("slug")) setStepIdx(0);
-        return;
+      let tournamentId = createdTournamentId;
+      if (!tournamentId) {
+        const startDateIso = startDate
+          ? new Date(`${startDate}T${startTime || "10:00"}:00`).toISOString()
+          : undefined;
+        const res = await fetch("/api/tournaments", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            name: trimmedName,
+            slug: effectiveSlug,
+            location: location.trim() || undefined,
+            startDate: startDateIso,
+            startTime,
+            parallelTables,
+            matchDurationMinutes,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setError(data.error ?? "Speichern hat nicht geklappt.");
+          if (data.error?.toLowerCase?.().includes("slug")) setStepIdx(0);
+          return;
+        }
+        tournamentId = data.tournament.id as string;
+        setCreatedTournamentId(tournamentId);
       }
+
+      if (createCategory) {
+        const catRes = await fetch(
+          `/api/tournaments/${tournamentId}/categories`,
+          {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              name: trimmedCatName,
+              slug: effectiveCatSlug,
+              groupSize: catGroupSize,
+              winSets: catWinSets,
+            }),
+          },
+        );
+        const catData = await catRes.json();
+        if (!catRes.ok) {
+          setError(
+            catData.error ??
+              "Spielklasse konnte nicht angelegt werden. Du kannst sie später auf der Turnier-Seite anlegen.",
+          );
+          setStepIdx(3);
+          return;
+        }
+      }
+
       setOpen(false);
-      router.push(`/admin/t/${data.tournament.id}`);
+      router.push(`/admin/t/${tournamentId}`);
       router.refresh();
     } catch {
       setError("Keine Verbindung. Bitte nochmal versuchen.");
@@ -270,6 +333,27 @@ export function CreateTournamentForm() {
                 setMatchDurationMinutes={setMatchDurationMinutes}
               />
             )}
+            {step.key === "category" && (
+              <CategoryStep
+                enabled={createCategory}
+                setEnabled={setCreateCategory}
+                name={catName}
+                setName={(v) => {
+                  setCatName(v);
+                  if (!catSlugEdited) setCatSlug(toSlug(v));
+                }}
+                slug={catSlug || toSlug(trimmedCatName)}
+                setSlug={(v) => {
+                  setCatSlug(v);
+                  setCatSlugEdited(true);
+                }}
+                slugLooksValid={catSlugLooksValid}
+                groupSize={catGroupSize}
+                setGroupSize={setCatGroupSize}
+                winSets={catWinSets}
+                setWinSets={setCatWinSets}
+              />
+            )}
             {step.key === "review" && (
               <ReviewStep
                 name={trimmedName}
@@ -279,6 +363,11 @@ export function CreateTournamentForm() {
                 startTime={startTime}
                 parallelTables={parallelTables}
                 matchDurationMinutes={matchDurationMinutes}
+                createCategory={createCategory}
+                catName={trimmedCatName}
+                catSlug={effectiveCatSlug}
+                catGroupSize={catGroupSize}
+                catWinSets={catWinSets}
               />
             )}
           </div>
@@ -618,6 +707,169 @@ function TablesStep({
   );
 }
 
+function CategoryStep({
+  enabled,
+  setEnabled,
+  name,
+  setName,
+  slug,
+  setSlug,
+  slugLooksValid,
+  groupSize,
+  setGroupSize,
+  winSets,
+  setWinSets,
+}: {
+  enabled: boolean;
+  setEnabled: (v: boolean) => void;
+  name: string;
+  setName: (v: string) => void;
+  slug: string;
+  setSlug: (v: string) => void;
+  slugLooksValid: boolean;
+  groupSize: number;
+  setGroupSize: (v: number) => void;
+  winSets: number;
+  setWinSets: (v: number) => void;
+}) {
+  return (
+    <div>
+      <StepHeader
+        icon={<Users size={18} />}
+        title="Erste Spielklasse anlegen?"
+        hint="Eine Spielklasse bündelt Teilnehmer eines Wettbewerbs – z. B. „Herren A“, „Damen“ oder „Jugend U18“. Du kannst später weitere hinzufügen."
+      />
+
+      <label className="flex items-start gap-3 cursor-pointer rounded-xl border border-ink-200 bg-surface p-4 hover:border-brand-300 transition-colors">
+        <input
+          type="checkbox"
+          className="mt-0.5"
+          checked={enabled}
+          onChange={(e) => setEnabled(e.target.checked)}
+        />
+        <span className="text-sm">
+          <span className="font-medium text-ink-900">
+            Direkt die erste Spielklasse anlegen
+          </span>
+          <span className="block text-xs text-ink-500 mt-0.5">
+            Spart einen Klick: du startest direkt mit dem Hinzufügen von
+            Teilnehmern. Abwählbar – du kannst auch später auf der Turnier-Seite
+            beliebig viele Spielklassen anlegen.
+          </span>
+        </span>
+      </label>
+
+      <div
+        aria-hidden={!enabled}
+        className={`mt-4 space-y-4 transition-opacity ${
+          enabled ? "opacity-100" : "opacity-40 pointer-events-none"
+        }`}
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <label className="label" htmlFor="wiz-cat-name">
+              Name der Spielklasse
+            </label>
+            <input
+              id="wiz-cat-name"
+              className="input"
+              placeholder="z. B. Herren A"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              maxLength={80}
+              disabled={!enabled}
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="label" htmlFor="wiz-cat-slug">
+              Kürzel für die URL
+            </label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-ink-400 font-mono pointer-events-none">
+                /c/
+              </span>
+              <input
+                id="wiz-cat-slug"
+                className="input pl-10 font-mono"
+                value={slug}
+                onChange={(e) => setSlug(e.target.value)}
+                pattern="[a-z0-9-]{2,64}"
+                maxLength={64}
+                spellCheck={false}
+                disabled={!enabled}
+              />
+            </div>
+            {enabled && slug && !slugLooksValid && (
+              <p className="mt-1.5 text-xs text-brand-600">
+                Mindestens 2 Zeichen, keine Sonderzeichen.
+              </p>
+            )}
+          </div>
+          <div>
+            <label className="label" htmlFor="wiz-cat-size">
+              Spieler pro Gruppe
+            </label>
+            <input
+              id="wiz-cat-size"
+              className="input"
+              type="number"
+              min={3}
+              max={8}
+              value={Number.isFinite(groupSize) ? groupSize : ""}
+              onChange={(e) =>
+                setGroupSize(clampInt(parseInt(e.target.value, 10), 3, 8, 4))
+              }
+              onBlur={(e) =>
+                setGroupSize(clampInt(parseInt(e.target.value, 10), 3, 8, 4))
+              }
+              disabled={!enabled}
+            />
+            <p className="mt-1.5 text-xs text-ink-500">
+              3–8 Spieler. Richtwert: 4.
+            </p>
+          </div>
+          <div>
+            <label className="label" htmlFor="wiz-cat-mode">
+              Spielmodus
+            </label>
+            <select
+              id="wiz-cat-mode"
+              className="input"
+              value={winSets}
+              onChange={(e) => setWinSets(parseInt(e.target.value, 10))}
+              disabled={!enabled}
+            >
+              <option value={2}>Best of 3 (2 Gewinnsätze)</option>
+              <option value={3}>Best of 5 (3 Gewinnsätze)</option>
+              <option value={4}>Best of 7 (4 Gewinnsätze)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-5 rounded-xl border border-ink-200 bg-surface-2/60 p-4 text-sm text-ink-600">
+        <div className="flex items-center gap-2 text-ink-700 font-medium">
+          <Dice size={14} /> Und was passiert dann?
+        </div>
+        <ol className="mt-2 space-y-1.5 text-xs text-ink-600 list-decimal list-inside">
+          <li>
+            Du trägst Teilnehmer in die Spielklasse ein (einzeln oder per
+            Liste).
+          </li>
+          <li>
+            Mit einem Klick auf <span className="font-medium">„Auslosen“</span>{" "}
+            werden die Spieler zufällig auf Gruppen A, B, C … verteilt.
+          </li>
+          <li>
+            Jede Gruppe spielt „Jeder gegen Jeden“ – danach geht es in die
+            Finalrunde (KO).
+          </li>
+        </ol>
+      </div>
+    </div>
+  );
+}
+
 function ReviewRow({
   label,
   value,
@@ -651,6 +903,11 @@ function ReviewStep({
   startTime,
   parallelTables,
   matchDurationMinutes,
+  createCategory,
+  catName,
+  catSlug,
+  catGroupSize,
+  catWinSets,
 }: {
   name: string;
   slug: string;
@@ -659,6 +916,11 @@ function ReviewStep({
   startTime: string;
   parallelTables: number;
   matchDurationMinutes: number;
+  createCategory: boolean;
+  catName: string;
+  catSlug: string;
+  catGroupSize: number;
+  catWinSets: number;
 }) {
   const date = startDate
     ? new Date(`${startDate}T00:00:00`).toLocaleDateString("de-DE", {
@@ -668,6 +930,12 @@ function ReviewStep({
         year: "numeric",
       })
     : "";
+  const modeLabel =
+    catWinSets === 2
+      ? "Best of 3"
+      : catWinSets === 3
+        ? "Best of 5"
+        : "Best of 7";
   return (
     <div>
       <StepHeader
@@ -687,9 +955,29 @@ function ReviewStep({
           value={`${matchDurationMinutes} Min`}
         />
       </div>
+      {createCategory ? (
+        <div className="mt-4 rounded-xl border border-brand-200 bg-brand-50/40 px-4">
+          <div className="flex items-center gap-2 py-2.5 border-b border-ink-200/70 text-brand-700">
+            <Users size={14} />
+            <span className="text-xs uppercase tracking-wider font-semibold">
+              Erste Spielklasse
+            </span>
+          </div>
+          <ReviewRow label="Name" value={catName} />
+          <ReviewRow label="URL" value={`/c/${catSlug}`} />
+          <ReviewRow label="Gruppengröße" value={`${catGroupSize} Spieler`} />
+          <ReviewRow label="Modus" value={modeLabel} />
+        </div>
+      ) : (
+        <p className="mt-4 text-xs text-ink-500">
+          Keine Spielklasse vorausgewählt – du legst sie gleich auf der
+          Turnier-Seite an.
+        </p>
+      )}
       <p className="mt-4 text-xs text-ink-500">
-        Nach dem Anlegen landest du direkt auf der Turnier-Seite, wo du
-        Spielklassen (Herren, Damen, Jugend …) und Teilnehmer hinzufügen kannst.
+        {createCategory
+          ? "Nach dem Anlegen landest du direkt in deiner Spielklasse und kannst Teilnehmer hinzufügen."
+          : "Nach dem Anlegen landest du direkt auf der Turnier-Seite, wo du Spielklassen und Teilnehmer hinzufügen kannst."}
       </p>
     </div>
   );
