@@ -133,7 +133,7 @@ export default async function PublicCategoryPage({
     : "groups_ko";
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-page">
       <AutoRefresh intervalSeconds={30} />
       <header className="sticky top-0 z-10 border-b border-brand-800/20 bg-brand-700 text-white shadow-pop">
         <div className="mx-auto max-w-5xl px-4 py-4">
@@ -151,7 +151,7 @@ export default async function PublicCategoryPage({
 
       <main id="main" tabIndex={-1} className="mx-auto max-w-5xl px-4 py-8 space-y-10">
         {!category.drawDone ? (
-          <div className="rounded-xl border border-dashed border-ink-200 bg-white p-10 text-center">
+          <div className="rounded-xl border border-dashed border-ink-200 bg-surface p-10 text-center">
             <p className="text-sm text-ink-600">Losung steht noch aus.</p>
           </div>
         ) : structure === "swiss" ? (

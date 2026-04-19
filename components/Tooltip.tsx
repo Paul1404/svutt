@@ -78,7 +78,7 @@ export function HelpTooltip({
         <span
           id={id}
           role="tooltip"
-          className="absolute left-0 top-full z-30 mt-2 w-64 rounded-lg border border-ink-200 bg-white p-3 text-xs leading-relaxed text-ink-700 shadow-lift"
+          className="absolute left-0 top-full z-30 mt-2 w-64 rounded-lg border border-ink-200 bg-surface p-3 text-xs leading-relaxed text-ink-700 shadow-lift"
         >
           <span className="block font-semibold text-ink-900 mb-1">{label}</span>
           <span className="block">{children}</span>

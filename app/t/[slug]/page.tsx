@@ -28,7 +28,7 @@ export default async function PublicTournamentPage({
     .orderBy(asc(categories.sortOrder));
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-page">
       <header className="bg-brand-700 text-white">
         <div className="mx-auto max-w-4xl px-4 py-10 sm:py-14">
           <Link
@@ -77,7 +77,7 @@ export default async function PublicTournamentPage({
         </div>
 
         {cats.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-ink-200 bg-white p-10 text-center">
+          <div className="rounded-xl border border-dashed border-ink-200 bg-surface p-10 text-center">
             <p className="text-sm text-ink-600">
               Für dieses Turnier stehen noch keine Spielklassen bereit.
             </p>

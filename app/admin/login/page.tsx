@@ -3,6 +3,7 @@ import Link from "next/link";
 import { readSession } from "@/lib/auth/session";
 import { LoginForm } from "@/components/admin/LoginForm";
 import { ClubMark } from "@/components/ClubMark";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +11,10 @@ export default async function LoginPage() {
   const session = await readSession();
   if (session) redirect("/admin");
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12">
+    <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-page-2">
+      <div className="absolute top-4 right-4">
+        <ThemeToggle />
+      </div>
       <div className="w-full max-w-sm">
         <Link
           href="/"
@@ -36,10 +40,6 @@ export default async function LoginPage() {
             <LoginForm />
           </div>
         </div>
-
-        <p className="mt-6 text-center text-xs text-ink-400">
-          Zugangsdaten stehen in der .env-Datei.
-        </p>
       </div>
     </div>
   );

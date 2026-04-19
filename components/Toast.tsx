@@ -89,10 +89,10 @@ function ToastView({
 
   const variantCls =
     item.variant === "error"
-      ? "border-brand-200 bg-white text-brand-900"
+      ? "border-brand-200 bg-surface text-brand-900"
       : item.variant === "info"
-        ? "border-ink-200 bg-white text-ink-900"
-        : "border-emerald-200 bg-white text-ink-900";
+        ? "border-ink-200 bg-surface text-ink-900"
+        : "border-emerald-200 bg-surface text-ink-900";
 
   const Icon =
     item.variant === "error"
@@ -120,7 +120,7 @@ function ToastView({
       {item.undo && (
         <button
           type="button"
-          className="inline-flex items-center gap-1 rounded-md border border-ink-200 bg-white px-2.5 py-1 text-xs font-semibold text-ink-800 hover:border-brand-300 hover:text-brand-700 transition-colors disabled:opacity-50"
+          className="inline-flex items-center gap-1 rounded-md border border-ink-200 bg-surface px-2.5 py-1 text-xs font-semibold text-ink-800 hover:border-brand-300 hover:text-brand-700 transition-colors disabled:opacity-50"
           disabled={undoing}
           onClick={async () => {
             if (!item.undo) return;
