@@ -125,8 +125,10 @@ describe("buildBracket", () => {
     expect(br.losersEntries).toHaveLength(0);
   });
 
-  it("leaves main bracket slots empty when qualifiers don't fill a power of two", () => {
-    // 3 groups of 2 → 3 winners advance. Main size = 4 → 1 empty slot.
+  it("gives a bye (no first-round match) when a qualifier has no opponent", () => {
+    // 3 groups of 2 → 3 winners advance. Main size = 4 → 1 would-be empty
+    // slot. The paired winner should get a bye, not a ghost match against
+    // nobody.
     const groups = [0, 1, 2].map((gi) => {
       const label = String.fromCharCode("A".charCodeAt(0) + gi);
       const players = [makePlayer(`${label}1`), makePlayer(`${label}2`)];
@@ -134,12 +136,51 @@ describe("buildBracket", () => {
     });
     const br = buildBracket({ groups, advancementCount: 1 });
     expect(br.size).toBe(4);
+
+    // Every created match has both sides filled — no phantom "player vs …".
+    for (const m of br.matches) {
+      expect(m.a.kind).not.toBe("empty");
+      expect(m.b.kind).not.toBe("empty");
+    }
+
+    // With 3 players in a 4-slot bracket, exactly one round-0 match is
+    // played; the other two players meet the winner in the final. One of
+    // the finalists comes via a bye (player slot), the other via pending.
     const r0 = br.matches.filter((m) => m.round === 0);
-    expect(r0).toHaveLength(2);
-    const empties = r0
-      .flatMap((m) => [m.a, m.b])
-      .filter((s) => s.kind === "empty");
-    expect(empties.length).toBeGreaterThan(0);
+    expect(r0).toHaveLength(1);
+    const final = br.matches.find((m) => m.label === "Finale")!;
+    const hasByePlayer =
+      final.a.kind === "player" || final.b.kind === "player";
+    const hasPending =
+      final.a.kind === "pending" || final.b.kind === "pending";
+    expect(hasByePlayer).toBe(true);
+    expect(hasPending).toBe(true);
+  });
+
+  it("skips whole-subtree byes without leaving empty matches", () => {
+    // 10 players in a 16-slot bracket → 6 byes. Only fully-filled pairs
+    // should produce round-0 matches.
+    const groups = ["A", "B", "C", "D", "E"].map((lbl, gi) =>
+      makeGroup(
+        `g${gi}`,
+        lbl,
+        [0, 1, 2, 3].map((pi) => makePlayer(`${lbl}${pi + 1}`)),
+      ),
+    );
+    const br = buildBracket({ groups, advancementCount: 2 });
+    expect(br.size).toBe(16);
+
+    for (const m of br.matches) {
+      expect(m.a.kind).not.toBe("empty");
+      expect(m.b.kind).not.toBe("empty");
+    }
+
+    // 10 seeded players → at most 5 real first-round matches (the bracket
+    // first half has 5 filled + 3 empty, the second half has 5 filled + 3
+    // empty; pairing first-half vs second-half yields some real matches and
+    // some byes). The exact count depends on seeding interleave.
+    const r0 = br.matches.filter((m) => m.round === 0);
+    expect(r0.length).toBeLessThan(8);
   });
 
   it("handles a trivial 2-group tournament with Top 1", () => {

@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
 import type { Match, MatchSetRow, Participant } from "@/lib/db/schema";
 import { Trophy } from "@/components/Icon";
 
@@ -11,17 +14,41 @@ type Props = {
   highlightFinal?: boolean;
 };
 
-const CARD_WIDTH = 240;
-const CARD_HEIGHT = 94;
-const COLUMN_GAP = 56;
-const ROW_GAP = 22;
-const SLOT_H = CARD_HEIGHT + ROW_GAP;
+type Dims = {
+  cardWidth: number;
+  cardHeight: number;
+  columnGap: number;
+  rowGap: number;
+  fontSize: number;
+  labelSize: number;
+  padX: number;
+};
+
+const DESKTOP: Dims = {
+  cardWidth: 240,
+  cardHeight: 94,
+  columnGap: 56,
+  rowGap: 22,
+  fontSize: 14,
+  labelSize: 10,
+  padX: 12,
+};
+
+const MOBILE: Dims = {
+  cardWidth: 156,
+  cardHeight: 78,
+  columnGap: 22,
+  rowGap: 14,
+  fontSize: 12,
+  labelSize: 9,
+  padX: 8,
+};
 
 /**
  * Real-tree single-elimination bracket. Matches are positioned absolutely so
  * each round is horizontally stacked and every winning pair lines up exactly
  * with the merged match in the next column. SVG connectors draw the "tree"
- * branches between them.
+ * branches between them. The whole tree shrinks + wraps tighter on phones.
  */
 export function TreeBracket({
   matches,
@@ -30,6 +57,10 @@ export function TreeBracket({
   onMatchClick,
   highlightFinal = false,
 }: Props) {
+  const isMobile = useIsMobile();
+  const dims = isMobile ? MOBILE : DESKTOP;
+  const slotH = dims.cardHeight + dims.rowGap;
+
   if (matches.length === 0) return null;
 
   const partsById = new Map(participants.map((p) => [p.id, p]));
@@ -56,21 +87,33 @@ export function TreeBracket({
   }
   rounds.sort((a, b) => a.round - b.round);
 
+  // Track the largest matchIndex in round 0 — even with byes, matchIndex
+  // reflects the original slot position, so we need that to size the layout.
   const firstRound = rounds[0]!;
-  const rowsInFirstRound = firstRound.matches.length;
-  const totalHeight = rowsInFirstRound * SLOT_H;
-  const totalWidth = rounds.length * CARD_WIDTH + (rounds.length - 1) * COLUMN_GAP;
+  const maxFirstRoundIndex = firstRound.matches.reduce(
+    (m, r) => Math.max(m, r.matchIndex),
+    0,
+  );
+  const rowsInFirstRound = maxFirstRoundIndex + 1;
+  const totalHeight = rowsInFirstRound * slotH;
+  const totalWidth =
+    rounds.length * dims.cardWidth +
+    (rounds.length - 1) * dims.columnGap;
 
-  function centerY(round: number, matchIndex: number): number {
-    // Only position if this round has a real entry; otherwise interpolate from
-    // the first-round match positions (2 * matchIndex and 2 * matchIndex + 1
-    // of the adjacent deeper round).
-    return (matchIndex + 0.5) * (SLOT_H * 2 ** round);
-  }
+  const centerY = (round: number, matchIndex: number): number =>
+    (matchIndex + 0.5) * (slotH * 2 ** round);
 
-  function columnX(round: number): number {
-    return round * (CARD_WIDTH + COLUMN_GAP);
-  }
+  const columnX = (round: number): number =>
+    round * (dims.cardWidth + dims.columnGap);
+
+  // Build a quick lookup of matchId → (round, matchIndex) so we can draw
+  // connector lines from any child match, no matter what round it's in
+  // (important: bye-advanced winners skip rounds, so the downstream match's
+  // source may be in a far earlier round).
+  const coords = new Map<string, { round: number; matchIndex: number }>();
+  for (const r of rounds)
+    for (const m of r.matches)
+      coords.set(m.id, { round: r.round, matchIndex: m.matchIndex });
 
   return (
     <div
@@ -79,6 +122,7 @@ export function TreeBracket({
         width: totalWidth,
         height: totalHeight,
         minWidth: totalWidth,
+        fontSize: dims.fontSize,
       }}
     >
       {/* Connector SVG in the background */}
@@ -88,24 +132,34 @@ export function TreeBracket({
         width={totalWidth}
         height={totalHeight}
       >
-        {rounds.slice(0, -1).map((r) =>
-          r.matches.map((m) => {
-            const nextMatchIndex = Math.floor(m.matchIndex / 2);
-            const fromX = columnX(r.round) + CARD_WIDTH;
-            const fromY = centerY(r.round, m.matchIndex);
-            const toX = columnX(r.round + 1);
-            const toY = centerY(r.round + 1, nextMatchIndex);
-            const midX = fromX + COLUMN_GAP / 2;
-            return (
-              <path
-                key={m.id}
-                d={`M ${fromX} ${fromY} H ${midX} V ${toY} H ${toX}`}
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={1.5}
-                className="text-ink-200"
-              />
-            );
+        {rounds.slice(1).flatMap((r) =>
+          r.matches.flatMap((m) => {
+            // Draw an L-path from each source match (via sourceMatch*Id)
+            // into this match. Can't rely on matchIndex arithmetic alone
+            // because bye-advanced winners come directly from earlier
+            // rounds, potentially skipping a column.
+            const toLeft = columnX(r.round);
+            const toCenter = centerY(r.round, m.matchIndex);
+            const midX = toLeft - dims.columnGap / 2;
+            return [m.sourceMatchAId, m.sourceMatchBId]
+              .map((srcId) => {
+                if (!srcId) return null;
+                const src = coords.get(srcId);
+                if (!src) return null;
+                const fromRight = columnX(src.round) + dims.cardWidth;
+                const fromCenter = centerY(src.round, src.matchIndex);
+                return (
+                  <path
+                    key={`${srcId}->${m.id}`}
+                    d={`M ${fromRight} ${fromCenter} H ${midX} V ${toCenter} H ${toLeft}`}
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={1.25}
+                    className="text-ink-200"
+                  />
+                );
+              })
+              .filter(Boolean);
           }),
         )}
       </svg>
@@ -116,12 +170,13 @@ export function TreeBracket({
         return (
           <div
             key={`label-${r.round}`}
-            className="absolute text-[10px] font-semibold uppercase tracking-wider text-brand-600"
+            className="absolute font-semibold uppercase tracking-wider text-brand-600"
             style={{
               left: columnX(r.round),
-              width: CARD_WIDTH,
+              width: dims.cardWidth,
               top: -22,
               textAlign: "center",
+              fontSize: dims.labelSize,
             }}
           >
             {label}
@@ -145,11 +200,11 @@ export function TreeBracket({
             !!m.winnerParticipantId;
           const canClick =
             !!onMatchClick && !!m.participantAId && !!m.participantBId;
-          const top = centerY(r.round, m.matchIndex) - CARD_HEIGHT / 2;
+          const top = centerY(r.round, m.matchIndex) - dims.cardHeight / 2;
           const left = columnX(r.round);
 
           const className = [
-            "absolute p-3",
+            "absolute",
             isFinaleWinner
               ? "card ring-2 ring-amber-400 bg-amber-50/70"
               : canClick
@@ -157,10 +212,21 @@ export function TreeBracket({
                 : "card",
           ].join(" ");
 
+          const style = {
+            left,
+            top,
+            width: dims.cardWidth,
+            height: dims.cardHeight,
+            padding: `${dims.padX - 2}px ${dims.padX}px`,
+          } as const;
+
           const content = (
             <>
               {isFinaleWinner && (
-                <div className="mb-1 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-amber-700">
+                <div
+                  className="mb-1 flex items-center gap-1 font-bold uppercase tracking-wider text-amber-700"
+                  style={{ fontSize: dims.labelSize }}
+                >
                   <Trophy size={12} /> Sieger
                 </div>
               )}
@@ -169,6 +235,7 @@ export function TreeBracket({
                 score={done ? m.setsA : null}
                 winner={winnerA}
                 placeholder={!a}
+                compact={isMobile}
               />
               <div className="my-1 h-px bg-ink-100" />
               <Row
@@ -176,8 +243,12 @@ export function TreeBracket({
                 score={done ? m.setsB : null}
                 winner={winnerB}
                 placeholder={!b}
+                compact={isMobile}
               />
-              <div className="mt-1.5 text-[10px] text-ink-500 font-mono tabular-nums">
+              <div
+                className="mt-1 text-ink-500 font-mono tabular-nums truncate"
+                style={{ fontSize: dims.labelSize }}
+              >
                 T{m.tableNumber ?? "?"}
                 {matchSets.length > 0 && (
                   <>
@@ -190,13 +261,6 @@ export function TreeBracket({
               </div>
             </>
           );
-
-          const style = {
-            left,
-            top,
-            width: CARD_WIDTH,
-            height: CARD_HEIGHT,
-          } as const;
 
           if (canClick) {
             return (
@@ -227,14 +291,19 @@ function Row({
   score,
   winner,
   placeholder,
+  compact,
 }: {
   name: string;
   score: number | null;
   winner: boolean;
   placeholder: boolean;
+  compact: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between text-sm py-0.5">
+    <div
+      className="flex items-center justify-between py-0.5"
+      style={{ fontSize: compact ? 12 : 14 }}
+    >
       <span
         className={`truncate ${
           placeholder ? "italic text-ink-400" : winner ? "font-bold" : ""
@@ -243,10 +312,28 @@ function Row({
         {name}
       </span>
       <span
-        className={`font-mono text-xs tabular-nums ${winner ? "font-bold text-brand-700" : "text-ink-500"}`}
+        className={`pl-1.5 font-mono tabular-nums ${winner ? "font-bold text-brand-700" : "text-ink-500"}`}
+        style={{ fontSize: compact ? 11 : 12 }}
       >
         {score !== null ? score : ""}
       </span>
     </div>
   );
+}
+
+function useIsMobile(): boolean {
+  // Default to desktop on the server / first paint to keep SSR output
+  // deterministic; the layout swaps to mobile after hydration on small
+  // screens.
+  const [isMobile, setIsMobile] = useState(false);
+  const initialized = useRef(false);
+  useEffect(() => {
+    const mql = window.matchMedia("(max-width: 640px)");
+    const apply = () => setIsMobile(mql.matches);
+    apply();
+    initialized.current = true;
+    mql.addEventListener("change", apply);
+    return () => mql.removeEventListener("change", apply);
+  }, []);
+  return isMobile;
 }

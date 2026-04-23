@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import type {
   Category,
   Group,
@@ -11,6 +12,8 @@ import type {
 } from "@/lib/db/schema";
 import type { GroupStanding } from "@/lib/engine/types";
 import { MatchResultDialog } from "./MatchResultDialog";
+import { StandingsExplainer } from "@/components/StandingsExplainer";
+import { useToast } from "@/components/Toast";
 
 type Props = {
   tournamentId: string;
@@ -32,6 +35,8 @@ export function GroupsPanel({
   sets,
   standings,
 }: Props) {
+  const router = useRouter();
+  const toast = useToast();
   const advancementCount = category.groupAdvancementCount ?? 2;
   const partsById = useMemo(
     () => new Map(participants.map((p) => [p.id, p])),
@@ -53,6 +58,50 @@ export function GroupsPanel({
 
   const totalMatches = matches.length;
   const finished = matches.filter((m) => m.status === "finished").length;
+  // Drag + drop between groups is only safe before any match has been
+  // touched AND before the KO bracket exists; either would invalidate
+  // results the admin probably cares about.
+  const anyTouched = matches.some((m) => m.status !== "pending");
+  const canMove =
+    category.structure === "groups_ko" &&
+    !anyTouched &&
+    !category.bracketDone;
+
+  const [dragParticipantId, setDragParticipantId] = useState<string | null>(
+    null,
+  );
+  const [dragOverGroupId, setDragOverGroupId] = useState<string | null>(null);
+  const [moving, setMoving] = useState(false);
+
+  async function movePlayer(participantId: string, targetGroupId: string) {
+    setMoving(true);
+    try {
+      const res = await fetch(`/api/categories/${category.id}/groups/move`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ participantId, targetGroupId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.show({
+          message:
+            typeof data?.error === "string"
+              ? data.error
+              : "Verschieben fehlgeschlagen.",
+        });
+        return;
+      }
+      const p = partsById.get(participantId);
+      toast.show({
+        message: data.unchanged
+          ? "Spieler war bereits in der Gruppe."
+          : `${p?.name ?? "Spieler"} in Gruppe ${data.to} verschoben.`,
+      });
+      router.refresh();
+    } finally {
+      setMoving(false);
+    }
+  }
 
   return (
     <section className="space-y-5">
@@ -62,7 +111,9 @@ export function GroupsPanel({
             Gruppenphase
           </h2>
           <p className="mt-1 text-sm text-ink-500">
-            Tippe auf ein Spiel, um das Ergebnis einzutragen.
+            {canMove
+              ? "Tippe auf ein Spiel, um das Ergebnis einzutragen. Spieler lassen sich per Drag & Drop zwischen Gruppen verschieben, solange noch nichts gespielt wurde."
+              : "Tippe auf ein Spiel, um das Ergebnis einzutragen."}
           </p>
         </div>
         <div className="text-sm text-ink-600">
@@ -70,6 +121,8 @@ export function GroupsPanel({
           <span className="text-ink-400"> / {totalMatches} Spielen fertig</span>
         </div>
       </div>
+
+      <StandingsExplainer />
 
       <div className="grid gap-5 lg:grid-cols-2">
         {groups.map((g) => {
@@ -79,8 +132,31 @@ export function GroupsPanel({
           const gMatches = matches.filter((m) => m.groupId === g.id);
           const gDone = gMatches.every((m) => m.status === "finished");
           const standing = standings.find((s) => s.groupId === g.id);
+          const isDragTarget =
+            canMove && dragOverGroupId === g.id && dragParticipantId !== null;
           return (
-            <div key={g.id} className="card overflow-hidden">
+            <div
+              key={g.id}
+              className={`card overflow-hidden transition-colors ${
+                isDragTarget ? "ring-2 ring-brand-400 bg-brand-50/40" : ""
+              }`}
+              onDragOver={(e) => {
+                if (!canMove || dragParticipantId === null) return;
+                e.preventDefault();
+                setDragOverGroupId(g.id);
+              }}
+              onDragLeave={() => {
+                if (dragOverGroupId === g.id) setDragOverGroupId(null);
+              }}
+              onDrop={(e) => {
+                if (!canMove || dragParticipantId === null) return;
+                e.preventDefault();
+                const pid = dragParticipantId;
+                setDragParticipantId(null);
+                setDragOverGroupId(null);
+                movePlayer(pid, g.id);
+              }}
+            >
               <div className="flex items-center justify-between px-5 py-3 border-b border-ink-100 bg-ink-50/50">
                 <h3 className="font-semibold tracking-tight">
                   Gruppe {g.label}
@@ -117,10 +193,30 @@ export function GroupsPanel({
                     <tbody>
                       {standing.rows.map((r) => {
                         const isQualifier = r.rank <= advancementCount;
+                        const isDragging = dragParticipantId === r.playerId;
                         return (
                           <tr
                             key={r.playerId}
-                            className="border-t border-ink-100"
+                            className={`border-t border-ink-100 ${
+                              canMove ? "cursor-grab" : ""
+                            } ${isDragging ? "opacity-40" : ""} ${
+                              moving && isDragging ? "animate-pulse" : ""
+                            }`}
+                            draggable={canMove && !moving}
+                            onDragStart={(e) => {
+                              if (!canMove) return;
+                              setDragParticipantId(r.playerId);
+                              e.dataTransfer.effectAllowed = "move";
+                              // Set payload so browsers with strict DnD
+                              // validation (Firefox) actually initiate the
+                              // drag — the value itself is not used.
+                              e.dataTransfer.setData("text/plain", r.playerId);
+                            }}
+                            onDragEnd={() => {
+                              setDragParticipantId(null);
+                              setDragOverGroupId(null);
+                            }}
+                            title={canMove ? "Ziehen, um Gruppe zu wechseln" : undefined}
                           >
                             <td className="py-2">
                               <span
@@ -134,7 +230,17 @@ export function GroupsPanel({
                               </span>
                             </td>
                             <td className="py-2 font-medium">
-                              {partsById.get(r.playerId)?.name ?? "?"}
+                              <span className="inline-flex items-center gap-1.5">
+                                {canMove && (
+                                  <span
+                                    aria-hidden
+                                    className="text-ink-300 select-none"
+                                  >
+                                    ⋮⋮
+                                  </span>
+                                )}
+                                {partsById.get(r.playerId)?.name ?? "?"}
+                              </span>
                             </td>
                             <td className="py-2 text-right tabular-nums">
                               {r.wins}-{r.losses}
