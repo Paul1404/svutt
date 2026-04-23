@@ -686,20 +686,11 @@ export const categoryRoutes = new Hono()
 
     return c.json({ ok: true, size: bracket.size, luckyLosers: bracket.luckyLosers });
   })
-  // Populate random results for all pending matches of a category. Intended
-  // for local/dev testing so admins can try the full flow without entering
-  // every score by hand. Disabled in production unless ENABLE_TEST_UTILS=1.
+  // Populate random results for all pending matches of a category. Admins
+  // can use this to quickly play through a tournament without entering every
+  // score by hand (trainings, demos, dry-runs). Only pending matches are
+  // touched; finished results are never overwritten.
   .post("/:id/populate-test-results", async (c) => {
-    if (
-      process.env.NODE_ENV === "production" &&
-      process.env.ENABLE_TEST_UTILS !== "1"
-    ) {
-      return c.json(
-        { error: "Test-Hilfsfunktion ist in der Produktionsumgebung deaktiviert." },
-        403,
-      );
-    }
-
     const id = c.req.param("id");
     const stageParam = c.req.query("stage");
     const stageFilter =
