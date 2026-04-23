@@ -7,6 +7,7 @@ import type {
 } from "@/lib/db/schema";
 import type { GroupStanding } from "@/lib/engine/types";
 import { ChevronDown } from "@/components/Icon";
+import { StandingsExplainer } from "@/components/StandingsExplainer";
 
 type Props = {
   groups: Group[];
@@ -40,6 +41,8 @@ export function PublicGroupView({
   return (
     <section className="space-y-5">
       <h2 className="text-xl font-semibold tracking-tight">Gruppenphase</h2>
+
+      <StandingsExplainer />
 
       <div className="grid gap-5 md:grid-cols-2">
         {groups.map((g) => {

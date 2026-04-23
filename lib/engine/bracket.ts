@@ -192,6 +192,12 @@ function buildLosersPool(
 /**
  * Build a single-elimination tree from a list of seeds. Empty slots are
  * appended to pad to the next power of two.
+ *
+ * A slot paired with an empty opponent is a "bye": no match is created for
+ * that pair, and the filled player advances directly into the next round as
+ * a real `player` slot. A pair where both slots are empty propagates as
+ * empty — the downstream match either sees a bye of its own or is skipped
+ * entirely when both sides are empty.
  */
 function buildTree(seeds: readonly BracketSlot[], idPrefix: string): Bracket {
   const nonEmpty = seeds.length;
@@ -206,37 +212,45 @@ function buildTree(seeds: readonly BracketSlot[], idPrefix: string): Bracket {
   const totalRounds = Math.log2(size);
   const half = size / 2;
   const matches: BracketMatch[] = [];
-  const round0Ids: string[] = [];
 
-  for (let i = 0; i < half; i++) {
-    const id = matchId(idPrefix, 0, i);
-    round0Ids.push(id);
+  const makeMatch = (
+    round: number,
+    matchIndex: number,
+    a: BracketSlot,
+    b: BracketSlot,
+  ): BracketSlot => {
+    const aEmpty = a.kind === "empty";
+    const bEmpty = b.kind === "empty";
+    if (aEmpty && bEmpty) return { kind: "empty" };
+    if (aEmpty) return b;
+    if (bEmpty) return a;
+    const id = matchId(idPrefix, round, matchIndex);
     matches.push({
       id,
-      round: 0,
-      matchIndex: i,
-      label: labelForRound(0, totalRounds),
-      a: slots[i] ?? { kind: "empty" },
-      b: slots[i + half] ?? { kind: "empty" },
+      round,
+      matchIndex,
+      label: labelForRound(round, totalRounds),
+      a,
+      b,
     });
+    return { kind: "pending", fromMatchId: id };
+  };
+
+  // Round 0 uses "first half vs second half" pairing so same-group seeds
+  // (who are placed at mirrored positions) stay on opposite ends of the
+  // bracket.
+  let feeds: BracketSlot[] = [];
+  for (let i = 0; i < half; i++) {
+    feeds.push(makeMatch(0, i, slots[i]!, slots[i + half]!));
   }
 
-  let prev = round0Ids;
+  // Rounds 1+ pair adjacent feeds.
   for (let r = 1; r < totalRounds; r++) {
-    const next: string[] = [];
-    for (let i = 0; i < prev.length; i += 2) {
-      const id = matchId(idPrefix, r, i / 2);
-      next.push(id);
-      matches.push({
-        id,
-        round: r,
-        matchIndex: i / 2,
-        label: labelForRound(r, totalRounds),
-        a: { kind: "pending", fromMatchId: prev[i]! },
-        b: { kind: "pending", fromMatchId: prev[i + 1]! },
-      });
+    const next: BracketSlot[] = [];
+    for (let i = 0; i < feeds.length; i += 2) {
+      next.push(makeMatch(r, i / 2, feeds[i]!, feeds[i + 1]!));
     }
-    prev = next;
+    feeds = next;
   }
 
   return { size, matches };

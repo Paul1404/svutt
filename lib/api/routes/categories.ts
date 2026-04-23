@@ -550,6 +550,204 @@ export const categoryRoutes = new Hono()
       byePlayerId: plan.byePlayerId,
     });
   })
+  // Move a participant from one group to another, for last-minute group
+  // rearrangements before any match has started. Refuses once the first
+  // match has been played or the KO bracket has been built; in both cases
+  // redrawing would silently invalidate results the admin probably cares
+  // about. Group matches for both source and target groups are re-generated
+  // in-place, preserving the categoryʼs overall play order.
+  .post("/:id/groups/move", async (c) => {
+    const id = c.req.param("id");
+    const body = await c.req.json().catch(() => ({}));
+    const participantId =
+      typeof body?.participantId === "string" ? body.participantId : null;
+    const targetGroupId =
+      typeof body?.targetGroupId === "string" ? body.targetGroupId : null;
+    if (!participantId || !targetGroupId) {
+      return c.json(
+        { error: "participantId und targetGroupId sind erforderlich." },
+        400,
+      );
+    }
+
+    const [cat] = await db
+      .select()
+      .from(categories)
+      .where(eq(categories.id, id))
+      .limit(1);
+    if (!cat) return notFound(c, "Spielklasse");
+    if (cat.structure !== "groups_ko") {
+      return conflict(
+        c,
+        "Spieler können nur in Gruppen→KO-Turnieren verschoben werden.",
+      );
+    }
+    if (!cat.drawDone) {
+      return conflict(c, "Auslosung muss erst abgeschlossen sein.");
+    }
+    if (cat.bracketDone) {
+      return conflict(
+        c,
+        "Finalbaum steht bereits — Gruppenwechsel würde Ergebnisse verwerfen.",
+      );
+    }
+
+    const catMatches = await db
+      .select()
+      .from(matches)
+      .where(eq(matches.categoryId, id));
+    const alreadyPlayed = catMatches.some((m) => m.status !== "pending");
+    if (alreadyPlayed) {
+      return conflict(
+        c,
+        "Mindestens ein Spiel wurde bereits begonnen — Verschieben nicht mehr möglich.",
+      );
+    }
+
+    const catGroups = await db
+      .select()
+      .from(groups)
+      .where(eq(groups.categoryId, id))
+      .orderBy(asc(groups.position));
+    const targetGroup = catGroups.find((g) => g.id === targetGroupId);
+    if (!targetGroup) return notFound(c, "Zielgruppe");
+
+    const [membership] = await db
+      .select()
+      .from(groupMembers)
+      .where(eq(groupMembers.participantId, participantId))
+      .limit(1);
+    if (!membership) return notFound(c, "Gruppenzuordnung");
+    const sourceGroup = catGroups.find((g) => g.id === membership.groupId);
+    if (!sourceGroup) return notFound(c, "Ausgangsgruppe");
+    if (sourceGroup.id === targetGroup.id) {
+      return c.json({ ok: true, unchanged: true });
+    }
+
+    const [tournament] = await db
+      .select()
+      .from(tournaments)
+      .where(eq(tournaments.id, cat.tournamentId))
+      .limit(1);
+    if (!tournament) return notFound(c, "Turnier");
+
+    const allMembers = await db
+      .select({
+        groupId: groupMembers.groupId,
+        participantId: groupMembers.participantId,
+        position: groupMembers.position,
+        name: participants.name,
+        club: participants.club,
+      })
+      .from(groupMembers)
+      .innerJoin(participants, eq(groupMembers.participantId, participants.id))
+      .where(
+        inArray(
+          groupMembers.groupId,
+          catGroups.map((g) => g.id),
+        ),
+      )
+      .orderBy(asc(groupMembers.position));
+
+    await db.transaction(async (tx) => {
+      // Flip the membership.
+      await tx
+        .update(groupMembers)
+        .set({ groupId: targetGroup.id })
+        .where(eq(groupMembers.participantId, participantId));
+
+      // Re-number positions in both affected groups (keep original order,
+      // append moved player at the end of the target).
+      const affected = [sourceGroup.id, targetGroup.id];
+      for (const gid of affected) {
+        const updatedMembers =
+          gid === sourceGroup.id
+            ? allMembers.filter(
+                (m) =>
+                  m.groupId === gid && m.participantId !== participantId,
+              )
+            : [
+                ...allMembers.filter((m) => m.groupId === gid),
+                allMembers.find((m) => m.participantId === participantId)!,
+              ];
+        for (let i = 0; i < updatedMembers.length; i++) {
+          await tx
+            .update(groupMembers)
+            .set({ position: i + 1 })
+            .where(
+              and(
+                eq(groupMembers.groupId, gid),
+                eq(
+                  groupMembers.participantId,
+                  updatedMembers[i]!.participantId,
+                ),
+              ),
+            );
+        }
+      }
+
+      // Wipe + regenerate group matches for the two affected groups. The
+      // rest of the category keeps its existing schedule untouched.
+      await tx
+        .delete(matches)
+        .where(
+          and(
+            eq(matches.categoryId, id),
+            eq(matches.stage, "group"),
+            inArray(matches.groupId, affected),
+          ),
+        );
+
+      const orderOffset = await tx
+        .select({ n: matches.playOrder })
+        .from(matches)
+        .where(eq(matches.categoryId, id))
+        .orderBy(desc(matches.playOrder))
+        .limit(1);
+      let nextOrder = (orderOffset[0]?.n ?? -1) + 1;
+
+      for (const gid of affected) {
+        const group = catGroups.find((g) => g.id === gid)!;
+        const membersForGroup =
+          gid === sourceGroup.id
+            ? allMembers.filter(
+                (m) =>
+                  m.groupId === gid && m.participantId !== participantId,
+              )
+            : [
+                ...allMembers.filter((m) => m.groupId === gid),
+                allMembers.find((m) => m.participantId === participantId)!,
+              ];
+        const groupPlayers: Player[] = membersForGroup.map((m) => ({
+          id: m.participantId,
+          name: m.name,
+          club: m.club ?? undefined,
+        }));
+        if (groupPlayers.length < 2) continue;
+        const plan = generateRoundRobin(groupPlayers);
+        for (const m of plan) {
+          await tx.insert(matches).values({
+            categoryId: id,
+            stage: "group",
+            groupId: group.id,
+            round: m.round,
+            matchIndex: m.matchIndex,
+            participantAId: m.a.id,
+            participantBId: m.b.id,
+            playOrder: nextOrder,
+            tableNumber: (nextOrder % tournament.parallelTables) + 1,
+          });
+          nextOrder++;
+        }
+      }
+    });
+
+    return c.json({
+      ok: true,
+      from: sourceGroup.label,
+      to: targetGroup.label,
+    });
+  })
   // Rebuild the KO bracket from current standings
   .post("/:id/bracket", async (c) => {
     const id = c.req.param("id");
