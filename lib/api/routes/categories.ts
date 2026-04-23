@@ -19,8 +19,10 @@ import {
 } from "@/lib/validators";
 import {
   buildBracket,
+  computeMatchOutcome,
   computeStandings,
   drawGroups,
+  generateRandomMatchSets,
   generateRoundRobin,
   scheduleMatches,
   isTournamentStructure,
@@ -683,6 +685,111 @@ export const categoryRoutes = new Hono()
     });
 
     return c.json({ ok: true, size: bracket.size, luckyLosers: bracket.luckyLosers });
+  })
+  // Populate random results for all pending matches of a category. Intended
+  // for local/dev testing so admins can try the full flow without entering
+  // every score by hand. Disabled in production unless ENABLE_TEST_UTILS=1.
+  .post("/:id/populate-test-results", async (c) => {
+    if (
+      process.env.NODE_ENV === "production" &&
+      process.env.ENABLE_TEST_UTILS !== "1"
+    ) {
+      return c.json(
+        { error: "Test-Hilfsfunktion ist in der Produktionsumgebung deaktiviert." },
+        403,
+      );
+    }
+
+    const id = c.req.param("id");
+    const [cat] = await db
+      .select()
+      .from(categories)
+      .where(eq(categories.id, id))
+      .limit(1);
+    if (!cat) return notFound(c, "Spielklasse");
+    if (!cat.drawDone) {
+      return conflict(c, "Auslosung muss erst abgeschlossen sein.");
+    }
+
+    const winSets = cat.winSets;
+    const setPoints = cat.setPoints;
+    const minLead = cat.setMinLead;
+
+    let filled = 0;
+
+    // Loop because finishing a KO match unblocks the next round (the
+    // downstream match inherits the winner, so it becomes fillable).
+    for (let pass = 0; pass < 20; pass++) {
+      const all = await db
+        .select()
+        .from(matches)
+        .where(eq(matches.categoryId, id))
+        .orderBy(asc(matches.playOrder));
+      const fillable = all.filter(
+        (m) =>
+          m.status !== "finished" &&
+          m.participantAId !== null &&
+          m.participantBId !== null,
+      );
+      if (fillable.length === 0) break;
+
+      for (const m of fillable) {
+        const sets = generateRandomMatchSets({ winSets, setPoints, minLead });
+        const outcome = computeMatchOutcome(sets, winSets, {
+          setPoints,
+          minLead,
+        });
+        if (!outcome.winner) continue;
+        const winnerId =
+          outcome.winner === "A" ? m.participantAId! : m.participantBId!;
+
+        await db.transaction(async (tx) => {
+          await tx.delete(matchSets).where(eq(matchSets.matchId, m.id));
+          await tx.insert(matchSets).values(
+            sets.map((s, i) => ({
+              matchId: m.id,
+              setNumber: i + 1,
+              pointsA: s.a,
+              pointsB: s.b,
+            })),
+          );
+          await tx
+            .update(matches)
+            .set({
+              status: "finished",
+              setsA: outcome.setsA,
+              setsB: outcome.setsB,
+              winnerParticipantId: winnerId,
+              updatedAt: new Date(),
+            })
+            .where(eq(matches.id, m.id));
+
+          const downstream = await tx
+            .select()
+            .from(matches)
+            .where(
+              and(eq(matches.stage, "ko"), eq(matches.categoryId, id)),
+            );
+          for (const d of downstream) {
+            const updates: {
+              participantAId?: string;
+              participantBId?: string;
+            } = {};
+            if (d.sourceMatchAId === m.id) updates.participantAId = winnerId;
+            if (d.sourceMatchBId === m.id) updates.participantBId = winnerId;
+            if (Object.keys(updates).length > 0) {
+              await tx
+                .update(matches)
+                .set(updates)
+                .where(eq(matches.id, d.id));
+            }
+          }
+        });
+        filled++;
+      }
+    }
+
+    return c.json({ ok: true, filled });
   });
 
 // ---------- helpers ----------

@@ -1,4 +1,5 @@
 import type { Match, MatchSetRow, Participant } from "@/lib/db/schema";
+import { Trophy } from "@/components/Icon";
 
 type Props = {
   koMatches: Match[];
@@ -53,8 +54,24 @@ export function PublicBracket({ koMatches, sets, participants }: Props) {
                 const matchSets = setsByMatch.get(m.id) ?? [];
                 const winnerId = m.winnerParticipantId;
                 const done = m.status === "finished";
+                const isFinaleWinner =
+                  done &&
+                  (m.koLabel ?? "").toLowerCase() === "finale" &&
+                  !!winnerId;
                 return (
-                  <div key={m.id} className="card p-3">
+                  <div
+                    key={m.id}
+                    className={
+                      isFinaleWinner
+                        ? "card p-3 ring-2 ring-amber-400 bg-amber-50/50"
+                        : "card p-3"
+                    }
+                  >
+                    {isFinaleWinner && (
+                      <div className="mb-1 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-amber-700">
+                        <Trophy size={12} /> Sieger
+                      </div>
+                    )}
                     <Row
                       name={a?.name ?? "…"}
                       score={done ? m.setsA : null}

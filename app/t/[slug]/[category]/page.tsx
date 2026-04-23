@@ -20,6 +20,7 @@ import { AutoRefresh } from "@/components/public/AutoRefresh";
 import { PublicGroupView } from "@/components/public/PublicGroupView";
 import { PublicBracket } from "@/components/public/PublicBracket";
 import { PublicSwissView } from "@/components/public/PublicSwissView";
+import { TournamentWinner } from "@/components/public/TournamentWinner";
 import { ArrowLeft } from "@/components/Icon";
 
 export const dynamic = "force-dynamic";
@@ -150,6 +151,15 @@ export default async function PublicCategoryPage({
       </header>
 
       <main id="main" tabIndex={-1} className="mx-auto max-w-5xl px-4 py-8 space-y-10">
+        {category.drawDone && (
+          <TournamentWinner
+            structure={structure}
+            participants={parts}
+            matches={matchRows}
+            standings={standings}
+            swissRoundsTotal={category.swissRounds}
+          />
+        )}
         {!category.drawDone ? (
           <div className="rounded-xl border border-dashed border-ink-200 bg-surface p-10 text-center">
             <p className="text-sm text-ink-600">Losung steht noch aus.</p>
