@@ -17,6 +17,7 @@ import { GroupsPanel } from "@/components/admin/GroupsPanel";
 import { BracketPanel } from "@/components/admin/BracketPanel";
 import { SwissPanel } from "@/components/admin/SwissPanel";
 import { CategorySettings } from "@/components/admin/CategorySettings";
+import { TestPopulatePanel } from "@/components/admin/TestPopulatePanel";
 import { computeStandings, type EngineGroup, type Player } from "@/lib/engine";
 import {
   isTournamentStructure,
@@ -138,6 +139,10 @@ export default async function CategoryDetailPage({
     : "groups_ko";
   const drawMode = isDrawMode(category.drawMode) ? category.drawMode : "random";
 
+  const testUtilsEnabled =
+    process.env.NODE_ENV !== "production" ||
+    process.env.ENABLE_TEST_UTILS === "1";
+
   return (
     <div className="space-y-10">
       <div>
@@ -170,6 +175,10 @@ export default async function CategoryDetailPage({
         parallelTables={tournament.parallelTables}
         matchDurationMinutes={tournament.matchDurationMinutes}
       />
+
+      {testUtilsEnabled && category.drawDone && (
+        <TestPopulatePanel category={category} />
+      )}
 
       {!category.drawDone ? (
         <>

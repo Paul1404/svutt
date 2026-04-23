@@ -7,6 +7,7 @@ export * from "./standings";
 export * from "./bracket";
 export * from "./schedule";
 export * from "./format";
+export * from "./randomResult";
 export * as swiss from "./swiss";
 export * as koOnly from "./koOnly";
 export * as roundRobinOnly from "./roundRobinOnly";

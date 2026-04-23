@@ -218,3 +218,24 @@ html[data-theme="dark"] .wizard-step-dot[data-state="current"] {
 .wizard-step-line[data-state="done"] {
   @apply bg-brand-500;
 }
+
+/* Tournament winner banner. */
+@keyframes winner-sparkle {
+  0%, 100% { opacity: 0.55; transform: scale(0.9) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1.15) rotate(18deg); }
+}
+.winner-sparkle {
+  animation: winner-sparkle 2.4s ease-in-out infinite;
+}
+html[data-theme="dark"] .winner-banner {
+  background: linear-gradient(
+    135deg,
+    rgb(120 53 15 / 0.35),
+    rgb(180 83 9 / 0.25),
+    rgb(120 53 15 / 0.35)
+  );
+  border-color: rgb(217 119 6 / 0.5);
+}
+@media (prefers-reduced-motion: reduce) {
+  .winner-sparkle { animation: none; }
+}
