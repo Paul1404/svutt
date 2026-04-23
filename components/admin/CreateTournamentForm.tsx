@@ -91,7 +91,6 @@ export function CreateTournamentForm() {
   const [slugEdited, setSlugEdited] = useState(false);
   const [location, setLocation] = useState("");
   const [startDate, setStartDate] = useState("");
-  const [startTime, setStartTime] = useState("10:00");
   const [parallelTables, setParallelTables] = useState(3);
   const [matchDurationMinutes, setMatchDurationMinutes] = useState(11);
 
@@ -135,7 +134,6 @@ export function CreateTournamentForm() {
     setSlugEdited(false);
     setLocation("");
     setStartDate("");
-    setStartTime("10:00");
     setParallelTables(3);
     setMatchDurationMinutes(11);
     setCreateCategory(true);
@@ -188,7 +186,7 @@ export function CreateTournamentForm() {
 
   function stepIsValid(idx: number): boolean {
     if (idx === 0) return trimmedName.length >= 2 && slugLooksValid;
-    if (idx === 1) return /^\d{1,2}:\d{2}$/.test(startTime);
+    if (idx === 1) return true;
     if (idx === 2) {
       return (
         parallelTables >= 1 &&
@@ -216,7 +214,7 @@ export function CreateTournamentForm() {
       let tournamentId = createdTournamentId;
       if (!tournamentId) {
         const startDateIso = startDate
-          ? new Date(`${startDate}T${startTime || "10:00"}:00`).toISOString()
+          ? new Date(`${startDate}T00:00:00`).toISOString()
           : undefined;
         const res = await fetch("/api/tournaments", {
           method: "POST",
@@ -226,7 +224,6 @@ export function CreateTournamentForm() {
             slug: effectiveSlug,
             location: location.trim() || undefined,
             startDate: startDateIso,
-            startTime,
             parallelTables,
             matchDurationMinutes,
           }),
@@ -377,8 +374,6 @@ export function CreateTournamentForm() {
                 setLocation={setLocation}
                 startDate={startDate}
                 setStartDate={setStartDate}
-                startTime={startTime}
-                setStartTime={setStartTime}
               />
             )}
             {step.key === "tables" && (
@@ -428,7 +423,6 @@ export function CreateTournamentForm() {
                 slug={effectiveSlug}
                 location={location.trim()}
                 startDate={startDate}
-                startTime={startTime}
                 parallelTables={parallelTables}
                 matchDurationMinutes={matchDurationMinutes}
                 createCategory={createCategory}
@@ -635,15 +629,11 @@ function ScheduleStep({
   setLocation,
   startDate,
   setStartDate,
-  startTime,
-  setStartTime,
 }: {
   location: string;
   setLocation: (v: string) => void;
   startDate: string;
   setStartDate: (v: string) => void;
-  startTime: string;
-  setStartTime: (v: string) => void;
 }) {
   return (
     <div>
@@ -663,19 +653,6 @@ function ScheduleStep({
             type="date"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
-          />
-        </div>
-        <div>
-          <label className="label" htmlFor="wiz-time">
-            Erste Startzeit
-          </label>
-          <input
-            id="wiz-time"
-            className="input"
-            type="time"
-            value={startTime}
-            onChange={(e) => setStartTime(e.target.value)}
-            required
           />
         </div>
         <div className="sm:col-span-2">
@@ -1106,7 +1083,6 @@ function ReviewStep({
   slug,
   location,
   startDate,
-  startTime,
   parallelTables,
   matchDurationMinutes,
   createCategory,
@@ -1125,7 +1101,6 @@ function ReviewStep({
   slug: string;
   location: string;
   startDate: string;
-  startTime: string;
   parallelTables: number;
   matchDurationMinutes: number;
   createCategory: boolean;
@@ -1171,12 +1146,11 @@ function ReviewStep({
         <ReviewRow label="Name" value={name} />
         <ReviewRow label="URL" value={`/t/${slug}`} />
         <ReviewRow label="Datum" value={date} placeholder="— (optional)" />
-        <ReviewRow label="Startzeit" value={`${startTime} Uhr`} />
         <ReviewRow label="Ort" value={location} placeholder="— (optional)" />
         <ReviewRow label="Tische parallel" value={String(parallelTables)} />
         <ReviewRow
-          label="Spieldauer"
-          value={`${matchDurationMinutes} Min`}
+          label="Spieldauer pro Spiel"
+          value={`ca. ${matchDurationMinutes} Min`}
         />
       </div>
       {createCategory ? (

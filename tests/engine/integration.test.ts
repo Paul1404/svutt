@@ -56,16 +56,15 @@ describe("integration: full tournament pipeline", () => {
     });
 
     const scheduled = scheduleMatches(allMatchIds, {
-      startTime: "10:00",
       parallelTables: 3,
       matchDurationMinutes: 11,
     });
     expect(scheduled).toHaveLength(allMatchIds.length);
-    expect(scheduled[0]!.wallClock).toBe("10:00");
+    expect(scheduled[0]!.tableNumber).toBe(1);
 
-    const bracket = buildBracket({ groups });
+    // Top 1: just the 2 group winners → Finale.
+    const bracket = buildBracket({ groups, advancementCount: 1 });
     expect(bracket.size).toBe(2);
-    // With 2 groups, there's just a final.
     expect(bracket.matches).toHaveLength(1);
     expect(bracket.matches[0]!.label).toBe("Finale");
 

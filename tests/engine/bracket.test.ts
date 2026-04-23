@@ -44,7 +44,7 @@ describe("nextPowerOfTwo", () => {
 });
 
 describe("buildBracket", () => {
-  it("builds a 4-slot bracket from 4 groups with no lucky losers", () => {
+  it("Top 1 from 4 groups → 4-slot bracket with only winners", () => {
     const groups = ["A", "B", "C", "D"].map((lbl, gi) =>
       makeGroup(
         `g${gi}`,
@@ -52,16 +52,13 @@ describe("buildBracket", () => {
         [0, 1, 2].map((pi) => makePlayer(`${lbl}${pi + 1}`)),
       ),
     );
-    const br = buildBracket({ groups });
+    const br = buildBracket({ groups, advancementCount: 1 });
     expect(br.size).toBe(4);
-    expect(br.luckyLosers).toHaveLength(0);
     // First round: 2 matches, label "Halbfinale".
     const r0 = br.matches.filter((m) => m.round === 0);
     expect(r0).toHaveLength(2);
     expect(r0[0]!.label).toBe("Halbfinale");
-    // Pairing: A1 vs C1 (slots 0 & 2), B1 vs D1 (slots 1 & 3)
-    expect(r0[0]!.a.kind).toBe("player");
-    expect(r0[0]!.b.kind).toBe("player");
+    // With first-half vs second-half pairing: A1 vs C1, B1 vs D1.
     if (r0[0]!.a.kind === "player" && r0[0]!.b.kind === "player") {
       expect(r0[0]!.a.playerId).toBe("A1");
       expect(r0[0]!.b.playerId).toBe("C1");
@@ -75,100 +72,92 @@ describe("buildBracket", () => {
     expect(final).toBeDefined();
     expect(final!.a.kind).toBe("pending");
     expect(final!.b.kind).toBe("pending");
+    // Losers: rank 2 and 3 from every group → 8 players, own 8-slot bracket.
+    expect(br.losers).not.toBeNull();
+    expect(br.losersEntries).toHaveLength(8);
+    expect(br.losers!.size).toBe(8);
   });
 
-  it("promotes one Lucky Loser when 7 groups", () => {
-    // 7 groups of 3. Group A's third will win the most points -> should be LL.
-    const groups = Array.from({ length: 7 }, (_, gi) => {
-      const label = String.fromCharCode("A".charCodeAt(0) + gi);
-      const players = [0, 1, 2].map((pi) => makePlayer(`${label}${pi + 1}`));
-      // Make group A's 3rd place have a great set diff: give them close matches
-      if (gi === 0) {
-        return {
-          id: `g${gi}`,
-          label,
-          players,
-          matches: [
-            // A1 beats A2 2:0
-            {
-              id: "m1",
-              a: "A1",
-              b: "A2",
-              sets: [
-                { a: 11, b: 9 },
-                { a: 11, b: 9 },
-              ],
-            },
-            // A1 beats A3 2:0
-            {
-              id: "m2",
-              a: "A1",
-              b: "A3",
-              sets: [
-                { a: 11, b: 9 },
-                { a: 11, b: 9 },
-              ],
-            },
-            // A2 beats A3 2:1 → A3 wins at least one set (good for set diff)
-            {
-              id: "m3",
-              a: "A2",
-              b: "A3",
-              sets: [
-                { a: 11, b: 6 },
-                { a: 6, b: 11 },
-                { a: 11, b: 9 },
-              ],
-            },
-          ],
-        } as EngineGroup;
-      }
-      return makeGroup(`g${gi}`, label, players);
-    });
+  it("default Top 2: 4 groups → 8-slot main bracket", () => {
+    const groups = ["A", "B", "C", "D"].map((lbl, gi) =>
+      makeGroup(
+        `g${gi}`,
+        lbl,
+        [0, 1, 2, 3].map((pi) => makePlayer(`${lbl}${pi + 1}`)),
+      ),
+    );
     const br = buildBracket({ groups });
+    // 4 groups × 2 qualifiers = 8 → Viertelfinale.
     expect(br.size).toBe(8);
-    expect(br.luckyLosers).toHaveLength(1);
-    // Lucky loser should be the group A third place player (A3)
-    expect(br.luckyLosers[0]!.playerId).toBe("A3");
-    expect(br.luckyLosers[0]!.groupLabel).toBe("A");
-    // Round 0 should have 4 matches and the lucky-loser is one of the slots
+    // Losers: ranks 3+4 from each group = 8 → own 8-slot bracket.
+    expect(br.losersEntries).toHaveLength(8);
+    expect(br.losers!.size).toBe(8);
+
     const r0 = br.matches.filter((m) => m.round === 0);
     expect(r0).toHaveLength(4);
-    const playerSlots = r0.flatMap((m) => [m.a, m.b]).filter((s) => s.kind === "player");
-    const hasLL = playerSlots.some(
-      (s) => s.kind === "player" && s.source.type === "luckyLoser",
-    );
-    expect(hasLL).toBe(true);
+    // Runners-up are seeded in reverse group order, so no same-group pairings
+    // in round 1 are possible.
+    for (const m of r0) {
+      if (m.a.kind === "player" && m.b.kind === "player") {
+        const aSrc = m.a.source;
+        const bSrc = m.b.source;
+        if ("groupLabel" in aSrc && "groupLabel" in bSrc) {
+          expect(aSrc.groupLabel).not.toBe(bSrc.groupLabel);
+        }
+      }
+    }
   });
 
-  it("leaves slots empty when no lucky losers exist (e.g. 2-player groups)", () => {
+  it("disabling lucky loser skips the secondary bracket", () => {
+    const groups = ["A", "B", "C", "D"].map((lbl, gi) =>
+      makeGroup(
+        `g${gi}`,
+        lbl,
+        [0, 1, 2].map((pi) => makePlayer(`${lbl}${pi + 1}`)),
+      ),
+    );
+    const br = buildBracket({
+      groups,
+      advancementCount: 1,
+      luckyLoserEnabled: false,
+    });
+    expect(br.losers).toBeNull();
+    expect(br.losersEntries).toHaveLength(0);
+  });
+
+  it("leaves main bracket slots empty when qualifiers don't fill a power of two", () => {
+    // 3 groups of 2 → 3 winners advance. Main size = 4 → 1 empty slot.
     const groups = [0, 1, 2].map((gi) => {
       const label = String.fromCharCode("A".charCodeAt(0) + gi);
       const players = [makePlayer(`${label}1`), makePlayer(`${label}2`)];
       return makeGroup(`g${gi}`, label, players);
     });
-    const br = buildBracket({ groups });
+    const br = buildBracket({ groups, advancementCount: 1 });
     expect(br.size).toBe(4);
-    // 1 missing slot, but no third place players exist → empty slot.
     const r0 = br.matches.filter((m) => m.round === 0);
     expect(r0).toHaveLength(2);
-    const empties = r0.flatMap((m) => [m.a, m.b]).filter((s) => s.kind === "empty");
+    const empties = r0
+      .flatMap((m) => [m.a, m.b])
+      .filter((s) => s.kind === "empty");
     expect(empties.length).toBeGreaterThan(0);
   });
 
-  it("handles a trivial 2-group tournament", () => {
+  it("handles a trivial 2-group tournament with Top 1", () => {
     const groups = ["A", "B"].map((lbl, gi) =>
       makeGroup(`g${gi}`, lbl, [makePlayer(`${lbl}1`), makePlayer(`${lbl}2`)]),
     );
-    const br = buildBracket({ groups });
+    const br = buildBracket({ groups, advancementCount: 1 });
     expect(br.size).toBe(2);
     expect(br.matches).toHaveLength(1);
     expect(br.matches[0]!.label).toBe("Finale");
+    // Losers: rank 2 from each group = 2 → Finale.
+    expect(br.losers!.size).toBe(2);
   });
 
   it("produces 0-match bracket for no groups", () => {
     const br = buildBracket({ groups: [] });
     expect(br.size).toBe(0);
     expect(br.matches).toEqual([]);
+    expect(br.losers).toBeNull();
   });
 });

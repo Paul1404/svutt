@@ -10,7 +10,6 @@ export function TournamentSettings({ tournament }: { tournament: Tournament }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(tournament.name);
   const [location, setLocation] = useState(tournament.location ?? "");
-  const [startTime, setStartTime] = useState(tournament.startTime);
   const [parallelTables, setParallelTables] = useState(
     tournament.parallelTables,
   );
@@ -26,14 +25,13 @@ export function TournamentSettings({ tournament }: { tournament: Tournament }) {
       <div className="card p-5">
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div className="flex gap-6 flex-wrap text-sm">
-            <Stat label="Start" value={`${tournament.startTime} Uhr`} />
             <Stat
               label="Tische"
               value={String(tournament.parallelTables)}
             />
             <Stat
-              label="Spieldauer"
-              value={`${tournament.matchDurationMinutes} Min`}
+              label="Spieldauer pro Spiel"
+              value={`ca. ${tournament.matchDurationMinutes} Min`}
             />
           </div>
           <button
@@ -62,7 +60,6 @@ export function TournamentSettings({ tournament }: { tournament: Tournament }) {
               body: JSON.stringify({
                 name,
                 location: location || "",
-                startTime,
                 parallelTables,
                 matchDurationMinutes,
               }),
@@ -100,18 +97,6 @@ export function TournamentSettings({ tournament }: { tournament: Tournament }) {
             />
           </div>
           <div>
-            <label className="label">Startzeit</label>
-            <input
-              className="input"
-              type="time"
-              value={startTime}
-              onChange={(e) => setStartTime(e.target.value)}
-            />
-            <p className="mt-1.5 text-xs text-ink-500">
-              Erstes Spiel des Tages.
-            </p>
-          </div>
-          <div>
             <label className="label">Tische gleichzeitig</label>
             <input
               className="input"
@@ -125,8 +110,8 @@ export function TournamentSettings({ tournament }: { tournament: Tournament }) {
               Wieviele Spiele laufen parallel.
             </p>
           </div>
-          <div className="sm:col-span-2">
-            <label className="label">Spieldauer (Minuten)</label>
+          <div>
+            <label className="label">Spieldauer pro Spiel (Minuten)</label>
             <input
               className="input"
               type="number"
@@ -138,7 +123,8 @@ export function TournamentSettings({ tournament }: { tournament: Tournament }) {
               }
             />
             <p className="mt-1.5 text-xs text-ink-500">
-              Faustregel inkl. Pause: 11 Min für Best of 3, 18 Min für Best of 5.
+              Nur als Schätzwert für die Gesamtdauer. Faustregel inkl. Pause:
+              11 Min für Best of 3, 18 Min für Best of 5.
             </p>
           </div>
         </div>

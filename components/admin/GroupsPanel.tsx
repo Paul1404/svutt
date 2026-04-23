@@ -23,13 +23,8 @@ type Props = {
   standings: GroupStanding[];
 };
 
-function formatTime(d: Date | string | null): string {
-  if (!d) return "";
-  const date = typeof d === "string" ? new Date(d) : d;
-  return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
-}
-
 export function GroupsPanel({
+  category,
   groups,
   members,
   participants,
@@ -37,6 +32,7 @@ export function GroupsPanel({
   sets,
   standings,
 }: Props) {
+  const advancementCount = category.groupAdvancementCount ?? 2;
   const partsById = useMemo(
     () => new Map(participants.map((p) => [p.id, p])),
     [participants],
@@ -120,7 +116,7 @@ export function GroupsPanel({
                     </thead>
                     <tbody>
                       {standing.rows.map((r) => {
-                        const isQualifier = r.rank <= 2;
+                        const isQualifier = r.rank <= advancementCount;
                         return (
                           <tr
                             key={r.playerId}
@@ -197,8 +193,6 @@ export function GroupsPanel({
                               ) : (
                                 <span className="text-xs text-ink-400 font-mono">
                                   T{m.tableNumber ?? "?"}
-                                  {" "}
-                                  {formatTime(m.scheduledAt)}
                                 </span>
                               )}
                             </div>

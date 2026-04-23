@@ -25,12 +25,6 @@ type Props = {
   participants: Participant[];
 };
 
-function formatTime(d: Date | string | null): string {
-  if (!d) return "";
-  const date = typeof d === "string" ? new Date(d) : d;
-  return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
-}
-
 export function SwissPanel({
   category,
   swissMatches,
@@ -280,7 +274,7 @@ export function SwissPanel({
                           </span>
                         ) : !bye ? (
                           <span className="text-xs text-ink-400 font-mono tabular-nums">
-                            T{m.tableNumber ?? "?"} {formatTime(m.scheduledAt)}
+                            T{m.tableNumber ?? "?"}
                           </span>
                         ) : null}
                       </div>

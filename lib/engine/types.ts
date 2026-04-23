@@ -94,9 +94,8 @@ export type Bracket = {
 };
 
 export type ScheduleConfig = {
-  /** "HH:MM" format, local time. */
-  startTime: string;
   parallelTables: number;
+  /** Rough per-match duration in minutes. Used for previews only. */
   matchDurationMinutes: number;
 };
 
@@ -104,8 +103,4 @@ export type ScheduledMatch = {
   matchId: string;
   playOrder: number;
   tableNumber: number;
-  /** Minutes since tournament start. */
-  minuteOffset: number;
-  /** "HH:MM" */
-  wallClock: string;
 };

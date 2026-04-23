@@ -11,7 +11,10 @@ export type StructurePreview = {
   hasKO: boolean;
   koSize: number;
   koMatches: number;
-  luckyLoserSlots: number;
+  /** Players in the secondary lucky-loser bracket (rank > advancementCount). */
+  losersPoolSize: number;
+  losersKoSize: number;
+  losersKoMatches: number;
   swissRounds: number;
   swissMatchesPerRound: number;
   swissByesPerRound: number;
@@ -24,6 +27,7 @@ export type PreviewInput = {
   participantCount: number;
   groupSize: number;
   luckyLoserEnabled: boolean;
+  groupAdvancementCount?: number;
   structure?: TournamentStructure;
   swissRounds?: number;
   matchDurationMinutes?: number;
@@ -34,6 +38,7 @@ export function computePreview({
   participantCount,
   groupSize,
   luckyLoserEnabled,
+  groupAdvancementCount = 2,
   structure = "groups_ko",
   swissRounds: swissRoundsInput,
   matchDurationMinutes = 11,
@@ -49,7 +54,9 @@ export function computePreview({
     hasKO: false,
     koSize: 0,
     koMatches: 0,
-    luckyLoserSlots: 0,
+    losersPoolSize: 0,
+    losersKoSize: 0,
+    losersKoMatches: 0,
     swissRounds: 0,
     swissMatchesPerRound: 0,
     swissByesPerRound: 0,
@@ -75,7 +82,9 @@ export function computePreview({
       hasKO: false,
       koSize: 0,
       koMatches: 0,
-      luckyLoserSlots: 0,
+      losersPoolSize: 0,
+      losersKoSize: 0,
+      losersKoMatches: 0,
       swissRounds: 0,
       swissMatchesPerRound: 0,
       swissByesPerRound: 0,
@@ -100,7 +109,9 @@ export function computePreview({
       hasKO: true,
       koSize,
       koMatches,
-      luckyLoserSlots: 0,
+      losersPoolSize: 0,
+      losersKoSize: 0,
+      losersKoMatches: 0,
       swissRounds: 0,
       swissMatchesPerRound: 0,
       swissByesPerRound: 0,
@@ -128,7 +139,9 @@ export function computePreview({
       hasKO: false,
       koSize: 0,
       koMatches: 0,
-      luckyLoserSlots: 0,
+      losersPoolSize: 0,
+      losersKoSize: 0,
+      losersKoMatches: 0,
       swissRounds: rounds,
       swissMatchesPerRound: matchesPerRound,
       swissByesPerRound: byesPerRound,
@@ -140,21 +153,40 @@ export function computePreview({
     };
   }
 
-  // default: groups_ko (original logic)
+  // default: groups_ko
   const shape = computeGroupShape(participantCount, groupSize);
   const groupCount = shape.length;
   const groupMatches = shape.reduce((acc, n) => acc + (n * (n - 1)) / 2, 0);
+  const advancement = Math.max(1, groupAdvancementCount);
 
-  const hasKO = groupCount >= 2;
-  const koSize = hasKO ? nextPowerOfTwo(groupCount) : 0;
+  // Main bracket: top N per group qualify. A single group has no KO.
+  const mainQualifiers = shape.reduce(
+    (acc, n) => acc + Math.min(advancement, n),
+    0,
+  );
+  const hasKO = groupCount >= 2 && mainQualifiers >= 2;
+  const koSize = hasKO ? nextPowerOfTwo(mainQualifiers) : 0;
   const koMatches = koSize > 1 ? koSize - 1 : 0;
-  const luckyLoserSlots =
-    hasKO && luckyLoserEnabled ? Math.max(0, koSize - groupCount) : 0;
 
-  const totalMatches = groupMatches + koMatches;
+  // Loser bracket: everyone else. Only meaningful when there's a main KO.
+  const losersPoolSize =
+    luckyLoserEnabled && hasKO
+      ? shape.reduce((acc, n) => acc + Math.max(0, n - advancement), 0)
+      : 0;
+  const losersKoSize = losersPoolSize >= 2 ? nextPowerOfTwo(losersPoolSize) : 0;
+  const losersKoMatches = losersKoSize > 1 ? losersKoSize - 1 : 0;
+
+  const totalMatches = groupMatches + koMatches + losersKoMatches;
   const estimatedMinutes = Math.ceil((totalMatches * duration) / tables);
 
-  const summary = buildSummary(shape, groupCount, koSize, luckyLoserSlots, hasKO);
+  const summary = buildSummary(
+    shape,
+    groupCount,
+    koSize,
+    hasKO,
+    losersKoSize,
+    advancement,
+  );
 
   return {
     structure,
@@ -165,7 +197,9 @@ export function computePreview({
     hasKO,
     koSize,
     koMatches,
-    luckyLoserSlots,
+    losersPoolSize,
+    losersKoSize,
+    losersKoMatches,
     swissRounds: 0,
     swissMatchesPerRound: 0,
     swissByesPerRound: 0,
@@ -187,8 +221,9 @@ function buildSummary(
   shape: number[],
   groupCount: number,
   koSize: number,
-  luckyLoserSlots: number,
   hasKO: boolean,
+  losersKoSize: number,
+  advancement: number,
 ): string {
   if (groupCount === 0) return "Keine Struktur möglich.";
   if (groupCount === 1) {
@@ -200,23 +235,11 @@ function buildSummary(
       ? `${groupCount} Gruppen à ${shape[0]}`
       : `${groupCount} Gruppen à ${[...sizes].sort((a, b) => b - a).join("/")}`;
   if (!hasKO) return groupPart;
-  const koLabel =
-    koSize === 2
-      ? "Finale"
-      : koSize === 4
-        ? "Halbfinale"
-        : koSize === 8
-          ? "Viertelfinale"
-          : koSize === 16
-            ? "Achtelfinale"
-            : `Runde der ${koSize}`;
-  const luckyPart =
-    luckyLoserSlots > 0
-      ? ` (+${luckyLoserSlots} Lucky Loser)`
-      : luckyLoserSlots === 0 && koSize > groupCount
-        ? ` (+${koSize - groupCount} Freilos)`
-        : "";
-  return `${groupPart} → ${koLabel}${luckyPart}`;
+  const advancePart = ` (Top ${advancement} pro Gruppe)`;
+  const koLabel = koRoundLabel(koSize).replace(/^·\s/, "").replace(/^ab /, "");
+  const losersPart =
+    losersKoSize >= 2 ? ` + Trostrunde ${koRoundLabel(losersKoSize).replace(/^·\s/, "").replace(/^ab /, "")}` : "";
+  return `${groupPart}${advancePart} → ${koLabel}${losersPart}`;
 }
 
 export function formatDuration(minutes: number): string {

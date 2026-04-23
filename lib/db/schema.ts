@@ -22,6 +22,7 @@ export const tournamentStatusEnum = pgEnum("tournament_status", [
 export const matchStageEnum = pgEnum("match_stage", [
   "group",
   "ko",
+  "ko_losers",
   "swiss",
 ]);
 
@@ -53,8 +54,10 @@ export const tournaments = pgTable(
     location: text("location"),
     startDate: timestamp("start_date", { withTimezone: true, mode: "date" }),
     status: tournamentStatusEnum("status").notNull().default("draft"),
-    // Scheduling configuration
-    startTime: text("start_time").notNull().default("10:00"), // HH:mm
+    // Scheduling configuration. We track rough per-match duration (for
+    // estimates and previews) and how many tables run in parallel (for
+    // table assignment + estimated total duration). We do NOT schedule
+    // absolute wall-clock times — matches simply run in play order.
     parallelTables: integer("parallel_tables").notNull().default(3),
     matchDurationMinutes: integer("match_duration_minutes").notNull().default(11),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -86,7 +89,10 @@ export const categories = pgTable(
     setPoints: integer("set_points").notNull().default(11),
     // Required lead at end of a set when scores are close (TT default: 2 → "win by 2").
     setMinLead: integer("set_min_lead").notNull().default(2),
-    // When true, fill empty bracket slots with the best Gruppendritten.
+    // Number of qualifiers per group advancing to the main bracket (default 2).
+    groupAdvancementCount: integer("group_advancement_count").notNull().default(2),
+    // When true, the non-qualifying group players (ranks beyond
+    // groupAdvancementCount) play their own consolation bracket.
     luckyLoserEnabled: boolean("lucky_loser_enabled").notNull().default(true),
     // Tournament structure: "groups_ko" (default), "round_robin", "ko_only", "swiss".
     structure: text("structure").notNull().default("groups_ko"),
@@ -203,9 +209,9 @@ export const matches = pgTable(
       () => participants.id,
       { onDelete: "set null" },
     ),
-    // Scheduling
+    // Scheduling. We only track table number and play order — absolute
+    // wall-clock times are intentionally not persisted.
     tableNumber: integer("table_number"),
-    scheduledAt: timestamp("scheduled_at", { withTimezone: true }),
     playOrder: integer("play_order"), // global order across the category for scheduling
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()

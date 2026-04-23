@@ -57,8 +57,6 @@ export default async function PublicTournamentPage({
                     month: "long",
                     year: "numeric",
                   })}
-                  {", "}
-                  {tournament.startTime} Uhr
                 </span>
               )}
             </div>

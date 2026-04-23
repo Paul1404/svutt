@@ -23,7 +23,7 @@ export const tournamentRoutes = new Hono()
     const parsed = await parseJson(c, createTournamentSchema);
     if (!parsed.ok) return parsed.response;
 
-    const { name, slug, location, startDate, startTime, parallelTables, matchDurationMinutes } =
+    const { name, slug, location, startDate, parallelTables, matchDurationMinutes } =
       parsed.data;
 
     const existing = await db
@@ -42,7 +42,6 @@ export const tournamentRoutes = new Hono()
         slug,
         location: location && location.length > 0 ? location : null,
         startDate: startDate && startDate.length > 0 ? new Date(startDate) : null,
-        startTime: startTime ?? "10:00",
         parallelTables: parallelTables ?? 3,
         matchDurationMinutes: matchDurationMinutes ?? 11,
       })
@@ -81,7 +80,6 @@ export const tournamentRoutes = new Hono()
     if (data.startDate !== undefined)
       update.startDate =
         data.startDate && data.startDate.length > 0 ? new Date(data.startDate) : null;
-    if (data.startTime !== undefined) update.startTime = data.startTime;
     if (data.parallelTables !== undefined) update.parallelTables = data.parallelTables;
     if (data.matchDurationMinutes !== undefined)
       update.matchDurationMinutes = data.matchDurationMinutes;
@@ -137,6 +135,7 @@ export const tournamentRoutes = new Hono()
         winSets: data.winSets ?? 2,
         setPoints: data.setPoints ?? 11,
         setMinLead: data.setMinLead ?? 2,
+        groupAdvancementCount: data.groupAdvancementCount ?? 2,
         luckyLoserEnabled: data.luckyLoserEnabled ?? true,
         structure: data.structure ?? "groups_ko",
         drawMode: data.drawMode ?? "random",

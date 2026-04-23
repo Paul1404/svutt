@@ -64,7 +64,6 @@ describe("API integration: full tournament happy path", () => {
           name: "Test Cup",
           slug: "test-cup",
           location: "Halle",
-          startTime: "10:00",
           parallelTables: 2,
           matchDurationMinutes: 11,
         },
@@ -109,7 +108,6 @@ describe("API integration: full tournament happy path", () => {
         json: {
           name: "Vereinsmeisterschaft",
           slug: "vereinsmeisterschaft",
-          startTime: "09:00",
           parallelTables: 2,
           matchDurationMinutes: 11,
         },
@@ -132,6 +130,7 @@ describe("API integration: full tournament happy path", () => {
           winSets: 2,
           setPoints: 11,
           setMinLead: 2,
+          groupAdvancementCount: 1,
           luckyLoserEnabled: true,
         },
       },
@@ -213,8 +212,15 @@ describe("API integration: full tournament happy path", () => {
       cookie,
     );
     expect(brRes.status).toBe(200);
-    const bracketBody = brRes.body as { ok: true; size: number };
-    expect(bracketBody.size).toBe(2); // 2 group winners → 1 final, slot size = 2
+    const bracketBody = brRes.body as {
+      ok: true;
+      size: number;
+      losersSize: number;
+    };
+    // advancementCount=1: 2 group winners → Finale of size 2.
+    expect(bracketBody.size).toBe(2);
+    // Losers bracket: ranks 2..4 from each of the 2 groups = 6 → size 8.
+    expect(bracketBody.losersSize).toBe(8);
 
     // 8. Public endpoint reflects everything (no auth required)
     const pub = await call(app, "/api/public/t/vereinsmeisterschaft");
