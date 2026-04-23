@@ -16,11 +16,11 @@ export function TestPopulatePanel({ category }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function populateOnce(): Promise<number> {
-    const res = await fetch(
-      `/api/categories/${category.id}/populate-test-results`,
-      { method: "POST" },
-    );
+  async function populateOnce(stage?: "group" | "ko" | "swiss"): Promise<number> {
+    const url = stage
+      ? `/api/categories/${category.id}/populate-test-results?stage=${stage}`
+      : `/api/categories/${category.id}/populate-test-results`;
+    const res = await fetch(url, { method: "POST" });
     const data = await res.json();
     if (!res.ok) {
       throw new Error(data.error ?? "Fehler beim Befüllen.");
@@ -66,6 +66,33 @@ export function TestPopulatePanel({ category }: Props) {
     }
   }
 
+  async function runGroupsOnly() {
+    if (
+      !confirm(
+        "Alle noch offenen Gruppenspiele werden mit Zufallsergebnissen befüllt. Der Finalbaum bleibt unberührt. Weiter?",
+      )
+    )
+      return;
+    setError(null);
+    setLoading(true);
+    try {
+      const filled = await populateOnce("group");
+      toast.show({
+        message:
+          filled > 0
+            ? `${filled} Gruppenspiele mit Testdaten befüllt.`
+            : "Keine offenen Gruppenspiele zum Befüllen gefunden.",
+      });
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unbekannter Fehler.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const showGroupsOnly = category.structure === "groups_ko";
+
   return (
     <section className="rounded-xl border border-dashed border-amber-300 bg-amber-50/50 p-4 sm:p-5">
       <div className="flex items-start justify-between gap-3 flex-wrap">
@@ -80,18 +107,31 @@ export function TestPopulatePanel({ category }: Props) {
             <p className="mt-0.5 text-xs text-amber-800/80">
               Nur zum schnellen Ausprobieren: Alle offenen Spiele erhalten
               zufällige, regelkonforme Ergebnisse. Bei „Gruppen → KO“ wird der
-              Finalbaum zusätzlich automatisch aufgebaut und gespielt.
+              Finalbaum zusätzlich automatisch aufgebaut und gespielt; mit „Nur
+              Gruppenphase“ bleibt der Finalbaum unberührt.
             </p>
           </div>
         </div>
-        <button
-          type="button"
-          className="btn-primary"
-          onClick={run}
-          disabled={loading}
-        >
-          {loading ? "Wird befüllt..." : "Ergebnisse zufällig füllen"}
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          {showGroupsOnly && (
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={runGroupsOnly}
+              disabled={loading}
+            >
+              Nur Gruppenphase befüllen
+            </button>
+          )}
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={run}
+            disabled={loading}
+          >
+            {loading ? "Wird befüllt..." : "Ergebnisse zufällig füllen"}
+          </button>
+        </div>
       </div>
       {error && (
         <div className="mt-3 rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-sm text-brand-700">

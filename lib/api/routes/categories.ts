@@ -701,6 +701,18 @@ export const categoryRoutes = new Hono()
     }
 
     const id = c.req.param("id");
+    const stageParam = c.req.query("stage");
+    const stageFilter =
+      stageParam === "group" || stageParam === "ko" || stageParam === "swiss"
+        ? stageParam
+        : null;
+    if (stageParam && stageFilter === null) {
+      return c.json(
+        { error: "Ungültiger Stage-Filter (group, ko, swiss)." },
+        400,
+      );
+    }
+
     const [cat] = await db
       .select()
       .from(categories)
@@ -718,8 +730,11 @@ export const categoryRoutes = new Hono()
     let filled = 0;
 
     // Loop because finishing a KO match unblocks the next round (the
-    // downstream match inherits the winner, so it becomes fillable).
-    for (let pass = 0; pass < 20; pass++) {
+    // downstream match inherits the winner, so it becomes fillable). When a
+    // stage filter is set, a single pass suffices (no downstream propagation
+    // inside the same stage for groups/swiss).
+    const maxPasses = stageFilter === "group" || stageFilter === "swiss" ? 1 : 20;
+    for (let pass = 0; pass < maxPasses; pass++) {
       const all = await db
         .select()
         .from(matches)
@@ -729,7 +744,8 @@ export const categoryRoutes = new Hono()
         (m) =>
           m.status !== "finished" &&
           m.participantAId !== null &&
-          m.participantBId !== null,
+          m.participantBId !== null &&
+          (stageFilter === null || m.stage === stageFilter),
       );
       if (fillable.length === 0) break;
 
