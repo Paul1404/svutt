@@ -5,6 +5,7 @@ import { db } from "@/lib/db/client";
 import { categories, tournaments } from "@/lib/db/schema";
 import { CreateCategoryForm } from "@/components/admin/CreateCategoryForm";
 import { TournamentSettings } from "@/components/admin/TournamentSettings";
+import { TestAutoRunAllPanel } from "@/components/admin/TestAutoRunAllPanel";
 import { QrShare } from "@/components/admin/QrShare";
 import { ArrowLeft, ArrowRight } from "@/components/Icon";
 
@@ -42,6 +43,10 @@ export default async function TournamentDetailPage({
 
   const s = statusLabel(tournament.status);
 
+  const testUtilsEnabled =
+    process.env.NODE_ENV !== "production" ||
+    process.env.ENABLE_TEST_UTILS === "1";
+
   return (
     <div className="space-y-10">
       <div>
@@ -72,6 +77,18 @@ export default async function TournamentDetailPage({
       </div>
 
       <TournamentSettings tournament={tournament} />
+
+      {testUtilsEnabled && cats.length > 0 && (
+        <TestAutoRunAllPanel
+          categories={cats.map((c) => ({
+            id: c.id,
+            name: c.name,
+            structure: c.structure,
+            drawDone: c.drawDone,
+            bracketDone: c.bracketDone,
+          }))}
+        />
+      )}
 
       <section>
         <div className="flex items-end justify-between mb-4">

@@ -177,8 +177,11 @@ export default async function CategoryDetailPage({
         matchDurationMinutes={tournament.matchDurationMinutes}
       />
 
-      {testUtilsEnabled && category.drawDone && (
-        <TestPopulatePanel category={category} />
+      {testUtilsEnabled && (
+        <TestPopulatePanel
+          category={category}
+          participantCount={parts.length}
+        />
       )}
 
       {!category.drawDone ? (

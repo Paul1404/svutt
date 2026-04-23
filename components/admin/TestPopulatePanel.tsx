@@ -8,24 +8,40 @@ import { useToast } from "@/components/Toast";
 
 type Props = {
   category: Category;
+  participantCount: number;
 };
 
-export function TestPopulatePanel({ category }: Props) {
+type Stage = "group" | "ko" | "swiss";
+
+export function TestPopulatePanel({ category, participantCount }: Props) {
   const router = useRouter();
   const toast = useToast();
   const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function populateOnce(stage?: "group" | "ko" | "swiss"): Promise<number> {
+  const structure = category.structure;
+  const minCount = structure === "groups_ko" ? 4 : 2;
+  const canRun = participantCount >= minCount;
+
+  async function populateOnce(stage?: Stage): Promise<number> {
     const url = stage
       ? `/api/categories/${category.id}/populate-test-results?stage=${stage}`
       : `/api/categories/${category.id}/populate-test-results`;
     const res = await fetch(url, { method: "POST" });
     const data = await res.json();
-    if (!res.ok) {
-      throw new Error(data.error ?? "Fehler beim Befüllen.");
-    }
+    if (!res.ok) throw new Error(data.error ?? "Fehler beim Befüllen.");
     return typeof data.filled === "number" ? data.filled : 0;
+  }
+
+  async function drawCategory(): Promise<void> {
+    const res = await fetch(`/api/categories/${category.id}/draw`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error ?? "Auslosung fehlgeschlagen.");
   }
 
   async function buildBracket(): Promise<boolean> {
@@ -35,33 +51,63 @@ export function TestPopulatePanel({ category }: Props) {
     return res.ok;
   }
 
-  async function run() {
+  async function planNextSwissRound(): Promise<boolean> {
+    const res = await fetch(`/api/categories/${category.id}/swiss/round`, {
+      method: "POST",
+    });
+    return res.ok;
+  }
+
+  async function runAll() {
     if (
       !confirm(
-        "Alle noch offenen Spiele dieser Spielklasse werden mit Zufallsergebnissen befüllt. Weiter?",
+        "Das komplette Turnier wird mit Zufallsergebnissen durchgespielt (Auslosung, alle Spiele, Finalbaum). Weiter?",
       )
     )
       return;
     setError(null);
+    setStatus(null);
     setLoading(true);
     try {
-      let filled = await populateOnce();
-      // For groups → KO, auto-build the bracket once groups are complete,
-      // then fill the KO rounds in a second pass.
-      if (category.structure === "groups_ko") {
-        const built = await buildBracket();
-        if (built) filled += await populateOnce();
+      let filled = 0;
+
+      if (!category.drawDone) {
+        setStatus("Losung läuft…");
+        await drawCategory();
       }
+
+      if (structure === "swiss") {
+        // Fill current round, plan the next, repeat until no more rounds.
+        for (let i = 0; i < 32; i++) {
+          setStatus(`Runde ${i + 1}: Ergebnisse werden gefüllt…`);
+          filled += await populateOnce("swiss");
+          const planned = await planNextSwissRound();
+          if (!planned) break;
+        }
+      } else if (structure === "groups_ko") {
+        setStatus("Gruppenspiele werden gefüllt…");
+        filled += await populateOnce("group");
+        setStatus("Finalbaum wird aufgebaut…");
+        await buildBracket();
+        setStatus("KO-Spiele werden gefüllt…");
+        filled += await populateOnce("ko");
+      } else {
+        // round_robin, ko_only: single stage, fill everything.
+        setStatus("Ergebnisse werden gefüllt…");
+        filled += await populateOnce();
+      }
+
       toast.show({
         message:
           filled > 0
-            ? `${filled} Spiele mit Testdaten befüllt.`
+            ? `Turnier durchgespielt: ${filled} Spiele mit Testdaten befüllt.`
             : "Keine offenen Spiele zum Befüllen gefunden.",
       });
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unbekannter Fehler.");
     } finally {
+      setStatus(null);
       setLoading(false);
     }
   }
@@ -91,7 +137,10 @@ export function TestPopulatePanel({ category }: Props) {
     }
   }
 
-  const showGroupsOnly = category.structure === "groups_ko";
+  const showGroupsOnly = structure === "groups_ko" && category.drawDone;
+  const primaryLabel = category.drawDone
+    ? "Ergebnisse zufällig füllen"
+    : "Komplettes Turnier durchspielen";
 
   return (
     <section className="rounded-xl border border-dashed border-amber-300 bg-amber-50/50 p-4 sm:p-5">
@@ -105,11 +154,18 @@ export function TestPopulatePanel({ category }: Props) {
               Testdaten befüllen
             </h3>
             <p className="mt-0.5 text-xs text-amber-800/80">
-              Nur zum schnellen Ausprobieren: Alle offenen Spiele erhalten
-              zufällige, regelkonforme Ergebnisse. Bei „Gruppen → KO“ wird der
-              Finalbaum zusätzlich automatisch aufgebaut und gespielt; mit „Nur
-              Gruppenphase“ bleibt der Finalbaum unberührt.
+              {category.drawDone
+                ? "Nur zum schnellen Ausprobieren: Alle offenen Spiele erhalten zufällige, regelkonforme Ergebnisse. Bei „Gruppen → KO“ wird der Finalbaum zusätzlich automatisch aufgebaut und gespielt."
+                : "Simuliert das gesamte Turnier in Sekunden: Auslosung, alle Spiele, Finalbaum – alles mit zufälligen, regelkonformen Ergebnissen."}
             </p>
+            {!canRun && (
+              <p className="mt-1 text-xs font-medium text-amber-900">
+                Mindestens {minCount} Teilnehmer nötig.
+              </p>
+            )}
+            {status && loading && (
+              <p className="mt-1 text-xs text-amber-800">{status}</p>
+            )}
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -118,7 +174,7 @@ export function TestPopulatePanel({ category }: Props) {
               type="button"
               className="btn-secondary"
               onClick={runGroupsOnly}
-              disabled={loading}
+              disabled={loading || !canRun}
             >
               Nur Gruppenphase befüllen
             </button>
@@ -126,10 +182,10 @@ export function TestPopulatePanel({ category }: Props) {
           <button
             type="button"
             className="btn-primary"
-            onClick={run}
-            disabled={loading}
+            onClick={runAll}
+            disabled={loading || !canRun}
           >
-            {loading ? "Wird befüllt..." : "Ergebnisse zufällig füllen"}
+            {loading ? "Wird befüllt…" : primaryLabel}
           </button>
         </div>
       </div>
