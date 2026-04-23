@@ -24,45 +24,67 @@ describe("computePreview", () => {
       luckyLoserEnabled: true,
     });
     expect(p.groupCount).toBe(1);
+    // Single group → only the group phase, no KO.
     expect(p.hasKO).toBe(false);
     expect(p.groupMatches).toBe(6);
     expect(p.totalMatches).toBe(6);
   });
 
-  it("8 players in 2 groups of 4 → Finale (size 2)", () => {
+  it("8 players in 2 groups of 4 → Halbfinale (size 4) with Top 2", () => {
     const p = computePreview({
       participantCount: 8,
       groupSize: 4,
       luckyLoserEnabled: true,
     });
     expect(p.groupCount).toBe(2);
-    expect(p.koSize).toBe(2);
-    expect(p.koMatches).toBe(1);
-    expect(p.luckyLoserSlots).toBe(0);
-    expect(p.summary).toContain("Finale");
+    // Top 2 per group = 4 main qualifiers.
+    expect(p.koSize).toBe(4);
+    expect(p.koMatches).toBe(3);
+    // Losers: rank 3 + rank 4 from each group = 4 → losers bracket size 4.
+    expect(p.losersPoolSize).toBe(4);
+    expect(p.losersKoSize).toBe(4);
+    expect(p.summary).toContain("Halbfinale");
   });
 
-  it("12 players at groupSize 4: 3 groups → Halbfinale with 1 Lucky Loser", () => {
+  it("Top 1 per group reduces main bracket to only group winners", () => {
+    const p = computePreview({
+      participantCount: 8,
+      groupSize: 4,
+      luckyLoserEnabled: true,
+      groupAdvancementCount: 1,
+    });
+    expect(p.groupCount).toBe(2);
+    expect(p.koSize).toBe(2);
+    expect(p.koMatches).toBe(1);
+    // 3 non-qualifiers per group = 6 in loser bracket → size 8.
+    expect(p.losersPoolSize).toBe(6);
+    expect(p.losersKoSize).toBe(8);
+  });
+
+  it("12 players at groupSize 4: 3 groups → KO with 6 main qualifiers", () => {
     const p = computePreview({
       participantCount: 12,
       groupSize: 4,
       luckyLoserEnabled: true,
     });
     expect(p.groupCount).toBe(3);
-    expect(p.koSize).toBe(4);
-    expect(p.luckyLoserSlots).toBe(1);
-    expect(p.summary).toContain("Halbfinale");
-    expect(p.summary).toContain("Lucky Loser");
+    // Top 2 from 3 groups = 6 → next power of two is 8.
+    expect(p.koSize).toBe(8);
+    expect(p.losersPoolSize).toBe(6);
+    expect(p.losersKoSize).toBe(8);
+    expect(p.summary).toContain("Viertelfinale");
+    expect(p.summary).toContain("Trostrunde");
   });
 
-  it("with luckyLoserEnabled=false, summary mentions Freilos", () => {
+  it("with luckyLoserEnabled=false, no secondary bracket", () => {
     const p = computePreview({
       participantCount: 12,
       groupSize: 4,
       luckyLoserEnabled: false,
     });
-    expect(p.luckyLoserSlots).toBe(0);
-    expect(p.summary).toContain("Freilos");
+    expect(p.losersPoolSize).toBe(0);
+    expect(p.losersKoSize).toBe(0);
+    expect(p.summary).not.toContain("Trostrunde");
   });
 
   it("estimated duration scales with parallel tables", () => {

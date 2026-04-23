@@ -74,6 +74,9 @@ export function CategorySettings({
   const [winSets, setWinSets] = useState(category.winSets);
   const [setPoints, setSetPoints] = useState(category.setPoints);
   const [setMinLead, setSetMinLead] = useState(category.setMinLead);
+  const [groupAdvancementCount, setGroupAdvancementCount] = useState(
+    category.groupAdvancementCount ?? 2,
+  );
   const [luckyLoserEnabled, setLuckyLoserEnabled] = useState(
     category.luckyLoserEnabled,
   );
@@ -99,6 +102,7 @@ export function CategorySettings({
         participantCount: participantCount ?? 0,
         groupSize,
         luckyLoserEnabled,
+        groupAdvancementCount,
         structure,
         swissRounds,
         matchDurationMinutes,
@@ -108,6 +112,7 @@ export function CategorySettings({
       participantCount,
       groupSize,
       luckyLoserEnabled,
+      groupAdvancementCount,
       structure,
       swissRounds,
       matchDurationMinutes,
@@ -161,10 +166,16 @@ export function CategorySettings({
               value={`${category.setPoints} Pkt, +${category.setMinLead}`}
             />
             {currentStructure === "groups_ko" && (
-              <Stat
-                label="Lucky Loser"
-                value={category.luckyLoserEnabled ? "an" : "aus"}
-              />
+              <>
+                <Stat
+                  label="Aus Gruppe weiter"
+                  value={`Top ${category.groupAdvancementCount ?? 2}`}
+                />
+                <Stat
+                  label="Lucky Loser"
+                  value={category.luckyLoserEnabled ? "an" : "aus"}
+                />
+              </>
             )}
           </div>
           <button
@@ -203,6 +214,7 @@ export function CategorySettings({
                     }),
                 setPoints,
                 setMinLead,
+                groupAdvancementCount,
                 luckyLoserEnabled,
               }),
             });
@@ -431,6 +443,28 @@ export function CategorySettings({
               />
             </div>
 
+            {structure === "groups_ko" && (
+              <div>
+                <div className="flex items-center gap-1 mb-1.5">
+                  <span className="label mb-0">Aus jeder Gruppe weiter</span>
+                  <HelpTooltip label="Qualifikanten pro Gruppe">
+                    Wie viele der Top-Platzierten aus jeder Gruppe ziehen
+                    direkt in den Finalbaum ein. Klassisch: die Top 2
+                    (Gruppensieger und Zweite).
+                  </HelpTooltip>
+                </div>
+                <ChipGroup
+                  options={[1, 2, 3, 4].map((n) => ({
+                    value: n,
+                    label: `Top ${n}`,
+                  }))}
+                  value={groupAdvancementCount}
+                  onChange={setGroupAdvancementCount}
+                  disabled={drawn}
+                />
+              </div>
+            )}
+
             <label className="flex items-start gap-3 cursor-pointer rounded-lg border border-ink-200 bg-surface p-3 hover:border-brand-300 transition-colors">
               <input
                 type="checkbox"
@@ -440,17 +474,17 @@ export function CategorySettings({
               />
               <span className="text-sm">
                 <span className="font-medium inline-flex items-center gap-1">
-                  Lucky Loser zulassen
-                  <HelpTooltip label="Lucky Loser">
-                    Wenn die Gruppenanzahl keine Zweierpotenz ist (z.B. 3, 5, 6
-                    Gruppen), rücken die besten Gruppendritten ins KO nach.
-                    Alternative: leere Plätze als Freilos — die Gesetzten ziehen
-                    kampflos weiter.
+                  Lucky-Loser-Trostrunde
+                  <HelpTooltip label="Lucky-Loser-Trostrunde">
+                    Wenn aktiv, spielen alle Nicht-Qualifizierten aus den
+                    Gruppen (Ränge jenseits der „Aus Gruppe weiter“-Zahl)
+                    einen eigenen, zweiten Finalbaum. So hat jede:r Teilnehmer
+                    nach der Gruppenphase noch etwas zu spielen.
                   </HelpTooltip>
                 </span>
                 <span className="block text-xs text-ink-500 mt-0.5">
-                  Fülle Freilose mit den besten Dritten, statt kampflose Runden
-                  zuzulassen.
+                  Zweiter Finalbaum mit den restlichen Gruppen-Spielern als
+                  Trostrunde.
                 </span>
               </span>
             </label>
@@ -646,7 +680,13 @@ function PreviewPanel({
                 />
                 <PreviewStat
                   label="KO-Spiele"
-                  value={preview.hasKO ? String(preview.koMatches) : "—"}
+                  value={
+                    preview.hasKO
+                      ? preview.losersKoMatches > 0
+                        ? `${preview.koMatches} + ${preview.losersKoMatches}`
+                        : String(preview.koMatches)
+                      : "—"
+                  }
                 />
               </>
             )}
@@ -662,14 +702,9 @@ function PreviewPanel({
 
           <div className="pt-2 border-t border-ink-200/80 text-[11px] text-ink-500 leading-relaxed">
             Basierend auf {winSets === 1 ? "Bo1" : `Best of ${winSets * 2 - 1}`}
-            {preview.structure === "groups_ko" && preview.luckyLoserSlots > 0 &&
-              `, ${preview.luckyLoserSlots} Lucky-Loser-Plätze`}
             {preview.structure === "groups_ko" &&
-              preview.hasKO &&
-              preview.luckyLoserSlots === 0 &&
-              preview.koSize > preview.groupCount &&
-              !luckyLoserEnabled &&
-              `, ${preview.koSize - preview.groupCount} Freilose`}
+              preview.losersKoSize >= 2 &&
+              `, Trostrunde mit ${preview.losersPoolSize} Spielern`}
             {preview.structure === "swiss" && preview.swissByesPerRound > 0 &&
               `, 1 Freilos pro Runde`}
             .

@@ -1,137 +1,54 @@
 import type { Match, MatchSetRow, Participant } from "@/lib/db/schema";
-import { Trophy } from "@/components/Icon";
+import { TreeBracket } from "@/components/TreeBracket";
 
 type Props = {
   koMatches: Match[];
+  losersMatches?: Match[];
   sets: MatchSetRow[];
   participants: Participant[];
 };
 
-function formatTime(d: Date | string | null): string {
-  if (!d) return "";
-  const date = typeof d === "string" ? new Date(d) : d;
-  return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
-}
-
-export function PublicBracket({ koMatches, sets, participants }: Props) {
-  const partsById = new Map(participants.map((p) => [p.id, p]));
-  const setsByMatch = new Map<string, MatchSetRow[]>();
-  for (const s of sets) {
-    const a = setsByMatch.get(s.matchId) ?? [];
-    a.push(s);
-    setsByMatch.set(s.matchId, a);
-  }
-  for (const arr of setsByMatch.values())
-    arr.sort((a, b) => a.setNumber - b.setNumber);
-
-  const byRound = new Map<number, Match[]>();
-  for (const m of koMatches) {
-    const arr = byRound.get(m.round) ?? [];
-    arr.push(m);
-    byRound.set(m.round, arr);
-  }
-  const rounds: { round: number; matches: Match[] }[] = [];
-  for (const [round, ms] of byRound) {
-    ms.sort((a, b) => a.matchIndex - b.matchIndex);
-    rounds.push({ round, matches: ms });
-  }
-  rounds.sort((a, b) => a.round - b.round);
-
+export function PublicBracket({
+  koMatches,
+  losersMatches,
+  sets,
+  participants,
+}: Props) {
+  const hasLosers = !!losersMatches && losersMatches.length > 0;
   return (
-    <section className="space-y-5">
-      <h2 className="text-xl font-semibold tracking-tight">Finalrunde</h2>
-
-      <div className="overflow-x-auto -mx-4 px-4">
-        <div className="flex gap-5 min-w-max pb-2">
-          {rounds.map((r) => (
-            <div key={r.round} className="min-w-[240px] space-y-3">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-brand-600">
-                {r.matches[0]?.koLabel ?? `Runde ${r.round + 1}`}
-              </div>
-              {r.matches.map((m) => {
-                const a = partsById.get(m.participantAId ?? "");
-                const b = partsById.get(m.participantBId ?? "");
-                const matchSets = setsByMatch.get(m.id) ?? [];
-                const winnerId = m.winnerParticipantId;
-                const done = m.status === "finished";
-                const isFinaleWinner =
-                  done &&
-                  (m.koLabel ?? "").toLowerCase() === "finale" &&
-                  !!winnerId;
-                return (
-                  <div
-                    key={m.id}
-                    className={
-                      isFinaleWinner
-                        ? "card p-3 ring-2 ring-amber-400 bg-amber-50/50"
-                        : "card p-3"
-                    }
-                  >
-                    {isFinaleWinner && (
-                      <div className="mb-1 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-amber-700">
-                        <Trophy size={12} /> Sieger
-                      </div>
-                    )}
-                    <Row
-                      name={a?.name ?? "…"}
-                      score={done ? m.setsA : null}
-                      winner={winnerId === m.participantAId}
-                      placeholder={!a}
-                    />
-                    <div className="my-1 h-px bg-ink-100" />
-                    <Row
-                      name={b?.name ?? "…"}
-                      score={done ? m.setsB : null}
-                      winner={winnerId === m.participantBId}
-                      placeholder={!b}
-                    />
-                    <div className="mt-2.5 text-[11px] text-ink-500 font-mono tabular-nums">
-                      T{m.tableNumber ?? "?"} {formatTime(m.scheduledAt)}
-                      {matchSets.length > 0 && (
-                        <>
-                          {" · "}
-                          {matchSets
-                            .map((s) => `${s.pointsA}:${s.pointsB}`)
-                            .join(", ")}
-                        </>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ))}
+    <div className="space-y-10">
+      <section className="space-y-5">
+        <h2 className="text-xl font-semibold tracking-tight">Finalrunde</h2>
+        <div className="overflow-x-auto -mx-4 px-4 pt-6">
+          <TreeBracket
+            matches={koMatches}
+            sets={sets}
+            participants={participants}
+            highlightFinal
+          />
         </div>
-      </div>
-    </section>
-  );
-}
+      </section>
 
-function Row({
-  name,
-  score,
-  winner,
-  placeholder,
-}: {
-  name: string;
-  score: number | null;
-  winner: boolean;
-  placeholder: boolean;
-}) {
-  return (
-    <div className="flex items-center justify-between text-sm py-0.5">
-      <span
-        className={`truncate ${
-          placeholder ? "italic text-ink-400" : winner ? "font-bold" : ""
-        }`}
-      >
-        {name}
-      </span>
-      <span
-        className={`font-mono text-xs tabular-nums ${winner ? "font-bold text-brand-700" : "text-ink-500"}`}
-      >
-        {score !== null ? score : ""}
-      </span>
+      {hasLosers && (
+        <section className="space-y-3">
+          <div>
+            <h2 className="text-xl font-semibold tracking-tight">
+              Trostrunde (Lucky Loser)
+            </h2>
+            <p className="mt-1 text-sm text-ink-500">
+              Zweiter Finalbaum für alle, die es nicht in die Hauptrunde
+              geschafft haben.
+            </p>
+          </div>
+          <div className="overflow-x-auto -mx-4 px-4 pt-6">
+            <TreeBracket
+              matches={losersMatches!}
+              sets={sets}
+              participants={participants}
+            />
+          </div>
+        </section>
+      )}
     </div>
   );
 }

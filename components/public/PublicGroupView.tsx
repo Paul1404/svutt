@@ -15,13 +15,8 @@ type Props = {
   matches: Match[];
   sets: MatchSetRow[];
   standings: GroupStanding[];
+  advancementCount: number;
 };
-
-function formatTime(d: Date | string | null): string {
-  if (!d) return "";
-  const date = typeof d === "string" ? new Date(d) : d;
-  return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
-}
 
 export function PublicGroupView({
   groups,
@@ -30,6 +25,7 @@ export function PublicGroupView({
   matches,
   sets,
   standings,
+  advancementCount,
 }: Props) {
   const partsById = new Map(participants.map((p) => [p.id, p]));
   const setsByMatch = new Map<string, MatchSetRow[]>();
@@ -77,7 +73,7 @@ export function PublicGroupView({
                     </thead>
                     <tbody>
                       {standing.rows.map((r) => {
-                        const isQualifier = r.rank <= 2;
+                        const isQualifier = r.rank <= advancementCount;
                         return (
                           <tr
                             key={r.playerId}
@@ -148,9 +144,7 @@ export function PublicGroupView({
                             </span>
                           ) : (
                             <span className="text-xs text-ink-400 font-mono tabular-nums">
-                              T{m.tableNumber ?? "?"} {formatTime(
-                                m.scheduledAt,
-                              )}
+                              T{m.tableNumber ?? "?"}
                             </span>
                           )}
                         </div>

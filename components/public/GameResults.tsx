@@ -13,19 +13,14 @@ type Props = {
   groups?: Group[];
 };
 
-type StageKey = "group" | "ko" | "swiss";
+type StageKey = "group" | "ko" | "ko_losers" | "swiss";
 
 const STAGE_LABELS: Record<StageKey, string> = {
   group: "Gruppenphase",
   ko: "Finalrunde",
+  ko_losers: "Trostrunde",
   swiss: "Schweizer Runden",
 };
-
-function formatTime(d: Date | string | null): string {
-  if (!d) return "";
-  const date = typeof d === "string" ? new Date(d) : d;
-  return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
-}
 
 export function GameResults({ matches, sets, participants, groups }: Props) {
   const finished = matches.filter((m) => m.status === "finished");
@@ -49,7 +44,7 @@ export function GameResults({ matches, sets, participants, groups }: Props) {
     byStage.set(key, arr);
   }
 
-  const stageOrder: StageKey[] = ["group", "swiss", "ko"];
+  const stageOrder: StageKey[] = ["group", "swiss", "ko", "ko_losers"];
 
   return (
     <section className="space-y-5">
@@ -118,7 +113,6 @@ export function GameResults({ matches, sets, participants, groups }: Props) {
                           const winnerB =
                             m.winnerParticipantId === m.participantBId;
                           const matchSets = setsByMatch.get(m.id) ?? [];
-                          const time = formatTime(m.scheduledAt);
                           const table = m.tableNumber;
 
                           return (
@@ -152,23 +146,13 @@ export function GameResults({ matches, sets, participants, groups }: Props) {
                                 </span>
                               </div>
                               {(matchSets.length > 0 ||
-                                time ||
                                 typeof table === "number") && (
                                 <div className="mt-0.5 flex items-center gap-2 text-[11px] font-mono tabular-nums text-ink-500">
-                                  {(time ||
-                                    typeof table === "number") && (
-                                    <span>
-                                      {typeof table === "number"
-                                        ? `T${table}`
-                                        : ""}
-                                      {typeof table === "number" && time
-                                        ? " "
-                                        : ""}
-                                      {time}
-                                    </span>
+                                  {typeof table === "number" && (
+                                    <span>T{table}</span>
                                   )}
                                   {matchSets.length > 0 &&
-                                    (time || typeof table === "number") && (
+                                    typeof table === "number" && (
                                       <span className="text-ink-300">·</span>
                                     )}
                                   {matchSets.length > 0 && (
@@ -233,7 +217,7 @@ function buildSections(
     return sections;
   }
 
-  if (stage === "ko") {
+  if (stage === "ko" || stage === "ko_losers") {
     const byRound = new Map<number, Match[]>();
     for (const m of stageMatches) {
       const arr = byRound.get(m.round) ?? [];
@@ -244,14 +228,14 @@ function buildSections(
     for (const [round, ms] of byRound) {
       ms.sort((a, b) => a.matchIndex - b.matchIndex);
       sections.push({
-        key: `ko-${round}`,
+        key: `${stage}-${round}`,
         label: ms[0]?.koLabel ?? `Runde ${round + 1}`,
         matches: ms,
       });
     }
     sections.sort((a, b) => {
-      const ra = Number(a.key.split("-")[1]);
-      const rb = Number(b.key.split("-")[1]);
+      const ra = Number(a.key.split("-").at(-1));
+      const rb = Number(b.key.split("-").at(-1));
       return ra - rb;
     });
     return sections;

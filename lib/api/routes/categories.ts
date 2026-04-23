@@ -242,9 +242,7 @@ export const categoryRoutes = new Hono()
       seed: p.seed ?? null,
     }));
 
-    const baseDate = tournament.startDate ?? startOfToday();
     const scheduleCfg = {
-      startTime: tournament.startTime,
       parallelTables: tournament.parallelTables,
       matchDurationMinutes: tournament.matchDurationMinutes,
     };
@@ -324,7 +322,6 @@ export const categoryRoutes = new Hono()
           const s = scheduled[i]!;
           m.playOrder = s.playOrder;
           m.tableNumber = s.tableNumber;
-          m.scheduledAt = applyWallClock(baseDate, s.wallClock);
         });
 
         if (allMatchInserts.length > 0) {
@@ -357,10 +354,8 @@ export const categoryRoutes = new Hono()
         await tx.delete(matches).where(eq(matches.categoryId, id));
 
         await insertBracketMatches(tx, id, bracket.matches, {
-          baseDate,
-          startTime: tournament.startTime,
+          stage: "ko",
           parallelTables: tournament.parallelTables,
-          matchDurationMinutes: tournament.matchDurationMinutes,
           startOrder: 0,
         });
 
@@ -399,7 +394,6 @@ export const categoryRoutes = new Hono()
             participantBId: m.b,
             playOrder: scheduled[i]!.playOrder,
             tableNumber: scheduled[i]!.tableNumber,
-            scheduledAt: applyWallClock(baseDate, scheduled[i]!.wallClock),
           }),
         );
         if (inserts.length > 0) await tx.insert(matches).values(inserts);
@@ -510,9 +504,7 @@ export const categoryRoutes = new Hono()
 
     const plan = planSwissRound({ players, history });
 
-    const baseDate = tournament.startDate ?? startOfToday();
     const scheduleCfg = {
-      startTime: tournament.startTime,
       parallelTables: tournament.parallelTables,
       matchDurationMinutes: tournament.matchDurationMinutes,
     };
@@ -540,17 +532,6 @@ export const categoryRoutes = new Hono()
           participantBId: m.b,
           playOrder: startOrder + scheduled[i]!.playOrder,
           tableNumber: scheduled[i]!.tableNumber,
-          scheduledAt: applyWallClock(
-            baseDate,
-            formatFromMinutes(
-              parseHHMM(tournament.startTime) +
-                Math.floor(
-                  (startOrder + scheduled[i]!.playOrder) /
-                    tournament.parallelTables,
-                ) *
-                  tournament.matchDurationMinutes,
-            ),
-          ),
         }),
       );
       if (inserts.length > 0) await tx.insert(matches).values(inserts);
@@ -599,83 +580,42 @@ export const categoryRoutes = new Hono()
 
     const bracket = buildBracket({
       groups: engineGroups,
+      advancementCount: cat.groupAdvancementCount,
       luckyLoserEnabled: cat.luckyLoserEnabled,
     });
 
     await db.transaction(async (tx) => {
-      // Wipe existing KO matches (and reset cache).
+      // Wipe existing KO matches (main + losers).
       await tx
         .delete(matches)
-        .where(and(eq(matches.categoryId, id), eq(matches.stage, "ko")));
+        .where(
+          and(
+            eq(matches.categoryId, id),
+            inArray(matches.stage, ["ko", "ko_losers"] as const),
+          ),
+        );
 
-      // Insert new KO matches, preserving "bracket id" ordering.
       const orderOffset = await tx
         .select({ n: matches.playOrder })
         .from(matches)
         .where(eq(matches.categoryId, id))
         .orderBy(desc(matches.playOrder))
         .limit(1);
-      const startOrder = (orderOffset[0]?.n ?? -1) + 1;
+      let startOrder = (orderOffset[0]?.n ?? -1) + 1;
 
-      const inserts: (typeof matches.$inferInsert & { _bid: string })[] = [];
-      const bidToMatch = new Map<string, { bid: string; data: typeof matches.$inferInsert & { _bid: string } }>();
-
-      bracket.matches.forEach((bm, idx) => {
-        const data = {
-          _bid: bm.id,
-          categoryId: id,
-          stage: "ko" as const,
-          round: bm.round,
-          matchIndex: bm.matchIndex,
-          koLabel: bm.label,
-          participantAId: bm.a.kind === "player" ? bm.a.playerId : null,
-          participantBId: bm.b.kind === "player" ? bm.b.playerId : null,
-          playOrder: startOrder + idx,
-          tableNumber: ((startOrder + idx) % tournament.parallelTables) + 1,
-          scheduledAt: applyWallClock(
-            tournament.startDate ?? startOfToday(),
-            formatFromMinutes(
-              parseHHMM(tournament.startTime) +
-                Math.floor((startOrder + idx) / tournament.parallelTables) *
-                  tournament.matchDurationMinutes,
-            ),
-          ),
-        };
-        inserts.push(data);
-        bidToMatch.set(bm.id, { bid: bm.id, data });
+      await insertBracketMatches(tx, id, bracket.matches, {
+        stage: "ko",
+        parallelTables: tournament.parallelTables,
+        startOrder,
       });
+      startOrder += bracket.matches.length;
 
-      // First pass insert to get real DB ids, then update sourceMatch refs.
-      const insertedRows = inserts.length
-        ? await tx
-            .insert(matches)
-            .values(inserts.map(({ _bid: _b, ...rest }) => rest))
-            .returning()
-        : [];
-
-      // Map bracket id -> db id
-      const bidToDbId = new Map<string, string>();
-      insertedRows.forEach((row, i) => {
-        const bid = inserts[i]!._bid;
-        bidToDbId.set(bid, row.id);
-      });
-
-      // Second pass: for pending slots, fill sourceMatch*Id.
-      for (const bm of bracket.matches) {
-        const dbId = bidToDbId.get(bm.id);
-        if (!dbId) continue;
-        const update: { sourceMatchAId?: string; sourceMatchBId?: string } = {};
-        if (bm.a.kind === "pending") {
-          const srcDb = bidToDbId.get(bm.a.fromMatchId);
-          if (srcDb) update.sourceMatchAId = srcDb;
-        }
-        if (bm.b.kind === "pending") {
-          const srcDb = bidToDbId.get(bm.b.fromMatchId);
-          if (srcDb) update.sourceMatchBId = srcDb;
-        }
-        if (Object.keys(update).length > 0) {
-          await tx.update(matches).set(update).where(eq(matches.id, dbId));
-        }
+      if (bracket.losers && bracket.losers.matches.length > 0) {
+        await insertBracketMatches(tx, id, bracket.losers.matches, {
+          stage: "ko_losers",
+          parallelTables: tournament.parallelTables,
+          startOrder,
+        });
       }
 
       await tx
@@ -684,7 +624,12 @@ export const categoryRoutes = new Hono()
         .where(eq(categories.id, id));
     });
 
-    return c.json({ ok: true, size: bracket.size, luckyLosers: bracket.luckyLosers });
+    return c.json({
+      ok: true,
+      size: bracket.size,
+      losersSize: bracket.losers?.size ?? 0,
+      losersEntries: bracket.losersEntries,
+    });
   })
   // Populate random results for all pending matches of a category. Admins
   // can use this to quickly play through a tournament without entering every
@@ -694,12 +639,15 @@ export const categoryRoutes = new Hono()
     const id = c.req.param("id");
     const stageParam = c.req.query("stage");
     const stageFilter =
-      stageParam === "group" || stageParam === "ko" || stageParam === "swiss"
+      stageParam === "group" ||
+      stageParam === "ko" ||
+      stageParam === "ko_losers" ||
+      stageParam === "swiss"
         ? stageParam
         : null;
     if (stageParam && stageFilter === null) {
       return c.json(
-        { error: "Ungültiger Stage-Filter (group, ko, swiss)." },
+        { error: "Ungültiger Stage-Filter (group, ko, ko_losers, swiss)." },
         400,
       );
     }
@@ -775,7 +723,10 @@ export const categoryRoutes = new Hono()
             .select()
             .from(matches)
             .where(
-              and(eq(matches.stage, "ko"), eq(matches.categoryId, id)),
+              and(
+                inArray(matches.stage, ["ko", "ko_losers"] as const),
+                eq(matches.categoryId, id),
+              ),
             );
           for (const d of downstream) {
             const updates: {
@@ -875,36 +826,10 @@ async function loadEngineGroups(
   return { engineGroups };
 }
 
-function startOfToday(): Date {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
-
-function parseHHMM(s: string): number {
-  const [h, m] = s.split(":").map((x) => parseInt(x, 10));
-  return (h ?? 0) * 60 + (m ?? 0);
-}
-
-function formatFromMinutes(total: number): string {
-  const day = 24 * 60;
-  const norm = ((total % day) + day) % day;
-  const h = Math.floor(norm / 60);
-  const m = norm % 60;
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-}
-
-function applyWallClock(base: Date, hhmm: string): Date {
-  const [h, m] = hhmm.split(":").map((x) => parseInt(x, 10));
-  const d = new Date(base);
-  d.setHours(h ?? 10, m ?? 0, 0, 0);
-  return d;
-}
-
 /**
- * Persist a freshly-built KO bracket (groups_ko or ko_only). Inserts every
- * bracket match, then back-fills sourceMatch*Id references from the local
- * bracket ids.
+ * Persist a freshly-built bracket (main or losers). Inserts every bracket
+ * match, then back-fills sourceMatch*Id references from the local bracket
+ * ids.
  */
 async function insertBracketMatches(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -925,20 +850,17 @@ async function insertBracketMatches(
       | { kind: "empty" };
   }[],
   schedule: {
-    baseDate: Date;
-    startTime: string;
+    stage: "ko" | "ko_losers";
     parallelTables: number;
-    matchDurationMinutes: number;
     startOrder: number;
   },
 ) {
-  const { baseDate, startTime, parallelTables, matchDurationMinutes, startOrder } =
-    schedule;
+  const { stage, parallelTables, startOrder } = schedule;
   const inserts: (typeof matches.$inferInsert & { _bid: string })[] =
     bracketMatches.map((bm, idx) => ({
       _bid: bm.id,
       categoryId,
-      stage: "ko" as const,
+      stage,
       round: bm.round,
       matchIndex: bm.matchIndex,
       koLabel: bm.label,
@@ -946,14 +868,6 @@ async function insertBracketMatches(
       participantBId: bm.b.kind === "player" ? bm.b.playerId : null,
       playOrder: startOrder + idx,
       tableNumber: ((startOrder + idx) % parallelTables) + 1,
-      scheduledAt: applyWallClock(
-        baseDate,
-        formatFromMinutes(
-          parseHHMM(startTime) +
-            Math.floor((startOrder + idx) / parallelTables) *
-              matchDurationMinutes,
-        ),
-      ),
     }));
 
   const insertedRows = inserts.length

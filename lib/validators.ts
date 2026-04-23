@@ -18,10 +18,6 @@ export const createTournamentSchema = z.object({
     .optional()
     .or(z.literal(""))
     .optional(),
-  startTime: z
-    .string()
-    .regex(/^\d{1,2}:\d{2}$/)
-    .optional(),
   parallelTables: z.number().int().min(1).max(32).optional(),
   matchDurationMinutes: z.number().int().min(1).max(120).optional(),
 });
@@ -37,6 +33,7 @@ export const createCategorySchema = z.object({
   winSets: z.number().int().min(1).max(4).default(2),
   setPoints: z.number().int().min(1).max(50).default(11),
   setMinLead: z.number().int().min(1).max(10).default(2),
+  groupAdvancementCount: z.number().int().min(1).max(8).default(2),
   luckyLoserEnabled: z.boolean().default(true),
   structure: z.enum(TOURNAMENT_STRUCTURES).default("groups_ko"),
   drawMode: z.enum(DRAW_MODES).default("random"),

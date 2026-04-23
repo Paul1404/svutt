@@ -11,25 +11,22 @@ import type {
 import { MatchResultDialog } from "./MatchResultDialog";
 import { Trophy } from "@/components/Icon";
 import { useToast } from "@/components/Toast";
+import { TreeBracket } from "@/components/TreeBracket";
 
 type Props = {
   tournamentId: string;
   category: Category;
   koMatches: Match[];
+  losersMatches?: Match[];
   sets: MatchSetRow[];
   participants: Participant[];
   canBuild: boolean;
 };
 
-function formatTime(d: Date | string | null): string {
-  if (!d) return "";
-  const date = typeof d === "string" ? new Date(d) : d;
-  return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
-}
-
 export function BracketPanel({
   category,
   koMatches,
+  losersMatches,
   sets,
   participants,
   canBuild,
@@ -56,22 +53,6 @@ export function BracketPanel({
     return m;
   }, [sets]);
 
-  const rounds = useMemo(() => {
-    const byRound = new Map<number, Match[]>();
-    for (const m of koMatches) {
-      const arr = byRound.get(m.round) ?? [];
-      arr.push(m);
-      byRound.set(m.round, arr);
-    }
-    const result: { round: number; matches: Match[] }[] = [];
-    for (const [round, ms] of byRound) {
-      ms.sort((a, b) => a.matchIndex - b.matchIndex);
-      result.push({ round, matches: ms });
-    }
-    result.sort((a, b) => a.round - b.round);
-    return result;
-  }, [koMatches]);
-
   async function build() {
     setError(null);
     setLoading(true);
@@ -93,7 +74,9 @@ export function BracketPanel({
     }
   }
 
-  const openMatch = koMatches.find((m) => m.id === openMatchId) ?? null;
+  const allMatches = [...koMatches, ...(losersMatches ?? [])];
+  const openMatch = allMatches.find((m) => m.id === openMatchId) ?? null;
+  const hasLosers = !!losersMatches && losersMatches.length > 0;
 
   return (
     <section className="card p-6 space-y-5">
@@ -107,8 +90,10 @@ export function BracketPanel({
               Finalrunde
             </h2>
             <p className="mt-1 text-sm text-ink-500">
-              K.O.-Baum mit den Gruppenbesten. Lucky Loser werden automatisch
-              ergänzt.
+              Hauptbaum mit den Gruppenbesten
+              {category.luckyLoserEnabled
+                ? " und separater Trostrunde für alle anderen."
+                : "."}
             </p>
           </div>
         </div>
@@ -147,61 +132,36 @@ export function BracketPanel({
         </div>
       )}
 
-      {rounds.length > 0 && (
-        <div className="overflow-x-auto -mx-6 px-6">
-          <div className="flex gap-6 min-w-max pb-2">
-            {rounds.map((r) => (
-              <div key={r.round} className="min-w-[240px] space-y-3">
-                <div className="text-[10px] font-semibold uppercase tracking-wider text-brand-600">
-                  {r.matches[0]?.koLabel ?? `Runde ${r.round + 1}`}
-                </div>
-                {r.matches.map((m) => {
-                  const a = partsById.get(m.participantAId ?? "");
-                  const b = partsById.get(m.participantBId ?? "");
-                  const matchSets = setsByMatch.get(m.id) ?? [];
-                  const done = m.status === "finished";
-                  const winnerA = m.winnerParticipantId === m.participantAId;
-                  const winnerB = m.winnerParticipantId === m.participantBId;
-                  return (
-                    <button
-                      key={m.id}
-                      type="button"
-                      className="block w-full text-left card-hover p-3"
-                      onClick={() => {
-                        if (m.participantAId && m.participantBId) {
-                          setOpenMatchId(m.id);
-                        }
-                      }}
-                    >
-                      <Row
-                        name={a?.name ?? "…"}
-                        score={done ? m.setsA : null}
-                        winner={winnerA}
-                        placeholder={!a}
-                      />
-                      <div className="my-1 h-px bg-ink-100" />
-                      <Row
-                        name={b?.name ?? "…"}
-                        score={done ? m.setsB : null}
-                        winner={winnerB}
-                        placeholder={!b}
-                      />
-                      <div className="mt-2.5 text-[11px] text-ink-500 font-mono tabular-nums">
-                        T{m.tableNumber ?? "?"} {formatTime(m.scheduledAt)}
-                        {matchSets.length > 0 && (
-                          <>
-                            {" · "}
-                            {matchSets
-                              .map((s) => `${s.pointsA}:${s.pointsB}`)
-                              .join(", ")}
-                          </>
-                        )}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            ))}
+      {koMatches.length > 0 && (
+        <div className="overflow-x-auto -mx-6 px-6 pt-6">
+          <TreeBracket
+            matches={koMatches}
+            sets={sets}
+            participants={participants}
+            highlightFinal
+            onMatchClick={(m) => setOpenMatchId(m.id)}
+          />
+        </div>
+      )}
+
+      {hasLosers && (
+        <div className="space-y-2 pt-4 border-t border-ink-100">
+          <div>
+            <h3 className="text-base font-semibold tracking-tight">
+              Trostrunde (Lucky Loser)
+            </h3>
+            <p className="mt-0.5 text-sm text-ink-500">
+              Zweiter Baum mit allen, die sich nicht für den Hauptbaum
+              qualifiziert haben.
+            </p>
+          </div>
+          <div className="overflow-x-auto -mx-6 px-6 pt-6">
+            <TreeBracket
+              matches={losersMatches!}
+              sets={sets}
+              participants={participants}
+              onMatchClick={(m) => setOpenMatchId(m.id)}
+            />
           </div>
         </div>
       )}
@@ -216,34 +176,5 @@ export function BracketPanel({
         />
       )}
     </section>
-  );
-}
-
-function Row({
-  name,
-  score,
-  winner,
-  placeholder,
-}: {
-  name: string;
-  score: number | null;
-  winner: boolean;
-  placeholder: boolean;
-}) {
-  return (
-    <div className="flex items-center justify-between text-sm py-0.5">
-      <span
-        className={`truncate ${
-          placeholder ? "italic text-ink-400" : winner ? "font-bold" : ""
-        }`}
-      >
-        {name}
-      </span>
-      <span
-        className={`font-mono text-xs tabular-nums ${winner ? "font-bold text-brand-700" : "text-ink-500"}`}
-      >
-        {score !== null ? score : ""}
-      </span>
-    </div>
   );
 }

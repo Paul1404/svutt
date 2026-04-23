@@ -126,6 +126,7 @@ export default async function PublicCategoryPage({
 
   const groupMatches = matchRows.filter((m) => m.stage === "group");
   const koMatches = matchRows.filter((m) => m.stage === "ko");
+  const losersMatches = matchRows.filter((m) => m.stage === "ko_losers");
   const swissMatches = matchRows.filter((m) => m.stage === "swiss");
 
   const structure: TournamentStructure = isTournamentStructure(
@@ -188,10 +189,12 @@ export default async function PublicCategoryPage({
               matches={groupMatches}
               sets={setRows}
               standings={standings}
+              advancementCount={category.groupAdvancementCount}
             />
             {koMatches.length > 0 && (
               <PublicBracket
                 koMatches={koMatches}
+                losersMatches={losersMatches}
                 sets={setRows}
                 participants={parts}
               />

@@ -124,6 +124,7 @@ export default async function CategoryDetailPage({
 
   const groupMatches = matchRows.filter((m) => m.stage === "group");
   const koMatches = matchRows.filter((m) => m.stage === "ko");
+  const losersMatches = matchRows.filter((m) => m.stage === "ko_losers");
   const swissMatches = matchRows.filter((m) => m.stage === "swiss");
   const allGroupComplete =
     groupMatches.length > 0 &&
@@ -205,6 +206,7 @@ export default async function CategoryDetailPage({
             tournamentId={tournament.id}
             category={category}
             koMatches={koMatches}
+            losersMatches={losersMatches}
             sets={setRows}
             participants={parts}
             canBuild={false}
@@ -257,6 +259,7 @@ export default async function CategoryDetailPage({
             tournamentId={tournament.id}
             category={category}
             koMatches={koMatches}
+            losersMatches={losersMatches}
             sets={setRows}
             participants={parts}
             canBuild={allGroupComplete}
