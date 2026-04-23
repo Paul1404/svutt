@@ -43,10 +43,6 @@ export default async function TournamentDetailPage({
 
   const s = statusLabel(tournament.status);
 
-  const testUtilsEnabled =
-    process.env.NODE_ENV !== "production" ||
-    process.env.ENABLE_TEST_UTILS === "1";
-
   return (
     <div className="space-y-10">
       <div>
@@ -78,7 +74,7 @@ export default async function TournamentDetailPage({
 
       <TournamentSettings tournament={tournament} />
 
-      {testUtilsEnabled && cats.length > 0 && (
+      {cats.length > 0 && (
         <TestAutoRunAllPanel
           categories={cats.map((c) => ({
             id: c.id,

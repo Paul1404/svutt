@@ -140,10 +140,6 @@ export default async function CategoryDetailPage({
     : "groups_ko";
   const drawMode = isDrawMode(category.drawMode) ? category.drawMode : "random";
 
-  const testUtilsEnabled =
-    process.env.NODE_ENV !== "production" ||
-    process.env.ENABLE_TEST_UTILS === "1";
-
   return (
     <div className="space-y-10">
       <div>
@@ -177,12 +173,10 @@ export default async function CategoryDetailPage({
         matchDurationMinutes={tournament.matchDurationMinutes}
       />
 
-      {testUtilsEnabled && (
-        <TestPopulatePanel
-          category={category}
-          participantCount={parts.length}
-        />
-      )}
+      <TestPopulatePanel
+        category={category}
+        participantCount={parts.length}
+      />
 
       {!category.drawDone ? (
         <>
