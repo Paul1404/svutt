@@ -21,6 +21,7 @@ import { PublicGroupView } from "@/components/public/PublicGroupView";
 import { PublicBracket } from "@/components/public/PublicBracket";
 import { PublicSwissView } from "@/components/public/PublicSwissView";
 import { TournamentWinner } from "@/components/public/TournamentWinner";
+import { GameResults } from "@/components/public/GameResults";
 import { ArrowLeft } from "@/components/Icon";
 
 export const dynamic = "force-dynamic";
@@ -196,6 +197,14 @@ export default async function PublicCategoryPage({
               />
             )}
           </>
+        )}
+        {category.drawDone && matchRows.length > 0 && (
+          <GameResults
+            matches={matchRows}
+            sets={setRows}
+            participants={parts}
+            groups={catGroups}
+          />
         )}
       </main>
 

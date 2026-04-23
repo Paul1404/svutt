@@ -18,6 +18,7 @@ import { BracketPanel } from "@/components/admin/BracketPanel";
 import { SwissPanel } from "@/components/admin/SwissPanel";
 import { CategorySettings } from "@/components/admin/CategorySettings";
 import { TestPopulatePanel } from "@/components/admin/TestPopulatePanel";
+import { GameResults } from "@/components/public/GameResults";
 import { computeStandings, type EngineGroup, type Player } from "@/lib/engine";
 import {
   isTournamentStructure,
@@ -264,6 +265,15 @@ export default async function CategoryDetailPage({
             canBuild={allGroupComplete}
           />
         </>
+      )}
+
+      {category.drawDone && matchRows.length > 0 && (
+        <GameResults
+          matches={matchRows}
+          sets={setRows}
+          participants={parts}
+          groups={catGroups}
+        />
       )}
     </div>
   );
