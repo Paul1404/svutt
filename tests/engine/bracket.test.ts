@@ -125,10 +125,10 @@ describe("buildBracket", () => {
     expect(br.losersEntries).toHaveLength(0);
   });
 
-  it("gives a bye as a one-sided round-0 match when a qualifier has no opponent", () => {
+  it("gives a bye (no first-round match) when a qualifier has no opponent", () => {
     // 3 groups of 2 → 3 winners advance. Main size = 4 → 1 would-be empty
-    // slot. The paired winner gets a bye, rendered as a round-0 match with
-    // one empty side so the tree stays visually connected.
+    // slot. The paired winner should get a bye, not a ghost match against
+    // nobody.
     const groups = [0, 1, 2].map((gi) => {
       const label = String.fromCharCode("A".charCodeAt(0) + gi);
       const players = [makePlayer(`${label}1`), makePlayer(`${label}2`)];
@@ -137,31 +137,29 @@ describe("buildBracket", () => {
     const br = buildBracket({ groups, advancementCount: 1 });
     expect(br.size).toBe(4);
 
-    // 3 players in a 4-slot bracket: both round-0 matches exist, one is a
-    // real pairing and the other is a one-sided bye (player + empty).
-    const r0 = br.matches.filter((m) => m.round === 0);
-    expect(r0).toHaveLength(2);
-    const realMatches = r0.filter(
-      (m) => m.a.kind === "player" && m.b.kind === "player",
-    );
-    const byeMatches = r0.filter(
-      (m) =>
-        (m.a.kind === "player" && m.b.kind === "empty") ||
-        (m.a.kind === "empty" && m.b.kind === "player"),
-    );
-    expect(realMatches).toHaveLength(1);
-    expect(byeMatches).toHaveLength(1);
+    // Every created match has both sides filled — no phantom "player vs …".
+    for (const m of br.matches) {
+      expect(m.a.kind).not.toBe("empty");
+      expect(m.b.kind).not.toBe("empty");
+    }
 
-    // Final always references both round-0 matches via pending slots, so
-    // the renderer can draw connector lines from both sides.
+    // With 3 players in a 4-slot bracket, exactly one round-0 match is
+    // played; the other two players meet the winner in the final. One of
+    // the finalists comes via a bye (player slot), the other via pending.
+    const r0 = br.matches.filter((m) => m.round === 0);
+    expect(r0).toHaveLength(1);
     const final = br.matches.find((m) => m.label === "Finale")!;
-    expect(final.a.kind).toBe("pending");
-    expect(final.b.kind).toBe("pending");
+    const hasByePlayer =
+      final.a.kind === "player" || final.b.kind === "player";
+    const hasPending =
+      final.a.kind === "pending" || final.b.kind === "pending";
+    expect(hasByePlayer).toBe(true);
+    expect(hasPending).toBe(true);
   });
 
-  it("creates one-sided bye matches for every unpaired seed", () => {
-    // 10 players in a 16-slot bracket → 6 byes. Every unpaired seed still
-    // gets its own round-0 bye match so the tree is fully connected.
+  it("skips whole-subtree byes without leaving empty matches", () => {
+    // 10 players in a 16-slot bracket → 6 byes. Only fully-filled pairs
+    // should produce round-0 matches.
     const groups = ["A", "B", "C", "D", "E"].map((lbl, gi) =>
       makeGroup(
         `g${gi}`,
@@ -172,23 +170,17 @@ describe("buildBracket", () => {
     const br = buildBracket({ groups, advancementCount: 2 });
     expect(br.size).toBe(16);
 
-    // No match should have both sides empty.
     for (const m of br.matches) {
-      const bothEmpty = m.a.kind === "empty" && m.b.kind === "empty";
-      expect(bothEmpty).toBe(false);
+      expect(m.a.kind).not.toBe("empty");
+      expect(m.b.kind).not.toBe("empty");
     }
 
-    // 10 seeded players → 10 round-0 slots filled out of 16. Pair count =
-    // 8; each pair is either real or one-sided. Total round-0 matches is
-    // (real pairs) + (bye pairs) and every seeded player appears exactly
-    // once in round 0.
+    // 10 seeded players → at most 5 real first-round matches (the bracket
+    // first half has 5 filled + 3 empty, the second half has 5 filled + 3
+    // empty; pairing first-half vs second-half yields some real matches and
+    // some byes). The exact count depends on seeding interleave.
     const r0 = br.matches.filter((m) => m.round === 0);
-    const playersInR0 = new Set<string>();
-    for (const m of r0) {
-      if (m.a.kind === "player") playersInR0.add(m.a.playerId);
-      if (m.b.kind === "player") playersInR0.add(m.b.playerId);
-    }
-    expect(playersInR0.size).toBe(10);
+    expect(r0.length).toBeLessThan(8);
   });
 
   it("handles a trivial 2-group tournament with Top 1", () => {

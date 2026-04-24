@@ -624,6 +624,19 @@ export const categoryRoutes = new Hono()
       return c.json({ ok: true, unchanged: true });
     }
 
+    // A group with fewer than 2 members has no round-robin schedule; the
+    // move would silently drop the source group from the tournament.
+    const sourceMemberCount = await db
+      .select({ participantId: groupMembers.participantId })
+      .from(groupMembers)
+      .where(eq(groupMembers.groupId, sourceGroup.id));
+    if (sourceMemberCount.length <= 2) {
+      return conflict(
+        c,
+        "Ausgangsgruppe hätte nach dem Verschieben weniger als 2 Spieler.",
+      );
+    }
+
     const [tournament] = await db
       .select()
       .from(tournaments)
@@ -773,6 +786,23 @@ export const categoryRoutes = new Hono()
       .where(eq(tournaments.id, cat.tournamentId))
       .limit(1);
     if (!tournament) return notFound(c, "Turnier");
+
+    const existingKo = await db
+      .select({ status: matches.status })
+      .from(matches)
+      .where(
+        and(
+          eq(matches.categoryId, id),
+          inArray(matches.stage, ["ko", "ko_losers"] as const),
+        ),
+      );
+    const hasPlayedKo = existingKo.some((m) => m.status !== "pending");
+    if (hasPlayedKo) {
+      return conflict(
+        c,
+        "Finalbaum enthält bereits gespielte Partien — Neubau würde Ergebnisse verwerfen.",
+      );
+    }
 
     const { engineGroups } = await loadEngineGroups(id);
 
@@ -1054,36 +1084,19 @@ async function insertBracketMatches(
   },
 ) {
   const { stage, parallelTables, startOrder } = schedule;
-
-  const byeWinnerByBid = new Map<string, string>();
-  for (const bm of bracketMatches) {
-    if (bm.a.kind === "player" && bm.b.kind === "empty") {
-      byeWinnerByBid.set(bm.id, bm.a.playerId);
-    } else if (bm.b.kind === "player" && bm.a.kind === "empty") {
-      byeWinnerByBid.set(bm.id, bm.b.playerId);
-    }
-  }
-
   const inserts: (typeof matches.$inferInsert & { _bid: string })[] =
-    bracketMatches.map((bm, idx) => {
-      const aPlayer = bm.a.kind === "player" ? bm.a.playerId : null;
-      const bPlayer = bm.b.kind === "player" ? bm.b.playerId : null;
-      const byeWinner = byeWinnerByBid.get(bm.id) ?? null;
-      return {
-        _bid: bm.id,
-        categoryId,
-        stage,
-        round: bm.round,
-        matchIndex: bm.matchIndex,
-        koLabel: bm.label,
-        participantAId: aPlayer,
-        participantBId: bPlayer,
-        playOrder: startOrder + idx,
-        tableNumber: ((startOrder + idx) % parallelTables) + 1,
-        status: byeWinner ? ("finished" as const) : ("pending" as const),
-        winnerParticipantId: byeWinner,
-      };
-    });
+    bracketMatches.map((bm, idx) => ({
+      _bid: bm.id,
+      categoryId,
+      stage,
+      round: bm.round,
+      matchIndex: bm.matchIndex,
+      koLabel: bm.label,
+      participantAId: bm.a.kind === "player" ? bm.a.playerId : null,
+      participantBId: bm.b.kind === "player" ? bm.b.playerId : null,
+      playOrder: startOrder + idx,
+      tableNumber: ((startOrder + idx) % parallelTables) + 1,
+    }));
 
   const insertedRows = inserts.length
     ? await tx
@@ -1100,23 +1113,14 @@ async function insertBracketMatches(
   for (const bm of bracketMatches) {
     const dbId = bidToDbId.get(bm.id);
     if (!dbId) continue;
-    const update: {
-      sourceMatchAId?: string;
-      sourceMatchBId?: string;
-      participantAId?: string;
-      participantBId?: string;
-    } = {};
+    const update: { sourceMatchAId?: string; sourceMatchBId?: string } = {};
     if (bm.a.kind === "pending") {
       const srcDb = bidToDbId.get(bm.a.fromMatchId);
       if (srcDb) update.sourceMatchAId = srcDb;
-      const byeW = byeWinnerByBid.get(bm.a.fromMatchId);
-      if (byeW) update.participantAId = byeW;
     }
     if (bm.b.kind === "pending") {
       const srcDb = bidToDbId.get(bm.b.fromMatchId);
       if (srcDb) update.sourceMatchBId = srcDb;
-      const byeW = byeWinnerByBid.get(bm.b.fromMatchId);
-      if (byeW) update.participantBId = byeW;
     }
     if (Object.keys(update).length > 0) {
       await tx.update(matches).set(update).where(eq(matches.id, dbId));
