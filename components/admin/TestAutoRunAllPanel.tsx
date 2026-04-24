@@ -121,23 +121,25 @@ export function TestAutoRunAllPanel({ categories }: Props) {
   }
 
   return (
-    <section className="rounded-xl border border-dashed border-amber-300 bg-amber-50/50 p-4 sm:p-5">
+    <section className="card border-dashed p-4 sm:p-5">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="flex items-start gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
             <Sparkles size={18} />
           </div>
           <div>
-            <h3 className="text-sm font-semibold tracking-tight text-amber-900">
-              Ganzes Turnier durchspielen
-            </h3>
-            <p className="mt-0.5 text-xs text-amber-800/80">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="text-sm font-semibold tracking-tight text-ink-900">
+                Ganzes Turnier durchspielen
+              </h3>
+              <span className="badge-amber">Nur zum Testen</span>
+            </div>
+            <p className="mt-1 text-xs text-ink-500">
               Lost alle Spielklassen aus, befüllt sämtliche Spiele mit
-              zufälligen Ergebnissen und baut Finalbäume automatisch auf. Nur
-              zum Testen.
+              zufälligen Ergebnissen und baut Finalbäume automatisch auf.
             </p>
             {status && loading && (
-              <p className="mt-1 text-xs text-amber-800">{status}</p>
+              <p className="mt-1 text-xs text-ink-600">{status}</p>
             )}
           </div>
         </div>

@@ -8,6 +8,8 @@ import type {
 import type { GroupStanding } from "@/lib/engine/types";
 import { ChevronDown } from "@/components/Icon";
 import { StandingsExplainer } from "@/components/StandingsExplainer";
+import { StandingsCellTooltip } from "@/components/StandingsCellTooltip";
+import { computeBreakdownsByPlayer } from "@/lib/engine/standings-breakdown";
 
 type Props = {
   groups: Group[];
@@ -37,6 +39,11 @@ export function PublicGroupView({
   }
   for (const arr of setsByMatch.values())
     arr.sort((a, b) => a.setNumber - b.setNumber);
+  const breakdownsByPlayer = computeBreakdownsByPlayer(
+    matches,
+    sets,
+    partsById,
+  );
 
   return (
     <section className="space-y-5">
@@ -77,6 +84,8 @@ export function PublicGroupView({
                     <tbody>
                       {standing.rows.map((r) => {
                         const isQualifier = r.rank <= advancementCount;
+                        const breakdowns =
+                          breakdownsByPlayer.get(r.playerId) ?? [];
                         return (
                           <tr
                             key={r.playerId}
@@ -96,15 +105,26 @@ export function PublicGroupView({
                             <td className="py-2 font-medium">
                               {partsById.get(r.playerId)?.name ?? "?"}
                             </td>
-                            <td className="py-2 text-right tabular-nums">
-                              {r.wins}-{r.losses}
+                            <td className="py-2 text-right">
+                              <StandingsCellTooltip
+                                metric="wins"
+                                breakdowns={breakdowns}
+                                value={`${r.wins}-${r.losses}`}
+                              />
                             </td>
-                            <td className="py-2 text-right tabular-nums text-ink-600">
-                              {r.setsWon}:{r.setsLost}
+                            <td className="py-2 text-right text-ink-600">
+                              <StandingsCellTooltip
+                                metric="sets"
+                                breakdowns={breakdowns}
+                                value={`${r.setsWon}:${r.setsLost}`}
+                              />
                             </td>
-                            <td className="py-2 text-right tabular-nums text-ink-600">
-                              {r.pointDiff > 0 ? "+" : ""}
-                              {r.pointDiff}
+                            <td className="py-2 text-right text-ink-600">
+                              <StandingsCellTooltip
+                                metric="points"
+                                breakdowns={breakdowns}
+                                value={`${r.pointDiff > 0 ? "+" : ""}${r.pointDiff}`}
+                              />
                             </td>
                           </tr>
                         );
