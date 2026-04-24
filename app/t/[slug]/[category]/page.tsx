@@ -23,6 +23,7 @@ import { PublicSwissView } from "@/components/public/PublicSwissView";
 import { TournamentWinner } from "@/components/public/TournamentWinner";
 import { GameResults } from "@/components/public/GameResults";
 import { ArrowLeft } from "@/components/Icon";
+import { ClubMark } from "@/components/ClubMark";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -140,12 +141,15 @@ export default async function PublicCategoryPage({
       <AutoRefresh intervalSeconds={30} />
       <header className="sticky top-0 z-10 border-b border-brand-800/20 bg-brand-700 text-white shadow-pop">
         <div className="mx-auto max-w-5xl px-4 py-4">
-          <Link
-            href={`/t/${tournament.slug}`}
-            className="inline-flex items-center gap-1 text-sm text-brand-100 hover:text-white transition-colors"
-          >
-            <ArrowLeft size={14} /> {tournament.name}
-          </Link>
+          <div className="flex items-center justify-between gap-3">
+            <Link
+              href={`/t/${tournament.slug}`}
+              className="inline-flex items-center gap-1 text-sm text-brand-100 hover:text-white transition-colors min-w-0 truncate"
+            >
+              <ArrowLeft size={14} /> {tournament.name}
+            </Link>
+            <ClubMark size="sm" showLabel={false} />
+          </div>
           <h1 className="mt-2 text-xl sm:text-2xl font-bold tracking-tight">
             {category.name}
           </h1>
