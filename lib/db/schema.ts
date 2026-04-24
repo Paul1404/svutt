@@ -31,6 +31,7 @@ export const matchStageEnum = pgEnum("match_stage", [
 export const TOURNAMENT_STRUCTURES = [
   "groups_ko",
   "round_robin",
+  "round_robin_finals",
   "ko_only",
   "swiss",
 ] as const;

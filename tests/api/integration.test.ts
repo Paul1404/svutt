@@ -631,4 +631,168 @@ describe("API integration: full tournament happy path", () => {
     expect(updated.setMinLead).toBe(2);
     expect(updated.luckyLoserEnabled).toBe(false);
   });
+
+  test("round_robin_finals: league then 1v2 final + 3v4 bronze match", async () => {
+    const tRes = await call(
+      app,
+      "/api/tournaments",
+      {
+        method: "POST",
+        json: {
+          name: "Liga + Finale",
+          slug: "liga-finale",
+          parallelTables: 2,
+        },
+      },
+      cookie,
+    );
+    const tId = (tRes.body as { tournament: { id: string } }).tournament.id;
+
+    const cRes = await call(
+      app,
+      `/api/tournaments/${tId}/categories`,
+      {
+        method: "POST",
+        json: {
+          name: "Herren",
+          slug: "rrf-herren",
+          structure: "round_robin_finals",
+          drawMode: "paste_order",
+        },
+      },
+      cookie,
+    );
+    expect(cRes.status).toBe(201);
+    const cat = (cRes.body as { category: { id: string; structure: string } })
+      .category;
+    expect(cat.structure).toBe("round_robin_finals");
+
+    // Six players — seeds A .. F in paste order.
+    const names = ["A", "B", "C", "D", "E", "F"];
+    const pRes = await call(
+      app,
+      `/api/categories/${cat.id}/participants`,
+      { method: "POST", json: { names: names.join("\n") } },
+      cookie,
+    );
+    const parts = (pRes.body as { participants: { id: string; name: string }[] })
+      .participants;
+    expect(parts.length).toBe(6);
+    const idByName = new Map(parts.map((p) => [p.name, p.id] as const));
+
+    // Draw: league phase only, bracketDone must stay false.
+    const drawRes = await call(
+      app,
+      `/api/categories/${cat.id}/draw`,
+      { method: "POST" },
+      cookie,
+    );
+    expect(drawRes.status).toBe(200);
+
+    const state1 = await call(app, `/api/categories/${cat.id}`, {}, cookie);
+    const s1 = state1.body as {
+      category: { drawDone: boolean; bracketDone: boolean };
+      matches: {
+        id: string;
+        stage: string;
+        status: string;
+        participantAId: string | null;
+        participantBId: string | null;
+        koLabel: string | null;
+      }[];
+    };
+    expect(s1.category.drawDone).toBe(true);
+    expect(s1.category.bracketDone).toBe(false);
+    const leagueMatches = s1.matches.filter((m) => m.stage === "group");
+    expect(leagueMatches.length).toBe((6 * 5) / 2);
+    expect(s1.matches.every((m) => m.stage !== "ko")).toBe(true);
+
+    // Building finals before the league is over must be rejected — the
+    // top-4 ranking isn't settled yet.
+    const earlyBuild = await call(
+      app,
+      `/api/categories/${cat.id}/bracket`,
+      { method: "POST" },
+      cookie,
+    );
+    expect(earlyBuild.status).toBe(409);
+
+    // Play every league match: A beats B beats C … F (wins = 5−index).
+    // Deterministic rank: A=1, B=2, C=3, D=4, E=5, F=6.
+    const winnerByPair = (a: string, b: string) =>
+      names.indexOf(a) < names.indexOf(b) ? a : b;
+    for (const m of leagueMatches) {
+      const aName = [...idByName.entries()].find(
+        ([, v]) => v === m.participantAId,
+      )![0];
+      const bName = [...idByName.entries()].find(
+        ([, v]) => v === m.participantBId,
+      )![0];
+      const aWins = winnerByPair(aName, bName) === aName;
+      const sets = aWins
+        ? [{ a: 11, b: 4 }, { a: 11, b: 6 }]
+        : [{ a: 4, b: 11 }, { a: 6, b: 11 }];
+      const rr = await call(
+        app,
+        `/api/matches/${m.id}/result`,
+        { method: "PUT", json: { sets } },
+        cookie,
+      );
+      expect(rr.status).toBe(200);
+    }
+
+    // Now finals can be built.
+    const br = await call(
+      app,
+      `/api/categories/${cat.id}/bracket`,
+      { method: "POST" },
+      cookie,
+    );
+    expect(br.status).toBe(200);
+    expect((br.body as { size: number }).size).toBe(2);
+
+    const state2 = await call(app, `/api/categories/${cat.id}`, {}, cookie);
+    const s2 = state2.body as {
+      category: { bracketDone: boolean };
+      matches: {
+        id: string;
+        stage: string;
+        koLabel: string | null;
+        participantAId: string | null;
+        participantBId: string | null;
+      }[];
+    };
+    expect(s2.category.bracketDone).toBe(true);
+    const koMatches = s2.matches.filter((m) => m.stage === "ko");
+    expect(koMatches.length).toBe(2);
+    const finale = koMatches.find((m) => m.koLabel === "Finale")!;
+    const bronze = koMatches.find(
+      (m) => m.koLabel === "Spiel um Platz 3",
+    )!;
+    expect(finale).toBeDefined();
+    expect(bronze).toBeDefined();
+    // Finale: rank 1 (A) vs rank 2 (B).
+    expect(
+      new Set([finale.participantAId, finale.participantBId]),
+    ).toEqual(new Set([idByName.get("A"), idByName.get("B")]));
+    // Bronze: rank 3 (C) vs rank 4 (D).
+    expect(
+      new Set([bronze.participantAId, bronze.participantBId]),
+    ).toEqual(new Set([idByName.get("C"), idByName.get("D")]));
+
+    // Admin rebuild should remain idempotent while results are still
+    // pending — an extra POST must not double-insert.
+    const rebuild = await call(
+      app,
+      `/api/categories/${cat.id}/bracket`,
+      { method: "POST" },
+      cookie,
+    );
+    expect(rebuild.status).toBe(200);
+    const state3 = await call(app, `/api/categories/${cat.id}`, {}, cookie);
+    const ko3 = (state3.body as {
+      matches: { stage: string }[];
+    }).matches.filter((m) => m.stage === "ko");
+    expect(ko3.length).toBe(2);
+  });
 });

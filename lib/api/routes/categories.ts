@@ -240,7 +240,9 @@ export const categoryRoutes = new Hono()
     const drawMode = (cat.drawMode as DrawMode) ?? "random";
 
     const minCount =
-      structure === "groups_ko" ? 4 : 2;
+      structure === "groups_ko" || structure === "round_robin_finals"
+        ? 4
+        : 2;
     if (parts.length < minCount) {
       return c.json(
         { error: `Mindestens ${minCount} Teilnehmer nötig.` },
@@ -260,7 +262,11 @@ export const categoryRoutes = new Hono()
       matchDurationMinutes: tournament.matchDurationMinutes,
     };
 
-    if (structure === "groups_ko" || structure === "round_robin") {
+    if (
+      structure === "groups_ko" ||
+      structure === "round_robin" ||
+      structure === "round_robin_finals"
+    ) {
       const drawn =
         structure === "groups_ko"
           ? drawGroups(players, {
@@ -786,10 +792,13 @@ export const categoryRoutes = new Hono()
     if (!cat.drawDone)
       return conflict(c, "Auslosung muss erst abgeschlossen sein.");
 
-    if (cat.structure !== "groups_ko") {
+    if (
+      cat.structure !== "groups_ko" &&
+      cat.structure !== "round_robin_finals"
+    ) {
       return conflict(
         c,
-        "Finalbaum gibt es nur bei Gruppen → KO. Andere Strukturen erzeugen ihren Spielplan beim Auslosen.",
+        "Finalbaum gibt es nur bei Gruppen → KO oder Jeder gegen jeden + Finale. Andere Strukturen erzeugen ihren Spielplan beim Auslosen.",
       );
     }
 
@@ -818,6 +827,94 @@ export const categoryRoutes = new Hono()
     }
 
     const { engineGroups } = await loadEngineGroups(id);
+
+    // round_robin_finals: build just two matches — 1 vs 2 (Finale) and
+    // 3 vs 4 (Spiel um Platz 3) — from the single round-robin group's
+    // standings. All league matches must already be finished so the
+    // top-4 ranking is final; otherwise mid-tournament rebuilds could
+    // seat the wrong pairs.
+    if (cat.structure === "round_robin_finals") {
+      const group = engineGroups[0];
+      if (!group) return conflict(c, "Keine Gruppe vorhanden.");
+      const groupMatchRows = await db
+        .select({ status: matches.status })
+        .from(matches)
+        .where(
+          and(eq(matches.categoryId, id), eq(matches.stage, "group")),
+        );
+      if (groupMatchRows.some((m) => m.status !== "finished")) {
+        return conflict(
+          c,
+          "Alle Ligaspiele müssen abgeschlossen sein, bevor die Finalspiele erstellt werden.",
+        );
+      }
+
+      const standing = computeStandings(group);
+      if (standing.rows.length < 4) {
+        return conflict(
+          c,
+          "Für Finalspiele werden mindestens 4 Spieler in der Rangliste benötigt.",
+        );
+      }
+      const [first, second, third, fourth] = standing.rows;
+
+      await db.transaction(async (tx) => {
+        await tx
+          .delete(matches)
+          .where(
+            and(
+              eq(matches.categoryId, id),
+              inArray(matches.stage, ["ko", "ko_losers"] as const),
+            ),
+          );
+
+        const orderOffset = await tx
+          .select({ n: matches.playOrder })
+          .from(matches)
+          .where(eq(matches.categoryId, id))
+          .orderBy(desc(matches.playOrder))
+          .limit(1);
+        const startOrder = (orderOffset[0]?.n ?? -1) + 1;
+
+        // Bronze is listed first so it plays before the Finale on the
+        // same table rotation. They're placed in separate round slots
+        // (0 and 1) so the TreeBracket renders them in two labeled
+        // columns; there is no source-match link between them, so no
+        // connector line is drawn and the displayed label of each
+        // column comes straight from `koLabel`.
+        await tx.insert(matches).values([
+          {
+            categoryId: id,
+            stage: "ko" as const,
+            round: 0,
+            matchIndex: 0,
+            koLabel: "Spiel um Platz 3",
+            participantAId: third!.playerId,
+            participantBId: fourth!.playerId,
+            playOrder: startOrder,
+            tableNumber: (startOrder % tournament.parallelTables) + 1,
+          },
+          {
+            categoryId: id,
+            stage: "ko" as const,
+            round: 1,
+            matchIndex: 0,
+            koLabel: "Finale",
+            participantAId: first!.playerId,
+            participantBId: second!.playerId,
+            playOrder: startOrder + 1,
+            tableNumber: ((startOrder + 1) % tournament.parallelTables) + 1,
+          },
+        ]);
+
+        await tx
+          .update(categories)
+          .set({ bracketDone: true })
+          .where(eq(categories.id, id));
+      });
+
+      return c.json({ ok: true, size: 2, losersSize: 0, losersEntries: [] });
+    }
 
     const bracket = buildBracket({
       groups: engineGroups,

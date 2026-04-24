@@ -77,6 +77,8 @@ export function BracketPanel({
   const allMatches = [...koMatches, ...(losersMatches ?? [])];
   const openMatch = allMatches.find((m) => m.id === openMatchId) ?? null;
   const hasLosers = !!losersMatches && losersMatches.length > 0;
+  const finalsOnly = category.structure === "round_robin_finals";
+  const buildLabel = finalsOnly ? "Finalspiele" : "Finalbaum";
 
   return (
     <section className="card p-6 space-y-5">
@@ -90,10 +92,11 @@ export function BracketPanel({
               Finalrunde
             </h2>
             <p className="mt-1 text-sm text-ink-500">
-              Hauptbaum mit den Gruppenbesten
-              {category.luckyLoserEnabled
-                ? " und separater Trostrunde für alle anderen."
-                : "."}
+              {finalsOnly
+                ? "Platz 1 vs. 2 im Finale, Platz 3 vs. 4 um Bronze."
+                : category.luckyLoserEnabled
+                  ? "Hauptbaum mit den Gruppenbesten und separater Trostrunde für alle anderen."
+                  : "Hauptbaum mit den Gruppenbesten."}
             </p>
           </div>
         </div>
@@ -105,7 +108,7 @@ export function BracketPanel({
             if (
               koMatches.length > 0 &&
               !confirm(
-                "Der bestehende Finalbaum wird komplett neu erstellt. Weiter?",
+                `Die bestehenden ${buildLabel.toLowerCase()} werden komplett neu erstellt. Weiter?`,
               )
             )
               return;
@@ -116,14 +119,15 @@ export function BracketPanel({
             ? "Wird erstellt..."
             : koMatches.length > 0
               ? "Neu aufbauen"
-              : "Finalbaum erstellen"}
+              : `${buildLabel} erstellen`}
         </button>
       </div>
 
       {!canBuild && koMatches.length === 0 && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-          Erst alle Gruppenspiele abschließen, dann kannst du den Finalbaum
-          starten.
+          {finalsOnly
+            ? "Erst alle Ligaspiele abschließen, dann kannst du die Finalspiele starten."
+            : "Erst alle Gruppenspiele abschließen, dann kannst du den Finalbaum starten."}
         </div>
       )}
       {error && (

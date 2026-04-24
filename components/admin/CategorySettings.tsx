@@ -39,6 +39,8 @@ const STRUCTURE_DESCRIPTIONS: Record<TournamentStructure, string> = {
     "Klassisch: Gruppen­phase (jede:r gegen jede:n), danach KO-Finalbaum.",
   round_robin:
     "Alle spielen gegen alle. Eine einzige Rangliste, kein KO.",
+  round_robin_finals:
+    "Alle spielen gegen alle. Anschließend Platz 1 vs. 2 im Finale und Platz 3 vs. 4 um Bronze.",
   ko_only:
     "Direkter KO-Baum aus der Setzliste. Keine Gruppen, keine zweite Chance.",
   swiss:
@@ -149,7 +151,8 @@ export function CategorySettings({
             />
             <Stat label="Auslosung" value={DRAW_MODE_LABELS[currentDrawMode]} />
             {currentStructure === "groups_ko" ||
-            currentStructure === "round_robin" ? (
+            currentStructure === "round_robin" ||
+            currentStructure === "round_robin_finals" ? (
               <Stat label="Gruppen à" value={String(category.groupSize)} />
             ) : null}
             {currentStructure === "swiss" && (
@@ -315,11 +318,14 @@ export function CategorySettings({
               </p>
             </div>
 
-            {(structure === "groups_ko" || structure === "round_robin") && (
+            {(structure === "groups_ko" ||
+              structure === "round_robin" ||
+              structure === "round_robin_finals") && (
               <div>
                 <div className="flex items-center gap-1 mb-1.5">
                   <span className="label mb-0">
-                    {structure === "round_robin"
+                    {structure === "round_robin" ||
+                    structure === "round_robin_finals"
                       ? "Gruppen­größe (Referenz)"
                       : "Spieler pro Gruppe"}
                   </span>

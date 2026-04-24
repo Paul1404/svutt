@@ -39,6 +39,8 @@ const STRUCTURE_DESCRIPTIONS: Record<TournamentStructure, string> = {
   groups_ko:
     "Klassisch: Gruppenphase (jede:r gegen jede:n), danach KO-Finalbaum.",
   round_robin: "Alle spielen gegen alle. Eine einzige Rangliste, kein KO.",
+  round_robin_finals:
+    "Alle spielen gegen alle. Anschließend spielen Platz 1 vs. 2 um den Titel und Platz 3 vs. 4 um Bronze.",
   ko_only:
     "Direkter KO-Baum aus der Setzliste. Keine Gruppen, keine zweite Chance.",
   swiss:
@@ -83,7 +85,9 @@ export function CreateCategoryForm({ tournamentId }: { tournamentId: string }) {
   }
 
   const showGroupSize =
-    structure === "groups_ko" || structure === "round_robin";
+    structure === "groups_ko" ||
+    structure === "round_robin" ||
+    structure === "round_robin_finals";
   const showSwissRounds = structure === "swiss";
   const showLuckyLoser = structure === "groups_ko";
 
@@ -205,7 +209,8 @@ export function CreateCategoryForm({ tournamentId }: { tournamentId: string }) {
       {showGroupSize && (
         <div>
           <label className="label">
-            {structure === "round_robin"
+            {structure === "round_robin" ||
+            structure === "round_robin_finals"
               ? "Gruppengröße (Referenz)"
               : "Spieler pro Gruppe"}
           </label>

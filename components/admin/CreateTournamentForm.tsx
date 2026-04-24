@@ -42,6 +42,8 @@ const CAT_STRUCTURE_DESCRIPTIONS: Record<TournamentStructure, string> = {
   groups_ko:
     "Klassisch: Gruppenphase (jede:r gegen jede:n), danach KO-Finalbaum.",
   round_robin: "Alle spielen gegen alle. Eine einzige Rangliste, kein KO.",
+  round_robin_finals:
+    "Alle gegen alle, danach Platz 1 vs. 2 (Finale) und 3 vs. 4 (Bronze).",
   ko_only:
     "Direkter KO-Baum aus der Setzliste. Keine Gruppen, keine zweite Chance.",
   swiss:
@@ -810,7 +812,9 @@ function CategoryStep({
   setLuckyLoserEnabled: (v: boolean) => void;
 }) {
   const showGroupSize =
-    structure === "groups_ko" || structure === "round_robin";
+    structure === "groups_ko" ||
+    structure === "round_robin" ||
+    structure === "round_robin_finals";
   const showSwissRounds = structure === "swiss";
   const showLuckyLoser = structure === "groups_ko";
 
@@ -924,7 +928,8 @@ function CategoryStep({
         {showGroupSize && (
           <div>
             <label className="label">
-              {structure === "round_robin"
+              {structure === "round_robin" ||
+              structure === "round_robin_finals"
                 ? "Gruppengröße (Referenz)"
                 : "Spieler pro Gruppe"}
             </label>
@@ -1134,7 +1139,9 @@ function ReviewStep({
           ? "Best of 5"
           : "Best of 7";
   const showGroupSize =
-    catStructure === "groups_ko" || catStructure === "round_robin";
+    catStructure === "groups_ko" ||
+    catStructure === "round_robin" ||
+    catStructure === "round_robin_finals";
   const showSwissRounds = catStructure === "swiss";
   const showLuckyLoser = catStructure === "groups_ko";
   return (
