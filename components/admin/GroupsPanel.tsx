@@ -181,7 +181,7 @@ export function GroupsPanel({
               </div>
 
               {standing && (
-                <div className="px-5 py-4 overflow-x-auto">
+                <div className="px-5 py-4">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="text-left text-[10px] uppercase tracking-wider text-ink-500">

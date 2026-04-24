@@ -210,15 +210,26 @@ export function TreeBracket({
           const b = partsById.get(m.participantBId ?? "");
           const matchSets = setsByMatch.get(m.id) ?? [];
           const done = m.status === "finished";
-          const winnerA = m.winnerParticipantId === m.participantAId;
-          const winnerB = m.winnerParticipantId === m.participantBId;
+          // A round-0 match with one side missing is a bye: the filled player
+          // auto-advances. Render the empty side as "Freilos" and skip the
+          // score/table decoration since no game is played.
+          const isByeA =
+            r.round === 0 && !m.participantAId && !!m.participantBId;
+          const isByeB =
+            r.round === 0 && !!m.participantAId && !m.participantBId;
+          const isBye = isByeA || isByeB;
+          const winnerA = !isBye && m.winnerParticipantId === m.participantAId;
+          const winnerB = !isBye && m.winnerParticipantId === m.participantBId;
           const isFinaleWinner =
             highlightFinal &&
             done &&
             (m.koLabel ?? "").toLowerCase() === "finale" &&
             !!m.winnerParticipantId;
           const canClick =
-            !!onMatchClick && !!m.participantAId && !!m.participantBId;
+            !!onMatchClick &&
+            !isBye &&
+            !!m.participantAId &&
+            !!m.participantBId;
           const top = centerY(m.id, r.round, m.matchIndex) - dims.cardHeight / 2;
           const left = columnX(r.round);
 
@@ -250,34 +261,36 @@ export function TreeBracket({
                 </div>
               )}
               <Row
-                name={a?.name ?? "…"}
-                score={done ? m.setsA : null}
+                name={isByeA ? "Freilos" : (a?.name ?? "…")}
+                score={!isBye && done ? m.setsA : null}
                 winner={winnerA}
                 placeholder={!a}
                 compact={isMobile}
               />
               <div className="my-1 h-px bg-ink-100" />
               <Row
-                name={b?.name ?? "…"}
-                score={done ? m.setsB : null}
+                name={isByeB ? "Freilos" : (b?.name ?? "…")}
+                score={!isBye && done ? m.setsB : null}
                 winner={winnerB}
                 placeholder={!b}
                 compact={isMobile}
               />
-              <div
-                className="mt-1 text-ink-500 font-mono tabular-nums truncate"
-                style={{ fontSize: dims.labelSize }}
-              >
-                T{m.tableNumber ?? "?"}
-                {matchSets.length > 0 && (
-                  <>
-                    {" · "}
-                    {matchSets
-                      .map((s) => `${s.pointsA}:${s.pointsB}`)
-                      .join(", ")}
-                  </>
-                )}
-              </div>
+              {!isBye && (
+                <div
+                  className="mt-1 text-ink-500 font-mono tabular-nums truncate"
+                  style={{ fontSize: dims.labelSize }}
+                >
+                  T{m.tableNumber ?? "?"}
+                  {matchSets.length > 0 && (
+                    <>
+                      {" · "}
+                      {matchSets
+                        .map((s) => `${s.pointsA}:${s.pointsB}`)
+                        .join(", ")}
+                    </>
+                  )}
+                </div>
+              )}
             </>
           );
 

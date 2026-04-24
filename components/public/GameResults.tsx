@@ -23,7 +23,13 @@ const STAGE_LABELS: Record<StageKey, string> = {
 };
 
 export function GameResults({ matches, sets, participants, groups }: Props) {
-  const finished = matches.filter((m) => m.status === "finished");
+  // Bye matches (one side missing a participant) auto-resolve at bracket
+  // creation and aren't played — exclude them from the results list and the
+  // overall completion counter.
+  const realMatches = matches.filter(
+    (m) => m.participantAId !== null && m.participantBId !== null,
+  );
+  const finished = realMatches.filter((m) => m.status === "finished");
 
   const partsById = new Map(participants.map((p) => [p.id, p]));
   const groupsById = new Map((groups ?? []).map((g) => [g.id, g]));
@@ -66,7 +72,7 @@ export function GameResults({ matches, sets, participants, groups }: Props) {
           <span className="font-semibold tabular-nums">{finished.length}</span>
           <span className="text-ink-400">
             {" "}
-            / {matches.length} Spielen fertig
+            / {realMatches.length} Spielen fertig
           </span>
         </div>
       </div>

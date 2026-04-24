@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { MatchBreakdown } from "@/lib/engine/standings-breakdown";
 
 type Metric = "wins" | "sets" | "points";
@@ -25,10 +26,10 @@ const METRIC_HINTS: Record<Metric, string> = {
   points: "Summe gewonnene Ballpunkte minus verlorene Ballpunkte.",
 };
 
-/**
- * Inline standings cell with a hover/focus/tap tooltip that breaks the
- * aggregate number down into the finished matches that produced it.
- */
+const TOOLTIP_WIDTH = 256;
+const TOOLTIP_GAP = 4;
+const VIEWPORT_MARGIN = 8;
+
 export function StandingsCellTooltip({
   value,
   metric,
@@ -36,13 +37,18 @@ export function StandingsCellTooltip({
   align = "right",
 }: Props) {
   const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
   const id = useId();
   const wrapRef = useRef<HTMLSpanElement | null>(null);
+  const tipRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!open) return;
     function onDocClick(e: MouseEvent) {
-      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
+      const target = e.target as Node;
+      if (wrapRef.current?.contains(target)) return;
+      if (tipRef.current?.contains(target)) return;
+      setOpen(false);
     }
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") setOpen(false);
@@ -55,8 +61,73 @@ export function StandingsCellTooltip({
     };
   }, [open]);
 
+  useLayoutEffect(() => {
+    if (!open) {
+      setPos(null);
+      return;
+    }
+    function updatePosition() {
+      const trigger = wrapRef.current;
+      if (!trigger) return;
+      const rect = trigger.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      let left =
+        align === "right"
+          ? rect.right - TOOLTIP_WIDTH
+          : rect.left;
+      left = Math.max(
+        VIEWPORT_MARGIN,
+        Math.min(left, viewportWidth - TOOLTIP_WIDTH - VIEWPORT_MARGIN),
+      );
+      const top = rect.bottom + TOOLTIP_GAP;
+      setPos({ top, left });
+    }
+    updatePosition();
+    window.addEventListener("scroll", updatePosition, true);
+    window.addEventListener("resize", updatePosition);
+    return () => {
+      window.removeEventListener("scroll", updatePosition, true);
+      window.removeEventListener("resize", updatePosition);
+    };
+  }, [open, align]);
+
+  const tooltip =
+    open && pos && typeof document !== "undefined"
+      ? createPortal(
+          <div
+            ref={tipRef}
+            id={id}
+            role="tooltip"
+            style={{
+              position: "fixed",
+              top: pos.top,
+              left: pos.left,
+              width: TOOLTIP_WIDTH,
+            }}
+            className="z-50 rounded-lg border border-ink-200 bg-surface p-3 text-xs leading-relaxed text-ink-700 shadow-lift text-left"
+          >
+            <span className="block font-semibold text-ink-900">
+              {METRIC_LABELS[metric]}
+            </span>
+            <span className="block text-[11px] text-ink-500 mb-2">
+              {METRIC_HINTS[metric]}
+            </span>
+            {breakdowns.length === 0 ? (
+              <span className="block italic text-ink-500">
+                Noch keine Spiele abgeschlossen.
+              </span>
+            ) : (
+              <span className="block">
+                <MetricBreakdown metric={metric} breakdowns={breakdowns} />
+              </span>
+            )}
+          </div>,
+          document.body,
+        )
+      : null;
+
   return (
-    <span ref={wrapRef} className="relative inline-block">
+    <span ref={wrapRef} className="inline-block">
       <button
         type="button"
         aria-label={`${METRIC_LABELS[metric]} — Details anzeigen`}
@@ -66,48 +137,22 @@ export function StandingsCellTooltip({
         onMouseEnter={() => setOpen(true)}
         onFocus={() => setOpen(true)}
         onMouseLeave={(e) => {
-          if (
-            !wrapRef.current?.contains(
-              (e.relatedTarget as Node) ?? document.activeElement,
-            )
-          ) {
-            setOpen(false);
-          }
+          const next = (e.relatedTarget as Node) ?? document.activeElement;
+          if (wrapRef.current?.contains(next)) return;
+          if (tipRef.current?.contains(next)) return;
+          setOpen(false);
         }}
         onBlur={(e) => {
-          if (!wrapRef.current?.contains(e.relatedTarget as Node)) {
-            setOpen(false);
-          }
+          const next = e.relatedTarget as Node;
+          if (wrapRef.current?.contains(next)) return;
+          if (tipRef.current?.contains(next)) return;
+          setOpen(false);
         }}
         className="tabular-nums cursor-help rounded px-0.5 hover:bg-ink-100 focus-visible:bg-ink-100 transition-colors"
       >
         {value}
       </button>
-      {open && (
-        <span
-          id={id}
-          role="tooltip"
-          className={`absolute top-full z-30 mt-1 w-64 rounded-lg border border-ink-200 bg-surface p-3 text-xs leading-relaxed text-ink-700 shadow-lift text-left ${
-            align === "right" ? "right-0" : "left-0"
-          }`}
-        >
-          <span className="block font-semibold text-ink-900">
-            {METRIC_LABELS[metric]}
-          </span>
-          <span className="block text-[11px] text-ink-500 mb-2">
-            {METRIC_HINTS[metric]}
-          </span>
-          {breakdowns.length === 0 ? (
-            <span className="block italic text-ink-500">
-              Noch keine Spiele abgeschlossen.
-            </span>
-          ) : (
-            <span className="block">
-              <MetricBreakdown metric={metric} breakdowns={breakdowns} />
-            </span>
-          )}
-        </span>
-      )}
+      {tooltip}
     </span>
   );
 }

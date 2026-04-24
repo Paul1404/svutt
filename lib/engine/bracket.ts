@@ -193,11 +193,12 @@ function buildLosersPool(
  * Build a single-elimination tree from a list of seeds. Empty slots are
  * appended to pad to the next power of two.
  *
- * A slot paired with an empty opponent is a "bye": no match is created for
- * that pair, and the filled player advances directly into the next round as
- * a real `player` slot. A pair where both slots are empty propagates as
- * empty — the downstream match either sees a bye of its own or is skipped
- * entirely when both sides are empty.
+ * A slot paired with an empty opponent is a "bye": a match record is still
+ * created with one side empty, and it auto-resolves to the filled player
+ * downstream. Keeping the bye as a real match keeps the bracket tree
+ * visually connected — later rounds always have upstream feeders to draw
+ * connector lines from. A pair where both slots are empty still yields no
+ * match; the emptiness just propagates upward.
  */
 function buildTree(seeds: readonly BracketSlot[], idPrefix: string): Bracket {
   const nonEmpty = seeds.length;
@@ -219,11 +220,7 @@ function buildTree(seeds: readonly BracketSlot[], idPrefix: string): Bracket {
     a: BracketSlot,
     b: BracketSlot,
   ): BracketSlot => {
-    const aEmpty = a.kind === "empty";
-    const bEmpty = b.kind === "empty";
-    if (aEmpty && bEmpty) return { kind: "empty" };
-    if (aEmpty) return b;
-    if (bEmpty) return a;
+    if (a.kind === "empty" && b.kind === "empty") return { kind: "empty" };
     const id = matchId(idPrefix, round, matchIndex);
     matches.push({
       id,
