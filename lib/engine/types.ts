@@ -26,7 +26,7 @@ export type MatchOutcome = {
   /** Sum of points across all played sets. Useful for standings tie-breakers. */
   pointsA: number;
   pointsB: number;
-  /** `true` once winSets is reached — i.e. the match is decided. */
+  /** `true` once winSets is reached - i.e. the match is decided. */
   complete: boolean;
   /** `true` when all sets individually pass the TT set-validity rules. */
   valid: boolean;

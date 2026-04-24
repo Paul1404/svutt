@@ -153,7 +153,7 @@ export const publicRoutes = new Hono()
   // Server-Sent Events stream. Clients open an EventSource and receive a
   // `revision` event whenever the category's underlying data changes (match
   // results, draw, bracket build, publish toggle). The page then re-fetches
-  // through its normal server component path — no DB reads happen inside
+  // through its normal server component path - no DB reads happen inside
   // the stream itself, so this is cheap to keep open.
   .get("/t/:slug/c/:catSlug/live", async (c) => {
     const slug = c.req.param("slug");

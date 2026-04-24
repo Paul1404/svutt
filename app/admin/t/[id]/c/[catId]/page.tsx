@@ -20,7 +20,12 @@ import { CategorySettings } from "@/components/admin/CategorySettings";
 import { PublishToggle } from "@/components/admin/PublishToggle";
 import { TestPopulatePanel } from "@/components/admin/TestPopulatePanel";
 import { GameResults } from "@/components/public/GameResults";
-import { computeStandings, type EngineGroup, type Player } from "@/lib/engine";
+import {
+  buildBracketOrigins,
+  computeStandings,
+  type EngineGroup,
+  type Player,
+} from "@/lib/engine";
 import {
   isTournamentStructure,
   STRUCTURE_LABELS,
@@ -122,6 +127,7 @@ export default async function CategoryDetailPage({
   });
 
   const standings = engineGroups.map(computeStandings);
+  const bracketOrigins = buildBracketOrigins(standings);
 
   const groupMatches = matchRows.filter((m) => m.stage === "group");
   const koMatches = matchRows.filter((m) => m.stage === "ko");
@@ -212,6 +218,7 @@ export default async function CategoryDetailPage({
             losersMatches={losersMatches}
             sets={setRows}
             participants={parts}
+            origins={bracketOrigins}
             canBuild={false}
           />
         </>
@@ -265,6 +272,7 @@ export default async function CategoryDetailPage({
             losersMatches={losersMatches}
             sets={setRows}
             participants={parts}
+            origins={bracketOrigins}
             canBuild={allGroupComplete}
           />
         </>

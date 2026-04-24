@@ -1030,8 +1030,9 @@ function CategoryStep({
             <span className="text-sm">
               <span className="font-medium">Lucky Loser zulassen</span>
               <span className="block text-xs text-ink-500 mt-0.5">
-                Füllt Freilose mit den besten Gruppendritten, statt kampflose
-                Runden zuzulassen.
+                Füllt offene Bracket-Plätze mit den besten Gruppendritten
+                auf. Ohne Lucky Loser bekommen die Topgesetzten stattdessen
+                ein Freilos und ziehen kampflos in die nächste Runde.
               </span>
             </span>
           </label>
@@ -1077,7 +1078,7 @@ function ReviewRow({
       <span className="text-sm text-ink-900 text-right font-medium">
         {value || (
           <span className="text-ink-400 italic font-normal">
-            {placeholder ?? "—"}
+            {placeholder ?? "-"}
           </span>
         )}
       </span>
@@ -1154,8 +1155,8 @@ function ReviewStep({
       <div className="rounded-xl border border-ink-200 bg-surface-2/60 px-4">
         <ReviewRow label="Name" value={name} />
         <ReviewRow label="URL" value={`/t/${slug}`} />
-        <ReviewRow label="Datum" value={date} placeholder="— (optional)" />
-        <ReviewRow label="Ort" value={location} placeholder="— (optional)" />
+        <ReviewRow label="Datum" value={date} placeholder="- (optional)" />
+        <ReviewRow label="Ort" value={location} placeholder="- (optional)" />
         <ReviewRow label="Tische parallel" value={String(parallelTables)} />
         <ReviewRow
           label="Spieldauer pro Spiel"

@@ -2,7 +2,7 @@
 // Shared types for tournament-format plugins.
 //
 // A "format" is a pluggable strategy that decides how a category's matches are
-// generated (plan), how standings are computed, and — for Swiss — how
+// generated (plan), how standings are computed, and - for Swiss - how
 // subsequent rounds are built from finished ones (advance).
 //
 // Each format lives in its own module (swiss.ts, koOnly.ts, roundRobinOnly.ts,

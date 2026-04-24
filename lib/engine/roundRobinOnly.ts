@@ -23,7 +23,7 @@ export type RoundRobinOnlyInput = {
   players: SeededPlayer[];
   /**
    * Ordering before the round-robin is generated. "seeded_snake" sorts by
-   * `seed` asc so seed 1 is `players[0]` — this makes the schedule
+   * `seed` asc so seed 1 is `players[0]` - this makes the schedule
    * reproducible. Otherwise players keep their insertion order.
    */
   drawMode?: DrawMode;

@@ -63,7 +63,7 @@ export const tournaments = pgTable(
     // Scheduling configuration. We track rough per-match duration (for
     // estimates and previews) and how many tables run in parallel (for
     // table assignment + estimated total duration). We do NOT schedule
-    // absolute wall-clock times — matches simply run in play order.
+    // absolute wall-clock times - matches simply run in play order.
     parallelTables: integer("parallel_tables").notNull().default(3),
     matchDurationMinutes: integer("match_duration_minutes").notNull().default(11),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -220,7 +220,7 @@ export const matches = pgTable(
       () => participants.id,
       { onDelete: "set null" },
     ),
-    // Scheduling. We only track table number and play order — absolute
+    // Scheduling. We only track table number and play order - absolute
     // wall-clock times are intentionally not persisted.
     tableNumber: integer("table_number"),
     playOrder: integer("play_order"), // global order across the category for scheduling

@@ -142,7 +142,7 @@ describe("API integration: full tournament happy path", () => {
     expect(cat.setPoints).toBe(11);
     expect(cat.luckyLoserEnabled).toBe(true);
 
-    // 3. Bulk participants — 8 names → 2 groups of 4
+    // 3. Bulk participants - 8 names → 2 groups of 4
     const pRes = await call(
       app,
       `/api/categories/${cat.id}/participants`,
@@ -222,7 +222,7 @@ describe("API integration: full tournament happy path", () => {
     // Losers bracket: ranks 2..4 from each of the 2 groups = 6 → size 8.
     expect(bracketBody.losersSize).toBe(8);
 
-    // 8. Categories default to unpublished — the public endpoint hides
+    // 8. Categories default to unpublished - the public endpoint hides
     //    them until the admin flips the flag.
     const pubDraft = await call(
       app,
@@ -588,7 +588,7 @@ describe("API integration: full tournament happy path", () => {
     expect(grps.length).toBe(2);
     const [g1, g2] = grps as [{ id: string }, { id: string }];
     const g1Members = members.filter((m) => m.groupId === g1.id);
-    // First move: g1 (size 3) → g2. Source drops to 2 — allowed.
+    // First move: g1 (size 3) → g2. Source drops to 2 - allowed.
     const first = await call(
       app,
       `/api/categories/${cat.id}/groups/move`,
@@ -602,7 +602,7 @@ describe("API integration: full tournament happy path", () => {
       cookie,
     );
     expect(first.status).toBe(200);
-    // Second move from g1 (now size 2) → g2. Source would drop to 1 — reject.
+    // Second move from g1 (now size 2) → g2. Source would drop to 1 - reject.
     const second = await call(
       app,
       `/api/categories/${cat.id}/groups/move`,
@@ -689,7 +689,7 @@ describe("API integration: full tournament happy path", () => {
       .category;
     expect(cat.structure).toBe("round_robin_finals");
 
-    // Six players — seeds A .. F in paste order.
+    // Six players - seeds A .. F in paste order.
     const names = ["A", "B", "C", "D", "E", "F"];
     const pRes = await call(
       app,
@@ -729,7 +729,7 @@ describe("API integration: full tournament happy path", () => {
     expect(leagueMatches.length).toBe((6 * 5) / 2);
     expect(s1.matches.every((m) => m.stage !== "ko")).toBe(true);
 
-    // Building finals before the league is over must be rejected — the
+    // Building finals before the league is over must be rejected - the
     // top-4 ranking isn't settled yet.
     const earlyBuild = await call(
       app,
@@ -803,7 +803,7 @@ describe("API integration: full tournament happy path", () => {
     ).toEqual(new Set([idByName.get("C"), idByName.get("D")]));
 
     // Admin rebuild should remain idempotent while results are still
-    // pending — an extra POST must not double-insert.
+    // pending - an extra POST must not double-insert.
     const rebuild = await call(
       app,
       `/api/categories/${cat.id}/bracket`,

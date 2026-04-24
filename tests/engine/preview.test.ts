@@ -107,7 +107,7 @@ describe("computePreview", () => {
   });
 });
 
-describe("computePreview — structure-specific", () => {
+describe("computePreview - structure-specific", () => {
   it("round_robin: one group with C(N,2) matches, no KO", () => {
     const p = computePreview({
       participantCount: 6,
@@ -190,7 +190,7 @@ describe("computePreview — structure-specific", () => {
 
 describe("formatDuration", () => {
   it("formats short, medium, and long durations", () => {
-    expect(formatDuration(0)).toBe("—");
+    expect(formatDuration(0)).toBe("-");
     expect(formatDuration(30)).toBe("ca. 30 Min");
     expect(formatDuration(60)).toBe("ca. 1 h");
     expect(formatDuration(90)).toBe("ca. 1 h 30 Min");

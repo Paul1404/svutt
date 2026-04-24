@@ -173,7 +173,7 @@ export function CreateCategoryForm({ tournamentId }: { tournamentId: string }) {
             required
           />
           <p className="mt-1.5 text-xs text-ink-500">
-            Wird in der öffentlichen URL verwendet — nur Kleinbuchstaben, Zahlen
+            Wird in der öffentlichen URL verwendet - nur Kleinbuchstaben, Zahlen
             und Bindestriche.
           </p>
         </div>
@@ -309,9 +309,10 @@ export function CreateCategoryForm({ tournamentId }: { tournamentId: string }) {
           <span className="text-sm">
             <span className="font-medium">Lucky Loser zulassen</span>
             <span className="block text-xs text-ink-500 mt-0.5">
-              Wenn die Anzahl der Gruppen keine Zweierpotenz ist, werden die
-              besten Gruppendritten in den Finalbaum nachgerückt. Wenn aus,
-              bleiben Plätze frei (Freilos).
+              Passt die Anzahl der Qualifizierten nicht sauber auf eine Zweierpotenz,
+              rücken die besten Gruppendritten in den Finalbaum nach. Ohne Lucky
+              Loser bleiben die fehlenden Plätze offen - die Topgesetzten
+              erhalten dann ein Freilos und ziehen kampflos in die nächste Runde.
             </span>
           </span>
         </label>

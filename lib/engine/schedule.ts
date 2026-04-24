@@ -2,7 +2,7 @@ import type { ScheduleConfig, ScheduledMatch } from "./types";
 
 /**
  * Assign a table number and play order to every match in the given play
- * order. We do NOT compute absolute wall-clock times — the tournament runs
+ * order. We do NOT compute absolute wall-clock times - the tournament runs
  * in sequence, matches simply go in play order across the available tables.
  *
  *   tableNumber = (playIndex % parallelTables) + 1

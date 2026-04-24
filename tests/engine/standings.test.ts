@@ -110,7 +110,7 @@ describe("computeStandings", () => {
           id: "m",
           a: "p1",
           b: "p2",
-          sets: [{ a: 11, b: 3 }], // only 1 set — not complete
+          sets: [{ a: 11, b: 3 }], // only 1 set - not complete
         },
       ],
     );

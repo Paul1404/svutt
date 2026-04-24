@@ -159,7 +159,7 @@ export const categoryRoutes = new Hono()
       // Assign monotonically increasing timestamps so the paste order is
       // preserved when reading rows back ordered by createdAt. Without this,
       // a single batched insert lets them collapse to the same instant and
-      // sorting becomes undefined — which matters for the paste_order draw
+      // sorting becomes undefined - which matters for the paste_order draw
       // mode.
       const baseMs = Date.now();
       const rows = await db
@@ -208,7 +208,7 @@ export const categoryRoutes = new Hono()
     if (!row) return notFound(c, "Teilnehmer");
     return c.json({ ok: true });
   })
-  // Draw / plan — dispatches on category.structure.
+  // Draw / plan - dispatches on category.structure.
   .post("/:id/draw", async (c) => {
     const id = c.req.param("id");
     const body = await c.req.json().catch(() => ({}));
@@ -613,7 +613,7 @@ export const categoryRoutes = new Hono()
     if (cat.bracketDone) {
       return conflict(
         c,
-        "Finalbaum steht bereits — Gruppenwechsel würde Ergebnisse verwerfen.",
+        "Finalbaum steht bereits - Gruppenwechsel würde Ergebnisse verwerfen.",
       );
     }
 
@@ -625,7 +625,7 @@ export const categoryRoutes = new Hono()
     if (alreadyPlayed) {
       return conflict(
         c,
-        "Mindestens ein Spiel wurde bereits begonnen — Verschieben nicht mehr möglich.",
+        "Mindestens ein Spiel wurde bereits begonnen - Verschieben nicht mehr möglich.",
       );
     }
 
@@ -829,14 +829,14 @@ export const categoryRoutes = new Hono()
     if (hasPlayedKo) {
       return conflict(
         c,
-        "Finalbaum enthält bereits gespielte Partien — Neubau würde Ergebnisse verwerfen.",
+        "Finalbaum enthält bereits gespielte Partien - Neubau würde Ergebnisse verwerfen.",
       );
     }
 
     const { engineGroups } = await loadEngineGroups(id);
 
-    // round_robin_finals: build just two matches — 1 vs 2 (Finale) and
-    // 3 vs 4 (Spiel um Platz 3) — from the single round-robin group's
+    // round_robin_finals: build just two matches - 1 vs 2 (Finale) and
+    // 3 vs 4 (Spiel um Platz 3) - from the single round-robin group's
     // standings. All league matches must already be finished so the
     // top-4 ranking is final; otherwise mid-tournament rebuilds could
     // seat the wrong pairs.

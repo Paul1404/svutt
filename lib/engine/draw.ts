@@ -23,7 +23,7 @@ export type DrawOptions = {
    *   strength-spread draw.
    * - "paste_order": keep the given player order and fill groups sequentially
    *   (first N into group A, next N into group B, …). No shuffling, no
-   *   snake — good for pre-sorted lists pasted as-is.
+   *   snake - good for pre-sorted lists pasted as-is.
    */
   drawMode?: DrawMode;
 };
@@ -36,11 +36,17 @@ const GROUP_LABELS = [
 /**
  * Compute group sizes: how many groups and how many players per group.
  *
- * Strategy: never create a tiny group. Use `floor(N / preferred)` as the
- * number of groups, then distribute players as evenly as possible. Players
- * are added one-at-a-time to the smallest group first, so the spread is
- * never more than 1. Example: N=10 at preferred=4 → 2 groups of 5, not
- * 4 + 4 + 2.
+ * Strategy: prefer the smaller group count (fewer, bigger groups) so each
+ * player gets more group-phase matches. Bump to a larger group count when
+ * `lower` yields groups meaningfully bigger than preferred:
+ *   - For a single big group (lower === 1), tolerate up to preferred + 2
+ *     (6 players at preferred 4 stays as one group of 6; 7 splits to 4+3).
+ *   - Once we already have multiple groups (lower >= 2), tolerate only
+ *     preferred + 1 before splitting further (23 at preferred 6 becomes
+ *     4 groups of [6,6,6,5] instead of 3 groups of [8,8,7]).
+ *
+ * Players are distributed as evenly as possible: the spread between the
+ * largest and smallest group is never more than 1.
  */
 export function computeGroupShape(
   totalPlayers: number,
@@ -48,20 +54,15 @@ export function computeGroupShape(
 ): number[] {
   if (totalPlayers <= 0) return [];
   if (preferredGroupSize < 2) preferredGroupSize = 2;
-  // At least one group; never so few groups that a group is 2x+ the preferred
-  // size — cap at ceil(N / preferred) for very small preferred values.
   const lower = Math.max(1, Math.floor(totalPlayers / preferredGroupSize));
   const upper = Math.max(1, Math.ceil(totalPlayers / preferredGroupSize));
-  // Prefer the `lower` count (fewer, bigger groups) to avoid undersized
-  // groups like 4 + 2. Only bump to `upper` when `lower` gives groups larger
-  // than `preferredGroupSize + 2` (e.g. 7 players with preferred=4 → 1 group
-  // of 7 is too big, use 2 groups of 4+3).
   const lowerMaxSize = Math.ceil(totalPlayers / lower);
-  const numGroups = lowerMaxSize > preferredGroupSize + 2 ? upper : lower;
+  const tolerance = lower === 1 ? 2 : 1;
+  const numGroups =
+    lowerMaxSize > preferredGroupSize + tolerance ? upper : lower;
 
   const base = Math.floor(totalPlayers / numGroups);
   const remainder = totalPlayers % numGroups;
-  // First `remainder` groups get an extra player (largest first, stable).
   return Array.from({ length: numGroups }, (_, i) =>
     i < remainder ? base + 1 : base,
   );

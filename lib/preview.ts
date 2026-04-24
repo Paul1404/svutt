@@ -257,7 +257,7 @@ function buildSummary(
 ): string {
   if (groupCount === 0) return "Keine Struktur möglich.";
   if (groupCount === 1) {
-    return `1 Gruppe à ${shape[0]} — nur Gruppenphase, kein KO.`;
+    return `1 Gruppe à ${shape[0]} - nur Gruppenphase, kein KO.`;
   }
   const sizes = new Set(shape);
   const groupPart =
@@ -273,7 +273,7 @@ function buildSummary(
 }
 
 export function formatDuration(minutes: number): string {
-  if (minutes <= 0) return "—";
+  if (minutes <= 0) return "-";
   if (minutes < 60) return `ca. ${minutes} Min`;
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;

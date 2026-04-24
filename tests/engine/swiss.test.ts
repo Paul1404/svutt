@@ -45,7 +45,7 @@ describe("suggestedSwissRounds", () => {
   });
 });
 
-describe("planSwissRound — round 0", () => {
+describe("planSwissRound - round 0", () => {
   it("pairs top half vs bottom half by seed", () => {
     const { round, matches, byePlayerId } = planSwissRound({
       players: seeded(8),
@@ -84,7 +84,7 @@ describe("planSwissRound — round 0", () => {
   });
 });
 
-describe("planSwissRound — later rounds", () => {
+describe("planSwissRound - later rounds", () => {
   it("pairs within score groups after round 0", () => {
     // 4 players: 1v3 and 2v4 in round 0. Assume seeds 1 & 2 win.
     const history: SwissHistoryMatch[] = [
@@ -101,7 +101,7 @@ describe("planSwissRound — later rounds", () => {
   });
 
   it("avoids rematches when possible", () => {
-    // Round 0 result: 1v5, 2v6, 3v7, 4v8 — seeds win.
+    // Round 0 result: 1v5, 2v6, 3v7, 4v8 - seeds win.
     const r0: SwissHistoryMatch[] = [
       { round: 0, a: "p1", b: "p5", sets: winA() },
       { round: 0, a: "p2", b: "p6", sets: winA() },
@@ -186,7 +186,7 @@ describe("computeSwissStandings", () => {
     expect(s.rows[0]!.playerId).toBe("p1"); // 2-0
     expect(s.rows[0]!.wins).toBe(2);
     expect(s.rows[0]!.rank).toBe(1);
-    // p3 also has 2 wins — Buchholz breaks tie.
+    // p3 also has 2 wins - Buchholz breaks tie.
     expect(s.rows[1]!.playerId).toBe("p3");
     // Losers at 0-2: p6 and p8. p5 (1 win), p7 (1 win) ahead.
     expect(s.rows.map((r) => r.playerId).slice(-2).sort()).toEqual([
@@ -198,7 +198,7 @@ describe("computeSwissStandings", () => {
   it("uses seed as final tiebreaker", () => {
     const history: SwissHistoryMatch[] = [];
     const s = computeSwissStandings(seeded(4), history);
-    // No matches, all 0 wins — seed wins.
+    // No matches, all 0 wins - seed wins.
     expect(s.rows.map((r) => r.playerId)).toEqual(["p1", "p2", "p3", "p4"]);
   });
 

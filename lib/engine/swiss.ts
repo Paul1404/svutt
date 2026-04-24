@@ -9,7 +9,7 @@
 //     floats down into the next group.
 //   - No rematches: when the top/bottom split produces a rematch, swap the
 //     bottom-half player with the next candidate until rematch-free (or no
-//     legal pairing is possible — then we accept the best available).
+//     legal pairing is possible - then we accept the best available).
 //   - Byes: if the field is odd, one player gets a bye (1 point, no opponent)
 //     each round. The lowest-ranked player who has not yet received a bye
 //     takes it.
@@ -213,7 +213,7 @@ export function planSwissRound(input: SwissPairInput): SwissRoundPlan {
   }
 
   if (carry) {
-    // Odd total after all groups (shouldn't happen unless pool was odd) —
+    // Odd total after all groups (shouldn't happen unless pool was odd) -
     // give carry a bye too. But we already handled bye at the top, so this
     // means we're left with a dangling floater: pair them against the first
     // legal opponent from a previous group.

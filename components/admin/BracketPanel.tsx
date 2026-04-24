@@ -12,7 +12,7 @@ import { MatchResultDialog } from "./MatchResultDialog";
 import { Trophy } from "@/components/Icon";
 import { useToast } from "@/components/Toast";
 import { useConfirm } from "@/components/Confirm";
-import { TreeBracket } from "@/components/TreeBracket";
+import { TreeBracket, type BracketOrigin } from "@/components/TreeBracket";
 
 type Props = {
   tournamentId: string;
@@ -21,6 +21,7 @@ type Props = {
   losersMatches?: Match[];
   sets: MatchSetRow[];
   participants: Participant[];
+  origins?: Map<string, BracketOrigin>;
   canBuild: boolean;
 };
 
@@ -30,6 +31,7 @@ export function BracketPanel({
   losersMatches,
   sets,
   participants,
+  origins,
   canBuild,
 }: Props) {
   const router = useRouter();
@@ -97,8 +99,8 @@ export function BracketPanel({
               {finalsOnly
                 ? "Platz 1 vs. 2 im Finale, Platz 3 vs. 4 um Bronze."
                 : category.luckyLoserEnabled
-                  ? "Hauptbaum mit den Gruppenbesten und separater Trostrunde für alle anderen."
-                  : "Hauptbaum mit den Gruppenbesten."}
+                  ? "Gesetzter KO-Baum: die Gruppenbesten ziehen ein, die Stärksten bekommen ein Freilos in die nächste Runde. Nicht qualifizierte Spieler:innen bilden die Trostrunde."
+                  : "Gesetzter KO-Baum: die Gruppenbesten ziehen ein, die Stärksten bekommen ein Freilos in die nächste Runde."}
             </p>
           </div>
         </div>
@@ -146,6 +148,7 @@ export function BracketPanel({
             matches={koMatches}
             sets={sets}
             participants={participants}
+            origins={origins}
             highlightFinal
             onMatchClick={(m) => setOpenMatchId(m.id)}
           />
@@ -168,6 +171,7 @@ export function BracketPanel({
               matches={losersMatches!}
               sets={sets}
               participants={participants}
+              origins={origins}
               onMatchClick={(m) => setOpenMatchId(m.id)}
             />
           </div>

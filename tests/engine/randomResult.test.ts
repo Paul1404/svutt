@@ -3,7 +3,7 @@ import { computeMatchOutcome, validateMatchInput } from "@/lib/engine/sets";
 import { generateRandomMatchSets } from "@/lib/engine/randomResult";
 
 function makeRng(seed: number): () => number {
-  // Mulberry32 — deterministic PRNG for repeatable tests.
+  // Mulberry32 - deterministic PRNG for repeatable tests.
   let a = seed >>> 0;
   return () => {
     a |= 0;

@@ -69,7 +69,7 @@ export function AutoRefresh({
     const id = setInterval(
       () => {
         if (document.visibilityState !== "visible") return;
-        // When SSE is healthy we still do a sanity-refresh — cheap and
+        // When SSE is healthy we still do a sanity-refresh - cheap and
         // prevents cache-staleness from ever getting weird.
         if (statusRef.current === "live") return;
         router.refresh();
