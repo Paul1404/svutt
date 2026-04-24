@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Dice } from "@/components/Icon";
 import { HelpTooltip } from "@/components/Tooltip";
 import { useToast } from "@/components/Toast";
+import { useConfirm } from "@/components/Confirm";
 import type { TournamentStructure } from "@/lib/engine/format";
 
 const COPY: Record<
@@ -54,6 +55,7 @@ export function DrawPanel({
 }) {
   const router = useRouter();
   const toast = useToast();
+  const confirm = useConfirm();
   const [seed, setSeed] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -97,12 +99,13 @@ export function DrawPanel({
           className="btn-primary"
           disabled={!canDraw || loading}
           onClick={async () => {
-            if (
-              !confirm(
-                "Losung jetzt starten? Das kann hinterher nicht rückgängig gemacht werden.",
-              )
-            )
-              return;
+            const ok = await confirm({
+              title: copy.title,
+              message:
+                "Losung jetzt starten? Das lässt sich hinterher nicht mehr rückgängig machen.",
+              confirmLabel: copy.action,
+            });
+            if (!ok) return;
             setError(null);
             setLoading(true);
             try {

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type { Category } from "@/lib/db/schema";
 import { Sparkles } from "@/components/Icon";
 import { useToast } from "@/components/Toast";
+import { useConfirm } from "@/components/Confirm";
 
 type Props = {
   category: Category;
@@ -16,6 +17,7 @@ type Stage = "group" | "ko" | "ko_losers" | "swiss";
 export function TestPopulatePanel({ category, participantCount }: Props) {
   const router = useRouter();
   const toast = useToast();
+  const confirm = useConfirm();
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -59,12 +61,14 @@ export function TestPopulatePanel({ category, participantCount }: Props) {
   }
 
   async function runAll() {
-    if (
-      !confirm(
-        "Das komplette Turnier wird mit Zufallsergebnissen durchgespielt (Auslosung, alle Spiele, Finalbaum). Weiter?",
-      )
-    )
-      return;
+    const ok = await confirm({
+      title: "Turnier durchspielen",
+      message:
+        "Die Auslosung läuft und alle Spiele (inkl. Finalbaum) werden mit Zufallsergebnissen befüllt. Gedacht für Trainings- und Demo-Runs.",
+      confirmLabel: "Durchspielen",
+      variant: "danger",
+    });
+    if (!ok) return;
     setError(null);
     setStatus(null);
     setLoading(true);
@@ -115,12 +119,14 @@ export function TestPopulatePanel({ category, participantCount }: Props) {
   }
 
   async function runGroupsOnly() {
-    if (
-      !confirm(
-        "Alle noch offenen Gruppenspiele werden mit Zufallsergebnissen befüllt. Der Finalbaum bleibt unberührt. Weiter?",
-      )
-    )
-      return;
+    const ok = await confirm({
+      title: "Gruppenspiele befüllen",
+      message:
+        "Alle noch offenen Gruppenspiele werden mit Zufallsergebnissen befüllt. Der Finalbaum bleibt unberührt.",
+      confirmLabel: "Befüllen",
+      variant: "danger",
+    });
+    if (!ok) return;
     setError(null);
     setLoading(true);
     try {

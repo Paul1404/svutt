@@ -11,6 +11,7 @@ import type {
 import { MatchResultDialog } from "./MatchResultDialog";
 import { Trophy } from "@/components/Icon";
 import { useToast } from "@/components/Toast";
+import { useConfirm } from "@/components/Confirm";
 import { TreeBracket } from "@/components/TreeBracket";
 
 type Props = {
@@ -33,6 +34,7 @@ export function BracketPanel({
 }: Props) {
   const router = useRouter();
   const toast = useToast();
+  const confirm = useConfirm();
   const [loading, setLoading] = useState(false);
   const [openMatchId, setOpenMatchId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -104,14 +106,16 @@ export function BracketPanel({
           type="button"
           className="btn-primary"
           disabled={!canBuild || loading}
-          onClick={() => {
-            if (
-              koMatches.length > 0 &&
-              !confirm(
-                `Die bestehenden ${buildLabel.toLowerCase()} werden komplett neu erstellt. Weiter?`,
-              )
-            )
-              return;
+          onClick={async () => {
+            if (koMatches.length > 0) {
+              const ok = await confirm({
+                title: `${buildLabel} neu aufbauen`,
+                message: `Die bestehenden ${buildLabel.toLowerCase()} werden komplett neu erstellt. Bereits eingetragene KO-Ergebnisse gehen verloren.`,
+                confirmLabel: "Neu aufbauen",
+                variant: "danger",
+              });
+              if (!ok) return;
+            }
             build();
           }}
         >
