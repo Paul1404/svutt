@@ -128,9 +128,18 @@ export function TreeBracket({
   const columnX = (round: number): number =>
     round * (dims.cardWidth + dims.columnGap);
 
+  const hasFinaleWinner =
+    highlightFinal &&
+    matches.some(
+      (m) =>
+        m.status === "finished" &&
+        (m.koLabel ?? "").toLowerCase() === "finale" &&
+        !!m.winnerParticipantId,
+    );
   let maxY = 0;
   for (const y of matchY.values()) if (y > maxY) maxY = y;
-  const totalHeight = maxY + dims.cardHeight / 2 + dims.rowGap;
+  const totalHeight =
+    maxY + dims.cardHeight / 2 + dims.rowGap + (hasFinaleWinner ? 26 : 0);
   const totalWidth =
     rounds.length * dims.cardWidth +
     (rounds.length - 1) * dims.columnGap;
@@ -223,13 +232,19 @@ export function TreeBracket({
             !!m.winnerParticipantId;
           const canClick =
             !!onMatchClick && !!m.participantAId && !!m.participantBId;
-          const top = centerY(m.id, r.round, m.matchIndex) - dims.cardHeight / 2;
+          // The finale winner card renders an extra "Sieger" header, so it
+          // needs more height than the standard fixed cardHeight. Keep the
+          // vertical center aligned with its siblings so bracket lines still
+          // land correctly.
+          const finaleExtra = isFinaleWinner ? 26 : 0;
+          const cardH = dims.cardHeight + finaleExtra;
+          const top = centerY(m.id, r.round, m.matchIndex) - cardH / 2;
           const left = columnX(r.round);
 
           const className = [
             "absolute",
             isFinaleWinner
-              ? "card ring-2 ring-amber-400 bg-amber-50/70"
+              ? "card ring-2 ring-amber-400 bg-amber-50/70 overflow-hidden"
               : canClick
                 ? "card-hover cursor-pointer"
                 : "card",
@@ -239,7 +254,7 @@ export function TreeBracket({
             left,
             top,
             width: dims.cardWidth,
-            height: dims.cardHeight,
+            height: cardH,
             padding: `${dims.padX - 2}px ${dims.padX}px`,
           } as const;
 

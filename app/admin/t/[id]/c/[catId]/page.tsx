@@ -320,7 +320,7 @@ function Stepper({
               ];
   return (
     <div className="card p-4">
-      <ol className="flex items-center gap-3 sm:gap-6 overflow-x-auto">
+      <ol className="flex items-center gap-3 sm:gap-6 overflow-x-auto py-1 -my-1">
         {steps.map((s, i) => {
           const active = step === s.n;
           const done = step > s.n;
@@ -331,7 +331,7 @@ function Stepper({
                   done
                     ? "bg-brand-600 text-white"
                     : active
-                      ? "bg-brand-100 text-brand-700 ring-2 ring-brand-600"
+                      ? "bg-brand-50 text-brand-700 ring-2 ring-inset ring-brand-600"
                       : "bg-ink-100 text-ink-400"
                 }`}
               >

@@ -4,6 +4,7 @@ import { eq, asc } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { categories, tournaments } from "@/lib/db/schema";
 import { ArrowLeft, ArrowRight, Calendar, MapPin } from "@/components/Icon";
+import { ClubMark } from "@/components/ClubMark";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -31,12 +32,15 @@ export default async function PublicTournamentPage({
     <div className="min-h-screen bg-page">
       <header className="bg-brand-700 text-white">
         <div className="mx-auto max-w-4xl px-4 py-10 sm:py-14">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1 text-sm text-brand-100 hover:text-white transition-colors"
-          >
-            <ArrowLeft size={14} /> Alle Turniere
-          </Link>
+          <div className="flex items-center justify-between gap-4">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-1 text-sm text-brand-100 hover:text-white transition-colors"
+            >
+              <ArrowLeft size={14} /> Alle Turniere
+            </Link>
+            <ClubMark size="sm" showLabel={false} />
+          </div>
           <h1 className="mt-4 text-3xl sm:text-5xl font-bold tracking-tight">
             {tournament.name}
           </h1>

@@ -11,7 +11,7 @@ type Props = {
   participantCount: number;
 };
 
-type Stage = "group" | "ko" | "swiss";
+type Stage = "group" | "ko" | "ko_losers" | "swiss";
 
 export function TestPopulatePanel({ category, participantCount }: Props) {
   const router = useRouter();
@@ -91,6 +91,8 @@ export function TestPopulatePanel({ category, participantCount }: Props) {
         await buildBracket();
         setStatus("KO-Spiele werden gefüllt…");
         filled += await populateOnce("ko");
+        setStatus("Trostrunde wird gefüllt…");
+        filled += await populateOnce("ko_losers");
       } else {
         // round_robin, ko_only: single stage, fill everything.
         setStatus("Ergebnisse werden gefüllt…");
