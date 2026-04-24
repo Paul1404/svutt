@@ -264,3 +264,35 @@ export function Settings(p: IconProps) {
     </svg>
   );
 }
+
+export function Eye(p: IconProps) {
+  return (
+    <svg {...base(p)}>
+      <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+export function EyeOff(p: IconProps) {
+  return (
+    <svg {...base(p)}>
+      <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a19.77 19.77 0 0 1 4.22-5.94" />
+      <path d="M9.88 5.12A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a19.77 19.77 0 0 1-3.17 4.56" />
+      <path d="M9.53 9.53A3 3 0 1 0 14.47 14.47" />
+      <line x1="1" y1="1" x2="23" y2="23" />
+    </svg>
+  );
+}
+
+export function Radio(p: IconProps) {
+  return (
+    <svg {...base(p)}>
+      <circle cx="12" cy="12" r="2" />
+      <path d="M16.24 7.76a6 6 0 0 1 0 8.49" />
+      <path d="M7.76 16.24a6 6 0 0 1 0-8.49" />
+      <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+      <path d="M4.93 19.07a10 10 0 0 1 0-14.14" />
+    </svg>
+  );
+}

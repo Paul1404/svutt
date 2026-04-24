@@ -4,6 +4,7 @@ import { db } from "@/lib/db/client";
 import { categories, matches, matchSets } from "@/lib/db/schema";
 import { submitResultSchema } from "@/lib/validators";
 import { computeMatchOutcome, validateMatchInput } from "@/lib/engine";
+import { publishCategoryRevision } from "@/lib/live";
 import { notFound, parseJson } from "../helpers";
 
 export const matchRoutes = new Hono()
@@ -107,6 +108,7 @@ export const matchRoutes = new Hono()
       }
     });
 
+    publishCategoryRevision(match.categoryId);
     return c.json({ ok: true, outcome });
   })
   .delete("/:id/result", async (c) => {
@@ -151,5 +153,6 @@ export const matchRoutes = new Hono()
         }
       }
     });
+    publishCategoryRevision(match.categoryId);
     return c.json({ ok: true });
   });

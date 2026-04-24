@@ -44,7 +44,7 @@ export function StandingsCellTooltip({
 
   useEffect(() => {
     if (!open) return;
-    function onDocClick(e: MouseEvent) {
+    function onDocPointer(e: Event) {
       const target = e.target as Node;
       if (wrapRef.current?.contains(target)) return;
       if (tipRef.current?.contains(target)) return;
@@ -53,10 +53,12 @@ export function StandingsCellTooltip({
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") setOpen(false);
     }
-    document.addEventListener("mousedown", onDocClick);
+    document.addEventListener("mousedown", onDocPointer);
+    document.addEventListener("touchstart", onDocPointer, { passive: true });
     document.addEventListener("keydown", onKey);
     return () => {
-      document.removeEventListener("mousedown", onDocClick);
+      document.removeEventListener("mousedown", onDocPointer);
+      document.removeEventListener("touchstart", onDocPointer);
       document.removeEventListener("keydown", onKey);
     };
   }, [open]);
@@ -134,9 +136,16 @@ export function StandingsCellTooltip({
         aria-expanded={open}
         aria-describedby={open ? id : undefined}
         onClick={() => setOpen((v) => !v)}
-        onMouseEnter={() => setOpen(true)}
-        onFocus={() => setOpen(true)}
-        onMouseLeave={(e) => {
+        onPointerEnter={(e) => {
+          if (e.pointerType === "mouse") setOpen(true);
+        }}
+        onFocus={(e) => {
+          // Touch devices synthesize focus on tap — rely on onClick there so
+          // tapping toggles instead of latching open.
+          if (e.currentTarget.matches(":focus-visible")) setOpen(true);
+        }}
+        onPointerLeave={(e) => {
+          if (e.pointerType !== "mouse") return;
           const next = (e.relatedTarget as Node) ?? document.activeElement;
           if (wrapRef.current?.contains(next)) return;
           if (tipRef.current?.contains(next)) return;
@@ -148,7 +157,7 @@ export function StandingsCellTooltip({
           if (tipRef.current?.contains(next)) return;
           setOpen(false);
         }}
-        className="tabular-nums cursor-help rounded px-0.5 hover:bg-ink-100 focus-visible:bg-ink-100 transition-colors"
+        className="tabular-nums rounded px-0.5 underline decoration-dotted decoration-ink-300 underline-offset-[3px] hover:bg-ink-100 focus-visible:bg-ink-100 sm:cursor-help transition-colors"
       >
         {value}
       </button>

@@ -222,9 +222,31 @@ describe("API integration: full tournament happy path", () => {
     // Losers bracket: ranks 2..4 from each of the 2 groups = 6 → size 8.
     expect(bracketBody.losersSize).toBe(8);
 
-    // 8. Public endpoint reflects everything (no auth required)
+    // 8. Categories default to unpublished — the public endpoint hides
+    //    them until the admin flips the flag.
+    const pubDraft = await call(
+      app,
+      "/api/public/t/vereinsmeisterschaft/c/herren",
+    );
+    expect(pubDraft.status).toBe(404);
+
+    const pubListDraft = await call(app, "/api/public/t/vereinsmeisterschaft");
+    expect(
+      (pubListDraft.body as { categories: unknown[] }).categories.length,
+    ).toBe(0);
+
+    const publishRes = await call(
+      app,
+      `/api/categories/${cat.id}`,
+      { method: "PATCH", json: { published: true } },
+      cookie,
+    );
+    expect(publishRes.status).toBe(200);
+
+    // 9. Public endpoint reflects everything (no auth required) once published
     const pub = await call(app, "/api/public/t/vereinsmeisterschaft");
     expect(pub.status).toBe(200);
+    expect((pub.body as { categories: unknown[] }).categories.length).toBe(1);
     const pubCat = await call(
       app,
       "/api/public/t/vereinsmeisterschaft/c/herren",

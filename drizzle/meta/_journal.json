@@ -29,6 +29,13 @@
       "when": 1745800000000,
       "tag": "0003_tree_bracket_and_schedule_cleanup",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1746000000000,
+      "tag": "0004_category_published",
+      "breakpoints": true
     }
   ]
 }

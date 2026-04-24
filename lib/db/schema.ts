@@ -111,6 +111,11 @@ export const categories = pgTable(
     drawDone: boolean("draw_done").notNull().default(false),
     // Whether the KO bracket has been built
     bracketDone: boolean("bracket_done").notNull().default(false),
+    // Whether the category is visible on the public results page. New
+    // categories start as drafts (published = false) until the admin flips
+    // them; the migration backfills existing rows to true so nothing that
+    // used to be visible disappears.
+    published: boolean("published").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

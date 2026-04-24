@@ -70,6 +70,7 @@ export function CreateCategoryForm({ tournamentId }: { tournamentId: string }) {
   const [setPoints, setSetPoints] = useState(11);
   const [setMinLead, setSetMinLead] = useState(2);
   const [luckyLoserEnabled, setLuckyLoserEnabled] = useState(true);
+  const [published, setPublished] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -115,6 +116,7 @@ export function CreateCategoryForm({ tournamentId }: { tournamentId: string }) {
                 setPoints,
                 setMinLead,
                 luckyLoserEnabled,
+                published,
               }),
             },
           );
@@ -136,6 +138,7 @@ export function CreateCategoryForm({ tournamentId }: { tournamentId: string }) {
           setSetPoints(11);
           setSetMinLead(2);
           setLuckyLoserEnabled(true);
+          setPublished(false);
         } finally {
           setSaving(false);
         }
@@ -313,6 +316,23 @@ export function CreateCategoryForm({ tournamentId }: { tournamentId: string }) {
           </span>
         </label>
       )}
+
+      <label className="flex items-start gap-3 cursor-pointer rounded-lg border border-ink-200 bg-surface p-3 hover:border-brand-300 transition-colors">
+        <input
+          type="checkbox"
+          className="mt-0.5"
+          checked={published}
+          onChange={(e) => setPublished(e.target.checked)}
+        />
+        <span className="text-sm">
+          <span className="font-medium">Sofort veröffentlichen</span>
+          <span className="block text-xs text-ink-500 mt-0.5">
+            Nur veröffentlichte Klassen erscheinen auf der öffentlichen
+            Turnierseite. Standardmäßig wird als Entwurf gespeichert; du
+            kannst später auf der Klassenseite freischalten.
+          </span>
+        </span>
+      </label>
 
       {error && (
         <div className="rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-sm text-brand-700">

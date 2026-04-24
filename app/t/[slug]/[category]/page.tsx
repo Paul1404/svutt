@@ -52,6 +52,7 @@ export default async function PublicCategoryPage({
     )
     .limit(1);
   if (!category) notFound();
+  if (!category.published) notFound();
 
   const parts = await db
     .select()
@@ -138,7 +139,10 @@ export default async function PublicCategoryPage({
 
   return (
     <div className="min-h-screen bg-page">
-      <AutoRefresh intervalSeconds={30} />
+      <AutoRefresh
+        streamUrl={`/api/public/t/${tournament.slug}/c/${category.slug}/live`}
+        fallbackSeconds={30}
+      />
       <header className="sticky top-0 z-10 border-b border-brand-800/20 bg-brand-700 text-white shadow-pop">
         <div className="mx-auto max-w-5xl px-4 py-4">
           <div className="flex items-center justify-between gap-3">

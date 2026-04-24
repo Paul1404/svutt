@@ -131,6 +131,9 @@ export default async function TournamentDetailPage({
                     </span>
                   </div>
                   <div className="mt-3 flex gap-1.5 flex-wrap">
+                    {!c.published && (
+                      <span className="badge-amber">Entwurf</span>
+                    )}
                     {c.drawDone ? (
                       <span className="badge-green">Gruppen gezogen</span>
                     ) : (
