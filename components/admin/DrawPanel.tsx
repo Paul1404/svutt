@@ -23,6 +23,12 @@ const COPY: Record<
     action: "Spielplan erzeugen",
     minPlayers: 2,
   },
+  round_robin_finals: {
+    title: "Liga-Spielplan erstellen",
+    body: "Alle Teilnehmer spielen gegen alle. Am Ende der Liga spielen Platz 1 vs. 2 um den Titel und Platz 3 vs. 4 um Bronze — die Finalspiele erstellst du später mit einem Klick.",
+    action: "Liga auslosen",
+    minPlayers: 4,
+  },
   ko_only: {
     title: "Finalbaum aufbauen",
     body: "Wir setzen die Teilnehmer in den KO-Baum. Gesetzte Spieler nach Setzliste, der Rest per Los. Nach dem Erstellen lassen sich keine Teilnehmer mehr hinzufügen.",

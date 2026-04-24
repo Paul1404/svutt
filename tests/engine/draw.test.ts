@@ -188,6 +188,68 @@ describe("drawGroups — seeded_snake mode", () => {
   });
 });
 
+describe("drawGroups — paste_order mode", () => {
+  it("fills groups sequentially in input order, no shuffle", () => {
+    const pool = players(8);
+    const groups = drawGroups(pool, {
+      groupSize: 4,
+      drawMode: "paste_order",
+    });
+    expect(groups).toHaveLength(2);
+    expect(groups[0]!.players.map((p) => p.id)).toEqual([
+      "p1",
+      "p2",
+      "p3",
+      "p4",
+    ]);
+    expect(groups[1]!.players.map((p) => p.id)).toEqual([
+      "p5",
+      "p6",
+      "p7",
+      "p8",
+    ]);
+  });
+
+  it("respects the computed group shape for uneven counts", () => {
+    // 10 @ preferred 4 → shape [5, 5]. Paste order fills A first, then B.
+    const groups = drawGroups(players(10), {
+      groupSize: 4,
+      drawMode: "paste_order",
+    });
+    expect(groups.map((g) => g.players.length)).toEqual([5, 5]);
+    expect(groups[0]!.players.map((p) => p.id)).toEqual([
+      "p1",
+      "p2",
+      "p3",
+      "p4",
+      "p5",
+    ]);
+    expect(groups[1]!.players.map((p) => p.id)).toEqual([
+      "p6",
+      "p7",
+      "p8",
+      "p9",
+      "p10",
+    ]);
+  });
+
+  it("ignores the RNG seed entirely", () => {
+    const a = drawGroups(players(12), {
+      groupSize: 4,
+      drawMode: "paste_order",
+      seed: "alpha",
+    });
+    const b = drawGroups(players(12), {
+      groupSize: 4,
+      drawMode: "paste_order",
+      seed: "omega",
+    });
+    expect(a.map((g) => g.players.map((p) => p.id))).toEqual(
+      b.map((g) => g.players.map((p) => p.id)),
+    );
+  });
+});
+
 describe("groupLabel", () => {
   it("returns single-letter labels for first 16 groups", () => {
     expect(groupLabel(0)).toBe("A");

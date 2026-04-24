@@ -14,12 +14,18 @@
 export const TOURNAMENT_STRUCTURES = [
   "groups_ko",
   "round_robin",
+  "round_robin_finals",
   "ko_only",
   "swiss",
 ] as const;
 export type TournamentStructure = (typeof TOURNAMENT_STRUCTURES)[number];
 
-export const DRAW_MODES = ["random", "seeded_snake", "manual"] as const;
+export const DRAW_MODES = [
+  "random",
+  "seeded_snake",
+  "paste_order",
+  "manual",
+] as const;
 export type DrawMode = (typeof DRAW_MODES)[number];
 
 export function isTournamentStructure(v: unknown): v is TournamentStructure {
@@ -37,6 +43,7 @@ export function isDrawMode(v: unknown): v is DrawMode {
 export const MIN_PARTICIPANTS: Record<TournamentStructure, number> = {
   groups_ko: 4,
   round_robin: 2,
+  round_robin_finals: 4,
   ko_only: 2,
   swiss: 2,
 };
@@ -45,6 +52,7 @@ export const MIN_PARTICIPANTS: Record<TournamentStructure, number> = {
 export const STRUCTURE_LABELS: Record<TournamentStructure, string> = {
   groups_ko: "Gruppen → KO",
   round_robin: "Jeder gegen jeden",
+  round_robin_finals: "Jeder gegen jeden + Finale",
   ko_only: "KO-System",
   swiss: "Schweizer System",
 };
@@ -52,5 +60,6 @@ export const STRUCTURE_LABELS: Record<TournamentStructure, string> = {
 export const DRAW_MODE_LABELS: Record<DrawMode, string> = {
   random: "Zufällig",
   seeded_snake: "Gesetzt (Schlange)",
+  paste_order: "Listenreihenfolge",
   manual: "Manuell",
 };

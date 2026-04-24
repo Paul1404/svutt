@@ -301,17 +301,23 @@ function Stepper({
             { n: 2, label: "Jeder gegen jeden" },
             { n: 3, label: "Abschluss" },
           ]
-        : structure === "ko_only"
+        : structure === "round_robin_finals"
           ? [
               { n: 1, label: "Teilnehmer eintragen" },
-              { n: 2, label: "Finalbaum" },
-              { n: 3, label: "Abschluss" },
+              { n: 2, label: "Jeder gegen jeden" },
+              { n: 3, label: "Finalspiele" },
             ]
-          : [
-              { n: 1, label: "Teilnehmer eintragen" },
-              { n: 2, label: "Gruppenphase" },
-              { n: 3, label: "Finalrunde" },
-            ];
+          : structure === "ko_only"
+            ? [
+                { n: 1, label: "Teilnehmer eintragen" },
+                { n: 2, label: "Finalbaum" },
+                { n: 3, label: "Abschluss" },
+              ]
+            : [
+                { n: 1, label: "Teilnehmer eintragen" },
+                { n: 2, label: "Gruppenphase" },
+                { n: 3, label: "Finalrunde" },
+              ];
   return (
     <div className="card p-4">
       <ol className="flex items-center gap-3 sm:gap-6 overflow-x-auto">

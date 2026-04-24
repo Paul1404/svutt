@@ -25,7 +25,11 @@ function resolveWinner({
 }: Props): Winner | null {
   const partsById = new Map(participants.map((p) => [p.id, p]));
 
-  if (structure === "groups_ko" || structure === "ko_only") {
+  if (
+    structure === "groups_ko" ||
+    structure === "ko_only" ||
+    structure === "round_robin_finals"
+  ) {
     const koMatches = matches.filter((m) => m.stage === "ko");
     if (koMatches.length === 0) return null;
     const finale =

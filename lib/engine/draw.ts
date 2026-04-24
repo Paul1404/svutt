@@ -16,10 +16,14 @@ export type DrawOptions = {
   /** Optional deterministic seed. */
   seed?: number | string;
   /**
-   * How to order players before snake-distribution.
-   * - "random" (default): shuffle using the RNG seed.
+   * How to order players before distributing them into groups.
+   * - "random" (default): shuffle using the RNG seed, then snake-distribute.
    * - "seeded_snake": sort by participants.seed asc (unseeded last, stable by
-   *   insertion order). Produces a reproducible, strength-spread draw.
+   *   insertion order), then snake-distribute. Produces a reproducible,
+   *   strength-spread draw.
+   * - "paste_order": keep the given player order and fill groups sequentially
+   *   (first N into group A, next N into group B, …). No shuffling, no
+   *   snake — good for pre-sorted lists pasted as-is.
    */
   drawMode?: DrawMode;
 };
@@ -79,7 +83,25 @@ export function drawGroups(
   const shape = computeGroupShape(players.length, opts.groupSize);
   if (shape.length === 0) return [];
 
-  const shuffled =
+  // "paste_order" fills groups sequentially in the input order: no shuffle,
+  // no snake. The first group-size players go into group A, the next into
+  // group B, and so on. This is the only mode that doesn't use the snake
+  // distribution below.
+  if (opts.drawMode === "paste_order") {
+    const groups: Player[][] = [];
+    let offset = 0;
+    for (const size of shape) {
+      groups.push(players.slice(offset, offset + size));
+      offset += size;
+    }
+    return groups.map((ps, i) => ({
+      label: groupLabel(i),
+      position: i,
+      players: ps,
+    }));
+  }
+
+  const ordered =
     opts.drawMode === "seeded_snake"
       ? orderBySeed(players)
       : shuffle(players, rng);
@@ -88,7 +110,7 @@ export function drawGroups(
   const groups: Player[][] = Array.from({ length: shape.length }, () => []);
   let dir = 1;
   let idx = 0;
-  for (const player of shuffled) {
+  for (const player of ordered) {
     // Skip full groups (can happen when sizes differ)
     let safety = shape.length * 2;
     while (groups[idx]!.length >= shape[idx]! && safety-- > 0) {

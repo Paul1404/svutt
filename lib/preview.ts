@@ -44,7 +44,8 @@ export function computePreview({
   matchDurationMinutes = 11,
   parallelTables = 1,
 }: PreviewInput): StructurePreview {
-  const minPlayers = structure === "groups_ko" ? 4 : 2;
+  const minPlayers =
+    structure === "groups_ko" || structure === "round_robin_finals" ? 4 : 2;
   const empty: StructurePreview = {
     structure,
     participantCount,
@@ -91,6 +92,35 @@ export function computePreview({
       totalMatches: groupMatches,
       estimatedMinutes,
       summary: `Jeder gegen jeden · ${groupMatches} Spiele, 1 Rangliste.`,
+    };
+  }
+
+  if (structure === "round_robin_finals") {
+    const shape = [participantCount];
+    const groupMatches = (participantCount * (participantCount - 1)) / 2;
+    // Exactly two follow-up games: 1 vs 2 for gold/silver and 3 vs 4 for
+    // bronze.
+    const koMatches = 2;
+    const totalMatches = groupMatches + koMatches;
+    const estimatedMinutes = Math.ceil((totalMatches * duration) / tables);
+    return {
+      structure,
+      participantCount,
+      groupShape: shape,
+      groupCount: 1,
+      groupMatches,
+      hasKO: true,
+      koSize: koMatches,
+      koMatches,
+      losersPoolSize: 0,
+      losersKoSize: 0,
+      losersKoMatches: 0,
+      swissRounds: 0,
+      swissMatchesPerRound: 0,
+      swissByesPerRound: 0,
+      totalMatches,
+      estimatedMinutes,
+      summary: `Jeder gegen jeden + Finale · ${groupMatches} Ligaspiele, dann 1 vs. 2 und 3 vs. 4.`,
     };
   }
 

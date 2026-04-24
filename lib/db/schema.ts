@@ -31,12 +31,18 @@ export const matchStageEnum = pgEnum("match_stage", [
 export const TOURNAMENT_STRUCTURES = [
   "groups_ko",
   "round_robin",
+  "round_robin_finals",
   "ko_only",
   "swiss",
 ] as const;
 export type TournamentStructure = (typeof TOURNAMENT_STRUCTURES)[number];
 
-export const DRAW_MODES = ["random", "seeded_snake", "manual"] as const;
+export const DRAW_MODES = [
+  "random",
+  "seeded_snake",
+  "paste_order",
+  "manual",
+] as const;
 export type DrawMode = (typeof DRAW_MODES)[number];
 
 export const matchStatusEnum = pgEnum("match_status", [
