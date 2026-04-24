@@ -13,7 +13,9 @@ import type {
 import type { GroupStanding } from "@/lib/engine/types";
 import { MatchResultDialog } from "./MatchResultDialog";
 import { StandingsExplainer } from "@/components/StandingsExplainer";
+import { StandingsCellTooltip } from "@/components/StandingsCellTooltip";
 import { useToast } from "@/components/Toast";
+import { computeBreakdownsByPlayer } from "@/lib/engine/standings-breakdown";
 
 type Props = {
   tournamentId: string;
@@ -52,6 +54,10 @@ export function GroupsPanel({
     for (const arr of m.values()) arr.sort((a, b) => a.setNumber - b.setNumber);
     return m;
   }, [sets]);
+  const breakdownsByPlayer = useMemo(
+    () => computeBreakdownsByPlayer(matches, sets, partsById),
+    [matches, sets, partsById],
+  );
 
   const [openMatchId, setOpenMatchId] = useState<string | null>(null);
   const openMatch = matches.find((m) => m.id === openMatchId) ?? null;
@@ -194,6 +200,8 @@ export function GroupsPanel({
                       {standing.rows.map((r) => {
                         const isQualifier = r.rank <= advancementCount;
                         const isDragging = dragParticipantId === r.playerId;
+                        const breakdowns =
+                          breakdownsByPlayer.get(r.playerId) ?? [];
                         return (
                           <tr
                             key={r.playerId}
@@ -242,15 +250,26 @@ export function GroupsPanel({
                                 {partsById.get(r.playerId)?.name ?? "?"}
                               </span>
                             </td>
-                            <td className="py-2 text-right tabular-nums">
-                              {r.wins}-{r.losses}
+                            <td className="py-2 text-right">
+                              <StandingsCellTooltip
+                                metric="wins"
+                                breakdowns={breakdowns}
+                                value={`${r.wins}-${r.losses}`}
+                              />
                             </td>
-                            <td className="py-2 text-right tabular-nums text-ink-600">
-                              {r.setsWon}:{r.setsLost}
+                            <td className="py-2 text-right text-ink-600">
+                              <StandingsCellTooltip
+                                metric="sets"
+                                breakdowns={breakdowns}
+                                value={`${r.setsWon}:${r.setsLost}`}
+                              />
                             </td>
-                            <td className="py-2 text-right tabular-nums text-ink-600">
-                              {r.pointDiff > 0 ? "+" : ""}
-                              {r.pointDiff}
+                            <td className="py-2 text-right text-ink-600">
+                              <StandingsCellTooltip
+                                metric="points"
+                                breakdowns={breakdowns}
+                                value={`${r.pointDiff > 0 ? "+" : ""}${r.pointDiff}`}
+                              />
                             </td>
                           </tr>
                         );

@@ -87,33 +87,53 @@ export function TreeBracket({
   }
   rounds.sort((a, b) => a.round - b.round);
 
-  // Track the largest matchIndex in round 0 — even with byes, matchIndex
-  // reflects the original slot position, so we need that to size the layout.
-  const firstRound = rounds[0]!;
-  const maxFirstRoundIndex = firstRound.matches.reduce(
-    (m, r) => Math.max(m, r.matchIndex),
-    0,
-  );
-  const rowsInFirstRound = maxFirstRoundIndex + 1;
-  const totalHeight = rowsInFirstRound * slotH;
-  const totalWidth =
-    rounds.length * dims.cardWidth +
-    (rounds.length - 1) * dims.columnGap;
+  // Layout y-centers are computed bottom-up so every parent card sits at the
+  // exact midpoint of its real source matches. This keeps connector lines
+  // aligned with card edges even when the tree is irregular (byes skipping
+  // rounds, lucky-loser pools that don't pack into a clean 2^n).
+  const matchRound = new Map<string, number>();
+  for (const r of rounds)
+    for (const m of r.matches) matchRound.set(m.id, r.round);
 
-  const centerY = (round: number, matchIndex: number): number =>
-    (matchIndex + 0.5) * (slotH * 2 ** round);
+  const matchY = new Map<string, number>();
+  for (const r of rounds) {
+    for (const m of r.matches) {
+      if (r.round === 0) {
+        matchY.set(m.id, (m.matchIndex + 0.5) * slotH);
+        continue;
+      }
+      const srcYs = [m.sourceMatchAId, m.sourceMatchBId]
+        .map((id) => (id ? matchY.get(id) : undefined))
+        .filter((y): y is number => typeof y === "number");
+      if (srcYs.length > 0) {
+        matchY.set(
+          m.id,
+          srcYs.reduce((a, b) => a + b, 0) / srcYs.length,
+        );
+      } else {
+        // No known upstream matches: fall back to the formula so the card
+        // still lands somewhere sensible.
+        matchY.set(
+          m.id,
+          (m.matchIndex + 0.5) * slotH * 2 ** r.round,
+        );
+      }
+    }
+  }
+
+  const centerY = (matchId: string, fallbackRound = 0, fallbackIndex = 0): number =>
+    matchY.get(matchId) ??
+    (fallbackIndex + 0.5) * slotH * 2 ** fallbackRound;
 
   const columnX = (round: number): number =>
     round * (dims.cardWidth + dims.columnGap);
 
-  // Build a quick lookup of matchId → (round, matchIndex) so we can draw
-  // connector lines from any child match, no matter what round it's in
-  // (important: bye-advanced winners skip rounds, so the downstream match's
-  // source may be in a far earlier round).
-  const coords = new Map<string, { round: number; matchIndex: number }>();
-  for (const r of rounds)
-    for (const m of r.matches)
-      coords.set(m.id, { round: r.round, matchIndex: m.matchIndex });
+  let maxY = 0;
+  for (const y of matchY.values()) if (y > maxY) maxY = y;
+  const totalHeight = maxY + dims.cardHeight / 2 + dims.rowGap;
+  const totalWidth =
+    rounds.length * dims.cardWidth +
+    (rounds.length - 1) * dims.columnGap;
 
   return (
     <div
@@ -134,20 +154,19 @@ export function TreeBracket({
       >
         {rounds.slice(1).flatMap((r) =>
           r.matches.flatMap((m) => {
-            // Draw an L-path from each source match (via sourceMatch*Id)
-            // into this match. Can't rely on matchIndex arithmetic alone
-            // because bye-advanced winners come directly from earlier
-            // rounds, potentially skipping a column.
+            // L-path from each source match's right edge to this match's left
+            // edge. Source y-centers and target y-center come from the same
+            // matchY lookup so lines always land on card edges.
             const toLeft = columnX(r.round);
-            const toCenter = centerY(r.round, m.matchIndex);
+            const toCenter = centerY(m.id, r.round, m.matchIndex);
             const midX = toLeft - dims.columnGap / 2;
             return [m.sourceMatchAId, m.sourceMatchBId]
               .map((srcId) => {
                 if (!srcId) return null;
-                const src = coords.get(srcId);
-                if (!src) return null;
-                const fromRight = columnX(src.round) + dims.cardWidth;
-                const fromCenter = centerY(src.round, src.matchIndex);
+                const srcRound = matchRound.get(srcId);
+                if (srcRound === undefined) return null;
+                const fromRight = columnX(srcRound) + dims.cardWidth;
+                const fromCenter = centerY(srcId, srcRound);
                 return (
                   <path
                     key={`${srcId}->${m.id}`}
@@ -155,7 +174,7 @@ export function TreeBracket({
                     fill="none"
                     stroke="currentColor"
                     strokeWidth={1.25}
-                    className="text-ink-200"
+                    className="text-ink-300"
                   />
                 );
               })
@@ -200,7 +219,7 @@ export function TreeBracket({
             !!m.winnerParticipantId;
           const canClick =
             !!onMatchClick && !!m.participantAId && !!m.participantBId;
-          const top = centerY(r.round, m.matchIndex) - dims.cardHeight / 2;
+          const top = centerY(m.id, r.round, m.matchIndex) - dims.cardHeight / 2;
           const left = columnX(r.round);
 
           const className = [
