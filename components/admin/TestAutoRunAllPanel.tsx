@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Sparkles } from "@/components/Icon";
 import { useToast } from "@/components/Toast";
+import { useConfirm } from "@/components/Confirm";
 
 type CategoryInfo = {
   id: string;
@@ -73,6 +74,7 @@ async function runOne(cat: CategoryInfo): Promise<number> {
 export function TestAutoRunAllPanel({ categories }: Props) {
   const router = useRouter();
   const toast = useToast();
+  const confirm = useConfirm();
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -80,12 +82,13 @@ export function TestAutoRunAllPanel({ categories }: Props) {
   if (categories.length === 0) return null;
 
   async function runAll() {
-    if (
-      !confirm(
-        `Alle ${categories.length} Spielklassen werden komplett mit Zufallsergebnissen durchgespielt. Weiter?`,
-      )
-    )
-      return;
+    const ok = await confirm({
+      title: "Alle Klassen durchspielen",
+      message: `Alle ${categories.length} Spielklassen werden komplett mit Zufallsergebnissen befüllt. Gedacht für Trainings- und Demo-Runs.`,
+      confirmLabel: "Durchspielen",
+      variant: "danger",
+    });
+    if (!ok) return;
     setError(null);
     setStatus(null);
     setLoading(true);

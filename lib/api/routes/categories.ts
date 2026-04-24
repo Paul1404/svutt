@@ -38,6 +38,7 @@ import {
   planSwissRound,
   type SwissHistoryMatch,
 } from "@/lib/engine/swiss";
+import { publishCategoryRevision } from "@/lib/live";
 import { conflict, notFound, parseJson } from "../helpers";
 
 export const categoryRoutes = new Hono()
@@ -113,6 +114,7 @@ export const categoryRoutes = new Hono()
       .where(eq(categories.id, id))
       .returning();
     if (!row) return notFound(c, "Spielklasse");
+    publishCategoryRevision(id);
     return c.json({ category: row });
   })
   .delete("/:id", async (c) => {
@@ -362,6 +364,7 @@ export const categoryRoutes = new Hono()
           .where(eq(tournaments.id, cat.tournamentId));
       });
 
+      publishCategoryRevision(id);
       return c.json({ ok: true });
     }
 
@@ -389,6 +392,7 @@ export const categoryRoutes = new Hono()
           .where(eq(tournaments.id, cat.tournamentId));
       });
 
+      publishCategoryRevision(id);
       return c.json({ ok: true });
     }
 
@@ -428,6 +432,7 @@ export const categoryRoutes = new Hono()
           .where(eq(tournaments.id, cat.tournamentId));
       });
 
+      publishCategoryRevision(id);
       return c.json({ ok: true, byePlayerId: plan.byePlayerId });
     }
 
@@ -563,6 +568,7 @@ export const categoryRoutes = new Hono()
       }
     });
 
+    publishCategoryRevision(id);
     return c.json({
       ok: true,
       round: plan.round,
@@ -774,6 +780,7 @@ export const categoryRoutes = new Hono()
       }
     });
 
+    publishCategoryRevision(id);
     return c.json({
       ok: true,
       from: sourceGroup.label,
@@ -913,6 +920,7 @@ export const categoryRoutes = new Hono()
           .where(eq(categories.id, id));
       });
 
+      publishCategoryRevision(id);
       return c.json({ ok: true, size: 2, losersSize: 0, losersEntries: [] });
     }
 
@@ -962,6 +970,7 @@ export const categoryRoutes = new Hono()
         .where(eq(categories.id, id));
     });
 
+    publishCategoryRevision(id);
     return c.json({
       ok: true,
       size: bracket.size,
@@ -1085,6 +1094,7 @@ export const categoryRoutes = new Hono()
       }
     }
 
+    if (filled > 0) publishCategoryRevision(id);
     return c.json({ ok: true, filled });
   });
 

@@ -39,6 +39,7 @@ export const createCategorySchema = z.object({
   drawMode: z.enum(DRAW_MODES).default("random"),
   swissRounds: z.number().int().min(1).max(20).default(5),
   sortOrder: z.number().int().optional(),
+  published: z.boolean().optional(),
 });
 
 export const updateCategorySchema = createCategorySchema.partial();

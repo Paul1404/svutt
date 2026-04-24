@@ -4,6 +4,7 @@ import { LogoutButton } from "@/components/admin/LogoutButton";
 import { ClubMark } from "@/components/ClubMark";
 import { ExternalLink } from "@/components/Icon";
 import { ToastProvider } from "@/components/Toast";
+import { ConfirmProvider } from "@/components/Confirm";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 export const dynamic = "force-dynamic";
@@ -17,6 +18,7 @@ export default async function AdminLayout({
 
   return (
     <ToastProvider>
+    <ConfirmProvider>
     <div className="min-h-screen bg-page-2">
       {session && (
         <header className="sticky top-0 z-20 border-b border-ink-200/80 bg-surface/80 backdrop-blur-md">
@@ -64,6 +66,7 @@ export default async function AdminLayout({
         {children}
       </main>
     </div>
+    </ConfirmProvider>
     </ToastProvider>
   );
 }

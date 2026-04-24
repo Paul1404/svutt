@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { Match, MatchSetRow, Participant } from "@/lib/db/schema";
 import { useToast } from "@/components/Toast";
+import { useConfirm } from "@/components/Confirm";
 
 type Props = {
   match: Match;
@@ -24,6 +25,7 @@ export function MatchResultDialog({
 }: Props) {
   const router = useRouter();
   const toast = useToast();
+  const confirm = useConfirm();
   const priorSets = sets;
   const initial: EditSet[] =
     sets.length > 0
@@ -96,7 +98,13 @@ export function MatchResultDialog({
   }
 
   async function clearResult() {
-    if (!confirm("Ergebnis wirklich löschen?")) return;
+    const ok = await confirm({
+      title: "Ergebnis löschen",
+      message: "Das eingetragene Ergebnis wird entfernt. Das Spiel geht zurück auf ausstehend.",
+      confirmLabel: "Löschen",
+      variant: "danger",
+    });
+    if (!ok) return;
     setSaving(true);
     try {
       await fetch(`/api/matches/${match.id}/result`, { method: "DELETE" });

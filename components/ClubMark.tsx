@@ -7,10 +7,10 @@ const sizeMap: Record<
   Size,
   { box: string; img: number; gap: string; label: string }
 > = {
-  sm: { box: "h-7 w-7", img: 28, gap: "gap-2", label: "text-sm" },
-  md: { box: "h-9 w-9", img: 36, gap: "gap-2.5", label: "text-base" },
-  lg: { box: "h-12 w-12", img: 48, gap: "gap-3", label: "text-lg" },
-  xl: { box: "h-16 w-16", img: 64, gap: "gap-3.5", label: "text-xl" },
+  sm: { box: "h-9 w-9", img: 36, gap: "gap-2", label: "text-sm" },
+  md: { box: "h-12 w-12", img: 48, gap: "gap-2.5", label: "text-base" },
+  lg: { box: "h-16 w-16", img: 64, gap: "gap-3", label: "text-lg" },
+  xl: { box: "h-20 w-20", img: 80, gap: "gap-3.5", label: "text-xl" },
 };
 
 export function ClubMark({

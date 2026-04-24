@@ -17,6 +17,7 @@ import { GroupsPanel } from "@/components/admin/GroupsPanel";
 import { BracketPanel } from "@/components/admin/BracketPanel";
 import { SwissPanel } from "@/components/admin/SwissPanel";
 import { CategorySettings } from "@/components/admin/CategorySettings";
+import { PublishToggle } from "@/components/admin/PublishToggle";
 import { TestPopulatePanel } from "@/components/admin/TestPopulatePanel";
 import { GameResults } from "@/components/public/GameResults";
 import { computeStandings, type EngineGroup, type Player } from "@/lib/engine";
@@ -165,6 +166,8 @@ export default async function CategoryDetailPage({
           Sätze bis {category.setPoints} (+{category.setMinLead})
         </p>
       </div>
+
+      <PublishToggle categoryId={category.id} published={category.published} />
 
       <CategorySettings
         category={category}

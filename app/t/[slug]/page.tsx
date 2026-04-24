@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { eq, asc } from "drizzle-orm";
+import { and, eq, asc } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { categories, tournaments } from "@/lib/db/schema";
 import { ArrowLeft, ArrowRight, Calendar, MapPin } from "@/components/Icon";
@@ -25,7 +25,12 @@ export default async function PublicTournamentPage({
   const cats = await db
     .select()
     .from(categories)
-    .where(eq(categories.tournamentId, tournament.id))
+    .where(
+      and(
+        eq(categories.tournamentId, tournament.id),
+        eq(categories.published, true),
+      ),
+    )
     .orderBy(asc(categories.sortOrder));
 
   return (

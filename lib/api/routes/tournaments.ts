@@ -141,6 +141,7 @@ export const tournamentRoutes = new Hono()
         drawMode: data.drawMode ?? "random",
         swissRounds: data.swissRounds ?? 5,
         sortOrder: data.sortOrder ?? 0,
+        published: data.published ?? false,
       })
       .returning();
     return c.json({ category: created }, 201);
