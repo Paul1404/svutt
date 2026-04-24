@@ -193,11 +193,15 @@ function buildLosersPool(
  * Build a single-elimination tree from a list of seeds. Empty slots are
  * appended to pad to the next power of two.
  *
- * A slot paired with an empty opponent is a "bye": no match is created for
- * that pair, and the filled player advances directly into the next round as
- * a real `player` slot. A pair where both slots are empty propagates as
- * empty — the downstream match either sees a bye of its own or is skipped
- * entirely when both sides are empty.
+ * Every seeded player appears in a round-0 match card — a lone player paired
+ * with an empty opponent becomes an explicit round-0 bye ("Player X vs …")
+ * and its winner slot propagates as `pending` into round 1 just like a real
+ * match. This keeps players from visually skipping the first round.
+ *
+ * For rounds beyond 0, byes only arise when a whole subtree is empty (all
+ * seeds fell in the opposite half). There the filled side is propagated as-is
+ * so we don't paint phantom "pending vs …" cards deep in the tree. A pair
+ * where both slots are empty propagates as empty.
  */
 function buildTree(seeds: readonly BracketSlot[], idPrefix: string): Bracket {
   const nonEmpty = seeds.length;
@@ -222,8 +226,14 @@ function buildTree(seeds: readonly BracketSlot[], idPrefix: string): Bracket {
     const aEmpty = a.kind === "empty";
     const bEmpty = b.kind === "empty";
     if (aEmpty && bEmpty) return { kind: "empty" };
-    if (aEmpty) return b;
-    if (bEmpty) return a;
+    // Round 0: always emit a match card for any player with a slot, even if
+    // their opponent is empty (bye). Later rounds collapse (pending, empty)
+    // byes to the filled side so we don't generate hollow cards in subtrees
+    // that have no real matches.
+    if (round > 0) {
+      if (aEmpty) return b;
+      if (bEmpty) return a;
+    }
     const id = matchId(idPrefix, round, matchIndex);
     matches.push({
       id,

@@ -52,6 +52,8 @@ const CAT_DRAW_MODE_DESCRIPTIONS: Record<DrawMode, string> = {
   random: "Rein zufällig, optional deterministisch per Seed.",
   seeded_snake:
     "Spieler werden nach Setzposition im Schlangenverfahren verteilt.",
+  paste_order:
+    "Reihenfolge wie eingegeben: erste Spieler in Gruppe A, nächste in B, usw.",
   manual: "Du ziehst jeden Spieler selbst in eine Gruppe oder einen Platz.",
 };
 

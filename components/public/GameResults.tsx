@@ -23,7 +23,14 @@ const STAGE_LABELS: Record<StageKey, string> = {
 };
 
 export function GameResults({ matches, sets, participants, groups }: Props) {
-  const finished = matches.filter((m) => m.status === "finished");
+  // Exclude bye walkovers (one side was never filled): the lone player
+  // auto-advances and nothing was actually played, so these shouldn't clutter
+  // the "finished games" list or inflate the progress denominator.
+  const playableMatches = matches.filter(
+    (m) => m.participantAId !== null && m.participantBId !== null,
+  );
+  const finished = playableMatches.filter((m) => m.status === "finished");
+  const playableTotal = playableMatches.length;
 
   const partsById = new Map(participants.map((p) => [p.id, p]));
   const groupsById = new Map((groups ?? []).map((g) => [g.id, g]));
@@ -66,7 +73,7 @@ export function GameResults({ matches, sets, participants, groups }: Props) {
           <span className="font-semibold tabular-nums">{finished.length}</span>
           <span className="text-ink-400">
             {" "}
-            / {matches.length} Spielen fertig
+            / {playableTotal} Spielen fertig
           </span>
         </div>
       </div>

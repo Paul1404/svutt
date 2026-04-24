@@ -154,9 +154,22 @@ export const categoryRoutes = new Hono()
       if (names.length === 0)
         return c.json({ error: "Keine gültigen Namen gefunden." }, 400);
       const club = parsed.data.club?.trim() || null;
+      // Assign monotonically increasing timestamps so the paste order is
+      // preserved when reading rows back ordered by createdAt. Without this,
+      // a single batched insert lets them collapse to the same instant and
+      // sorting becomes undefined — which matters for the paste_order draw
+      // mode.
+      const baseMs = Date.now();
       const rows = await db
         .insert(participants)
-        .values(names.map((name) => ({ categoryId: id, name, club })))
+        .values(
+          names.map((name, i) => ({
+            categoryId: id,
+            name,
+            club,
+            createdAt: new Date(baseMs + i),
+          })),
+        )
         .returning();
       return c.json({ participants: rows }, 201);
     }
@@ -1084,19 +1097,37 @@ async function insertBracketMatches(
   },
 ) {
   const { stage, parallelTables, startOrder } = schedule;
+
+  // Bye matches have one side filled with a player and the other empty. The
+  // filled player auto-wins; we mark them finished at insert time so their
+  // winner is already known downstream and no admin click is needed.
+  const byeWinner = (
+    bm: (typeof bracketMatches)[number],
+  ): string | null => {
+    if (bm.a.kind === "player" && bm.b.kind === "empty") return bm.a.playerId;
+    if (bm.b.kind === "player" && bm.a.kind === "empty") return bm.b.playerId;
+    return null;
+  };
+
   const inserts: (typeof matches.$inferInsert & { _bid: string })[] =
-    bracketMatches.map((bm, idx) => ({
-      _bid: bm.id,
-      categoryId,
-      stage,
-      round: bm.round,
-      matchIndex: bm.matchIndex,
-      koLabel: bm.label,
-      participantAId: bm.a.kind === "player" ? bm.a.playerId : null,
-      participantBId: bm.b.kind === "player" ? bm.b.playerId : null,
-      playOrder: startOrder + idx,
-      tableNumber: ((startOrder + idx) % parallelTables) + 1,
-    }));
+    bracketMatches.map((bm, idx) => {
+      const winnerId = byeWinner(bm);
+      return {
+        _bid: bm.id,
+        categoryId,
+        stage,
+        round: bm.round,
+        matchIndex: bm.matchIndex,
+        koLabel: bm.label,
+        participantAId: bm.a.kind === "player" ? bm.a.playerId : null,
+        participantBId: bm.b.kind === "player" ? bm.b.playerId : null,
+        playOrder: startOrder + idx,
+        tableNumber: ((startOrder + idx) % parallelTables) + 1,
+        ...(winnerId
+          ? { status: "finished" as const, winnerParticipantId: winnerId }
+          : {}),
+      };
+    });
 
   const insertedRows = inserts.length
     ? await tx
@@ -1110,17 +1141,36 @@ async function insertBracketMatches(
     bidToDbId.set(inserts[i]!._bid, row.id);
   });
 
+  // Wire source-match references so downstream rounds know which match feeds
+  // them. For bye matches that were auto-finished above, also push the bye
+  // winner into the directly-downstream slot so admins see the correct
+  // opponent name without manually "finishing" the walkover.
+  const byeWinnerByBid = new Map<string, string>();
+  for (const bm of bracketMatches) {
+    const w = byeWinner(bm);
+    if (w) byeWinnerByBid.set(bm.id, w);
+  }
+
   for (const bm of bracketMatches) {
     const dbId = bidToDbId.get(bm.id);
     if (!dbId) continue;
-    const update: { sourceMatchAId?: string; sourceMatchBId?: string } = {};
+    const update: {
+      sourceMatchAId?: string;
+      sourceMatchBId?: string;
+      participantAId?: string;
+      participantBId?: string;
+    } = {};
     if (bm.a.kind === "pending") {
       const srcDb = bidToDbId.get(bm.a.fromMatchId);
       if (srcDb) update.sourceMatchAId = srcDb;
+      const byeW = byeWinnerByBid.get(bm.a.fromMatchId);
+      if (byeW) update.participantAId = byeW;
     }
     if (bm.b.kind === "pending") {
       const srcDb = bidToDbId.get(bm.b.fromMatchId);
       if (srcDb) update.sourceMatchBId = srcDb;
+      const byeW = byeWinnerByBid.get(bm.b.fromMatchId);
+      if (byeW) update.participantBId = byeW;
     }
     if (Object.keys(update).length > 0) {
       await tx.update(matches).set(update).where(eq(matches.id, dbId));

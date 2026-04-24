@@ -210,6 +210,10 @@ export function TreeBracket({
           const b = partsById.get(m.participantBId ?? "");
           const matchSets = setsByMatch.get(m.id) ?? [];
           const done = m.status === "finished";
+          // A bye is a finished match where one side was never filled: the
+          // lone participant auto-advances, so hide the phantom 0:0 score.
+          const isBye =
+            done && (!m.participantAId || !m.participantBId);
           const winnerA = m.winnerParticipantId === m.participantAId;
           const winnerB = m.winnerParticipantId === m.participantBId;
           const isFinaleWinner =
@@ -250,16 +254,16 @@ export function TreeBracket({
                 </div>
               )}
               <Row
-                name={a?.name ?? "…"}
-                score={done ? m.setsA : null}
+                name={a?.name ?? (isBye ? "Freilos" : "…")}
+                score={done && !isBye ? m.setsA : null}
                 winner={winnerA}
                 placeholder={!a}
                 compact={isMobile}
               />
               <div className="my-1 h-px bg-ink-100" />
               <Row
-                name={b?.name ?? "…"}
-                score={done ? m.setsB : null}
+                name={b?.name ?? (isBye ? "Freilos" : "…")}
+                score={done && !isBye ? m.setsB : null}
                 winner={winnerB}
                 placeholder={!b}
                 compact={isMobile}

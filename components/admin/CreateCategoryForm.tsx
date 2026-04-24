@@ -49,6 +49,8 @@ const DRAW_MODE_DESCRIPTIONS: Record<DrawMode, string> = {
   random: "Rein zufällig, optional deterministisch per Seed.",
   seeded_snake:
     "Spieler werden nach Setzposition im Schlangenverfahren verteilt. Top-Gesetzte landen in verschiedenen Gruppen.",
+  paste_order:
+    "Reihenfolge wie eingegeben: die ersten Spieler in Gruppe A, die nächsten in B, usw. Ohne Mischen oder Schlange.",
   manual: "Du ziehst jeden Spieler selbst in eine Gruppe oder einen Platz.",
 };
 

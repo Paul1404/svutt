@@ -10,6 +10,7 @@
 
 import type { SeededPlayer } from "./draw";
 import { orderBySeed } from "./draw";
+import type { DrawMode } from "./format";
 import { computeStandings } from "./standings";
 import { generateRoundRobin, type PlannedMatch } from "./roundRobin";
 import type {
@@ -25,7 +26,7 @@ export type RoundRobinOnlyInput = {
    * `seed` asc so seed 1 is `players[0]` — this makes the schedule
    * reproducible. Otherwise players keep their insertion order.
    */
-  drawMode?: "random" | "seeded_snake" | "manual";
+  drawMode?: DrawMode;
 };
 
 export type RoundRobinPlan = {

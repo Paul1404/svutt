@@ -36,7 +36,12 @@ export const TOURNAMENT_STRUCTURES = [
 ] as const;
 export type TournamentStructure = (typeof TOURNAMENT_STRUCTURES)[number];
 
-export const DRAW_MODES = ["random", "seeded_snake", "manual"] as const;
+export const DRAW_MODES = [
+  "random",
+  "seeded_snake",
+  "paste_order",
+  "manual",
+] as const;
 export type DrawMode = (typeof DRAW_MODES)[number];
 
 export const matchStatusEnum = pgEnum("match_status", [

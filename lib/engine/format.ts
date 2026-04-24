@@ -19,7 +19,12 @@ export const TOURNAMENT_STRUCTURES = [
 ] as const;
 export type TournamentStructure = (typeof TOURNAMENT_STRUCTURES)[number];
 
-export const DRAW_MODES = ["random", "seeded_snake", "manual"] as const;
+export const DRAW_MODES = [
+  "random",
+  "seeded_snake",
+  "paste_order",
+  "manual",
+] as const;
 export type DrawMode = (typeof DRAW_MODES)[number];
 
 export function isTournamentStructure(v: unknown): v is TournamentStructure {
@@ -52,5 +57,6 @@ export const STRUCTURE_LABELS: Record<TournamentStructure, string> = {
 export const DRAW_MODE_LABELS: Record<DrawMode, string> = {
   random: "Zufällig",
   seeded_snake: "Gesetzt (Schlange)",
+  paste_order: "Listenreihenfolge",
   manual: "Manuell",
 };
