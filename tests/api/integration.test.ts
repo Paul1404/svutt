@@ -319,6 +319,283 @@ describe("API integration: full tournament happy path", () => {
     expect(good.status).toBe(200);
   });
 
+  test("POST /:id/bracket refuses to rebuild once a KO match has been played", async () => {
+    const tRes = await call(
+      app,
+      "/api/tournaments",
+      { method: "POST", json: { name: "Rebuild", slug: "rebuild-t" } },
+      cookie,
+    );
+    const tId = (tRes.body as { tournament: { id: string } }).tournament.id;
+    const cRes = await call(
+      app,
+      `/api/tournaments/${tId}/categories`,
+      {
+        method: "POST",
+        json: {
+          name: "Cat",
+          slug: "rebuild-c",
+          groupSize: 4,
+          groupAdvancementCount: 1,
+          luckyLoserEnabled: false,
+        },
+      },
+      cookie,
+    );
+    const cat = (cRes.body as { category: { id: string } }).category;
+    await call(
+      app,
+      `/api/categories/${cat.id}/participants`,
+      {
+        method: "POST",
+        json: { names: "A1\nA2\nA3\nA4\nB1\nB2\nB3\nB4" },
+      },
+      cookie,
+    );
+    await call(
+      app,
+      `/api/categories/${cat.id}/draw`,
+      { method: "POST", json: { seed: "rebuild" } },
+      cookie,
+    );
+    const state = await call(app, `/api/categories/${cat.id}`, {}, cookie);
+    const groupMatches = (
+      state.body as { matches: { id: string; stage: string }[] }
+    ).matches.filter((m) => m.stage === "group");
+    for (const m of groupMatches) {
+      await call(
+        app,
+        `/api/matches/${m.id}/result`,
+        {
+          method: "PUT",
+          json: { sets: [{ a: 11, b: 5 }, { a: 11, b: 7 }] },
+        },
+        cookie,
+      );
+    }
+    const br1 = await call(
+      app,
+      `/api/categories/${cat.id}/bracket`,
+      { method: "POST" },
+      cookie,
+    );
+    expect(br1.status).toBe(200);
+
+    // Finish the one KO match (finale, since advancementCount=1 → size 2).
+    const state2 = await call(app, `/api/categories/${cat.id}`, {}, cookie);
+    const koMatch = (
+      state2.body as { matches: { id: string; stage: string }[] }
+    ).matches.find((m) => m.stage === "ko")!;
+    const koRes = await call(
+      app,
+      `/api/matches/${koMatch.id}/result`,
+      {
+        method: "PUT",
+        json: { sets: [{ a: 11, b: 5 }, { a: 11, b: 7 }] },
+      },
+      cookie,
+    );
+    expect(koRes.status).toBe(200);
+
+    // Rebuild now would clobber recorded results.
+    const br2 = await call(
+      app,
+      `/api/categories/${cat.id}/bracket`,
+      { method: "POST" },
+      cookie,
+    );
+    expect(br2.status).toBe(409);
+  });
+
+  test("finishing a ko_losers match propagates the winner into the next ko_losers round", async () => {
+    const tRes = await call(
+      app,
+      "/api/tournaments",
+      { method: "POST", json: { name: "LLProp", slug: "llprop-t" } },
+      cookie,
+    );
+    const tId = (tRes.body as { tournament: { id: string } }).tournament.id;
+    const cRes = await call(
+      app,
+      `/api/tournaments/${tId}/categories`,
+      {
+        method: "POST",
+        json: {
+          name: "Cat",
+          slug: "llprop-c",
+          groupSize: 4,
+          groupAdvancementCount: 1,
+          luckyLoserEnabled: true,
+        },
+      },
+      cookie,
+    );
+    const cat = (cRes.body as { category: { id: string } }).category;
+    await call(
+      app,
+      `/api/categories/${cat.id}/participants`,
+      {
+        method: "POST",
+        json: { names: "A1\nA2\nA3\nA4\nB1\nB2\nB3\nB4" },
+      },
+      cookie,
+    );
+    await call(
+      app,
+      `/api/categories/${cat.id}/draw`,
+      { method: "POST", json: { seed: "llprop" } },
+      cookie,
+    );
+    const state = await call(app, `/api/categories/${cat.id}`, {}, cookie);
+    const groupMatches = (
+      state.body as { matches: { id: string; stage: string }[] }
+    ).matches.filter((m) => m.stage === "group");
+    for (const m of groupMatches) {
+      await call(
+        app,
+        `/api/matches/${m.id}/result`,
+        {
+          method: "PUT",
+          json: { sets: [{ a: 11, b: 5 }, { a: 11, b: 7 }] },
+        },
+        cookie,
+      );
+    }
+    await call(
+      app,
+      `/api/categories/${cat.id}/bracket`,
+      { method: "POST" },
+      cookie,
+    );
+
+    const state2 = await call(app, `/api/categories/${cat.id}`, {}, cookie);
+    const allMatches = (
+      state2.body as {
+        matches: {
+          id: string;
+          stage: string;
+          round: number;
+          sourceMatchAId: string | null;
+          sourceMatchBId: string | null;
+          participantAId: string | null;
+          participantBId: string | null;
+        }[];
+      }
+    ).matches;
+    const losersR0 = allMatches
+      .filter((m) => m.stage === "ko_losers" && m.round === 0)
+      .filter((m) => m.participantAId && m.participantBId);
+    expect(losersR0.length).toBeGreaterThan(0);
+    const source = losersR0[0]!;
+    const downstream = allMatches.find(
+      (m) =>
+        m.stage === "ko_losers" &&
+        (m.sourceMatchAId === source.id || m.sourceMatchBId === source.id),
+    );
+    expect(downstream).toBeDefined();
+
+    await call(
+      app,
+      `/api/matches/${source.id}/result`,
+      {
+        method: "PUT",
+        json: { sets: [{ a: 11, b: 5 }, { a: 11, b: 7 }] },
+      },
+      cookie,
+    );
+
+    const state3 = await call(app, `/api/categories/${cat.id}`, {}, cookie);
+    const downstreamAfter = (
+      state3.body as {
+        matches: {
+          id: string;
+          participantAId: string | null;
+          participantBId: string | null;
+        }[];
+      }
+    ).matches.find((m) => m.id === downstream!.id)!;
+    // The propagation should have filled in the slot fed by `source`.
+    const filled =
+      (downstream!.sourceMatchAId === source.id &&
+        downstreamAfter.participantAId === source.participantAId) ||
+      (downstream!.sourceMatchBId === source.id &&
+        downstreamAfter.participantAId === source.participantAId) ||
+      (downstream!.sourceMatchAId === source.id &&
+        downstreamAfter.participantBId === source.participantAId) ||
+      (downstream!.sourceMatchBId === source.id &&
+        downstreamAfter.participantBId === source.participantAId);
+    expect(filled).toBe(true);
+  });
+
+  test("groups/move refuses to drop the source group below 2 members", async () => {
+    const tRes = await call(
+      app,
+      "/api/tournaments",
+      { method: "POST", json: { name: "Move", slug: "move-t" } },
+      cookie,
+    );
+    const tId = (tRes.body as { tournament: { id: string } }).tournament.id;
+    const cRes = await call(
+      app,
+      `/api/tournaments/${tId}/categories`,
+      {
+        method: "POST",
+        json: { name: "Cat", slug: "move-c", groupSize: 3 },
+      },
+      cookie,
+    );
+    const cat = (cRes.body as { category: { id: string } }).category;
+    await call(
+      app,
+      `/api/categories/${cat.id}/participants`,
+      { method: "POST", json: { names: "P1\nP2\nP3\nP4\nP5\nP6" } },
+      cookie,
+    );
+    await call(
+      app,
+      `/api/categories/${cat.id}/draw`,
+      { method: "POST", json: { seed: "move" } },
+      cookie,
+    );
+
+    const state = await call(app, `/api/categories/${cat.id}`, {}, cookie);
+    const { groups: grps, members } = state.body as {
+      groups: { id: string }[];
+      members: { groupId: string; participantId: string }[];
+    };
+    expect(grps.length).toBe(2);
+    const [g1, g2] = grps as [{ id: string }, { id: string }];
+    const g1Members = members.filter((m) => m.groupId === g1.id);
+    // First move: g1 (size 3) → g2. Source drops to 2 — allowed.
+    const first = await call(
+      app,
+      `/api/categories/${cat.id}/groups/move`,
+      {
+        method: "POST",
+        json: {
+          participantId: g1Members[0]!.participantId,
+          targetGroupId: g2.id,
+        },
+      },
+      cookie,
+    );
+    expect(first.status).toBe(200);
+    // Second move from g1 (now size 2) → g2. Source would drop to 1 — reject.
+    const second = await call(
+      app,
+      `/api/categories/${cat.id}/groups/move`,
+      {
+        method: "POST",
+        json: {
+          participantId: g1Members[1]!.participantId,
+          targetGroupId: g2.id,
+        },
+      },
+      cookie,
+    );
+    expect(second.status).toBe(409);
+  });
+
   test("category PATCH updates new fields", async () => {
     const tRes = await call(
       app,

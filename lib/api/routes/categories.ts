@@ -624,6 +624,19 @@ export const categoryRoutes = new Hono()
       return c.json({ ok: true, unchanged: true });
     }
 
+    // A group with fewer than 2 members has no round-robin schedule; the
+    // move would silently drop the source group from the tournament.
+    const sourceMemberCount = await db
+      .select({ participantId: groupMembers.participantId })
+      .from(groupMembers)
+      .where(eq(groupMembers.groupId, sourceGroup.id));
+    if (sourceMemberCount.length <= 2) {
+      return conflict(
+        c,
+        "Ausgangsgruppe hätte nach dem Verschieben weniger als 2 Spieler.",
+      );
+    }
+
     const [tournament] = await db
       .select()
       .from(tournaments)
@@ -773,6 +786,23 @@ export const categoryRoutes = new Hono()
       .where(eq(tournaments.id, cat.tournamentId))
       .limit(1);
     if (!tournament) return notFound(c, "Turnier");
+
+    const existingKo = await db
+      .select({ status: matches.status })
+      .from(matches)
+      .where(
+        and(
+          eq(matches.categoryId, id),
+          inArray(matches.stage, ["ko", "ko_losers"] as const),
+        ),
+      );
+    const hasPlayedKo = existingKo.some((m) => m.status !== "pending");
+    if (hasPlayedKo) {
+      return conflict(
+        c,
+        "Finalbaum enthält bereits gespielte Partien — Neubau würde Ergebnisse verwerfen.",
+      );
+    }
 
     const { engineGroups } = await loadEngineGroups(id);
 

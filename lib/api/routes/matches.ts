@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { categories, matches, matchSets } from "@/lib/db/schema";
 import { submitResultSchema } from "@/lib/validators";
@@ -84,13 +84,15 @@ export const matchRoutes = new Hono()
         })
         .where(eq(matches.id, id));
 
-      // Propagate winner into downstream KO matches, if any.
+      // Propagate winner into downstream KO matches, if any. Both the main
+      // bracket and the lucky-loser bracket wire up source matches, so scan
+      // either stage.
       const downstream = await tx
         .select()
         .from(matches)
         .where(
           and(
-            eq(matches.stage, "ko"),
+            inArray(matches.stage, ["ko", "ko_losers"] as const),
             eq(matches.categoryId, match.categoryId),
           ),
         );
@@ -127,14 +129,15 @@ export const matchRoutes = new Hono()
           updatedAt: new Date(),
         })
         .where(eq(matches.id, id));
-      // Reset downstream KO slots that used this winner
+      // Reset downstream KO slots that used this winner (both main and
+      // lucky-loser brackets).
       if (match.winnerParticipantId) {
         const downstream = await tx
           .select()
           .from(matches)
           .where(
             and(
-              eq(matches.stage, "ko"),
+              inArray(matches.stage, ["ko", "ko_losers"] as const),
               eq(matches.categoryId, match.categoryId),
             ),
           );
