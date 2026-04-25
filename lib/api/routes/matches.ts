@@ -167,9 +167,9 @@ export const matchRoutes = new Hono()
       .where(eq(matches.id, id))
       .limit(1);
     if (!match) return notFound(c, "Spiel");
-    if (match.stage !== "group") {
+    if (match.status === "finished") {
       return c.json(
-        { error: "Played-Markierung ist nur für Gruppenspiele verfügbar." },
+        { error: "Beendete Spiele können nicht als „Wird gespielt“ markiert werden." },
         400,
       );
     }

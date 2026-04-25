@@ -224,9 +224,9 @@ export const matches = pgTable(
     // wall-clock times are intentionally not persisted.
     tableNumber: integer("table_number"),
     playOrder: integer("play_order"), // global order across the category for scheduling
-    // Admin-only UI hint: marks a group-phase match as "already played" even
-    // when no result has been entered yet. Pure visual signal, no game logic
-    // depends on it.
+    // Admin-only UI hint: marks a match as "currently being played" so it is
+    // visible in the live panel and on public views before a result has been
+    // entered. Pure visual signal, no game logic depends on it.
     played: boolean("played").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()

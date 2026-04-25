@@ -20,6 +20,7 @@ import { CategorySettings } from "@/components/admin/CategorySettings";
 import { PublishToggle } from "@/components/admin/PublishToggle";
 import { TestPopulatePanel } from "@/components/admin/TestPopulatePanel";
 import { PlayerSearchPalette } from "@/components/admin/PlayerSearchPalette";
+import { LivePlayPanel } from "@/components/admin/LivePlayPanel";
 import { GameResults } from "@/components/public/GameResults";
 import {
   buildBracketOrigins,
@@ -151,6 +152,7 @@ export default async function CategoryDetailPage({
 
   return (
     <div className="space-y-10">
+      <LivePlayPanel matches={matchRows} participants={parts} />
       <div>
         <Link
           href={`/admin/t/${tournament.id}`}
