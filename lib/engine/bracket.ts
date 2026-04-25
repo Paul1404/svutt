@@ -63,19 +63,33 @@ export function nextPowerOfTwo(n: number): number {
 }
 
 /**
- * Flatten group standings into a map of participantId → {groupLabel, groupRank}.
- * Useful for labeling who came from which group in bracket views ("1. Gruppe A",
- * "3. Gruppe B", …). Rank is 1-based; rank 1 is the group winner.
+ * Flatten group standings into a map of participantId → origin info. Used to
+ * label who came from which group in bracket views ("1. Gruppe A · 3-1 · +22"),
+ * so viewers see at a glance both the group rank and the stats that drove the
+ * seeding. Rank is 1-based; rank 1 is the group winner.
  */
+export type BracketOriginInfo = {
+  groupLabel: string;
+  groupRank: number;
+  wins: number;
+  losses: number;
+  setDiff: number;
+  pointDiff: number;
+};
+
 export function buildBracketOrigins(
   standings: readonly GroupStanding[],
-): Map<PlayerId, { groupLabel: string; groupRank: number }> {
-  const out = new Map<PlayerId, { groupLabel: string; groupRank: number }>();
+): Map<PlayerId, BracketOriginInfo> {
+  const out = new Map<PlayerId, BracketOriginInfo>();
   for (const s of standings) {
     for (const row of s.rows) {
       out.set(row.playerId, {
         groupLabel: s.groupLabel,
         groupRank: row.rank,
+        wins: row.wins,
+        losses: row.losses,
+        setDiff: row.setDiff,
+        pointDiff: row.pointDiff,
       });
     }
   }
