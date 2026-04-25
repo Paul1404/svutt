@@ -185,6 +185,31 @@ html[data-theme="dark"] .badge-red {
   --tw-ring-color: rgb(239 68 68 / 0.4);
 }
 
+/* Brief amber pulse used by the player search palette to point the eye at
+   the row the admin just jumped to. Works on both <tr> and <li>. */
+@keyframes player-search-hit-pulse {
+  0%   { background-color: rgb(254 243 199); }
+  60%  { background-color: rgb(254 243 199 / 0.6); }
+  100% { background-color: transparent; }
+}
+.player-search-hit {
+  animation: player-search-hit-pulse 1.8s ease-out;
+}
+.player-search-hit > td,
+.player-search-hit > th {
+  animation: player-search-hit-pulse 1.8s ease-out;
+}
+html[data-theme="dark"] .player-search-hit,
+html[data-theme="dark"] .player-search-hit > td,
+html[data-theme="dark"] .player-search-hit > th {
+  animation-name: player-search-hit-pulse-dark;
+}
+@keyframes player-search-hit-pulse-dark {
+  0%   { background-color: rgb(245 158 11 / 0.28); }
+  60%  { background-color: rgb(245 158 11 / 0.16); }
+  100% { background-color: transparent; }
+}
+
 /* Modal overlay uses the semantic overlay token so backdrop darkens nicely
    in dark mode too. */
 .dialog-overlay {

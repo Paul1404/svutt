@@ -160,6 +160,7 @@ export function ParticipantsPanel({
             {participants.map((p, i) => (
               <li
                 key={p.id}
+                id={`player-row-${p.id}`}
                 className="group flex items-center justify-between rounded-lg px-3 py-2 hover:bg-ink-50 transition-colors"
               >
                 <div className="flex items-center gap-3 min-w-0">

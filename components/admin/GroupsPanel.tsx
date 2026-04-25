@@ -306,6 +306,7 @@ export function GroupsPanel({
                         return (
                           <tr
                             key={r.playerId}
+                            id={`player-row-${r.playerId}`}
                             className={`border-t border-ink-100 ${
                               canMove ? "cursor-grab" : ""
                             } ${isDragging ? "opacity-40" : ""} ${
