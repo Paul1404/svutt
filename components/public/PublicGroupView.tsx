@@ -149,8 +149,14 @@ export function PublicGroupView({
                     const b = partsById.get(m.participantBId ?? "");
                     const matchSets = setsByMatch.get(m.id) ?? [];
                     const finished = m.status === "finished";
+                    const inProgress = m.played && !finished;
                     return (
-                      <li key={m.id} className="px-5 py-2.5">
+                      <li
+                        key={m.id}
+                        className={`px-5 py-2.5 ${
+                          inProgress ? "bg-amber-50" : ""
+                        }`}
+                      >
                         <div className="flex items-center justify-between gap-2">
                           <span className="truncate text-sm flex items-center gap-1.5 min-w-0">
                             <span className="font-medium truncate">
@@ -160,9 +166,9 @@ export function PublicGroupView({
                             <span className="font-medium truncate">
                               {b?.name ?? "?"}
                             </span>
-                            {m.played && !finished && (
-                              <span className="badge-green shrink-0">
-                                gespielt
+                            {inProgress && (
+                              <span className="badge-amber shrink-0">
+                                Wird gespielt
                               </span>
                             )}
                           </span>
@@ -171,7 +177,11 @@ export function PublicGroupView({
                               {m.setsA}:{m.setsB}
                             </span>
                           ) : (
-                            <span className="text-xs text-ink-400 font-mono tabular-nums">
+                            <span
+                              className={`text-xs font-mono tabular-nums ${
+                                inProgress ? "text-amber-700" : "text-ink-400"
+                              }`}
+                            >
                               T{m.tableNumber ?? "?"}
                             </span>
                           )}

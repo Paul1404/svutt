@@ -470,12 +470,22 @@ export function GroupsPanel({
                       const b = partsById.get(m.participantBId ?? "");
                       const matchSets = setsByMatch.get(m.id) ?? [];
                       const done = m.status === "finished";
+                      const inProgress = m.played && !done;
                       return (
-                        <li key={m.id} className="flex items-stretch gap-1">
+                        <li
+                          key={m.id}
+                          className={`flex items-stretch gap-1 rounded-lg transition-colors ${
+                            inProgress
+                              ? "bg-amber-50 ring-1 ring-inset ring-amber-200"
+                              : ""
+                          }`}
+                        >
                           <button
                             type="button"
                             onClick={() => setOpenMatchId(m.id)}
-                            className="flex-1 min-w-0 text-left rounded-lg px-2.5 py-2 hover:bg-ink-50 transition-colors"
+                            className={`flex-1 min-w-0 text-left rounded-lg px-2.5 py-2 transition-colors ${
+                              inProgress ? "hover:bg-amber-100/70" : "hover:bg-ink-50"
+                            }`}
                           >
                             <div className="flex items-center justify-between gap-2">
                               <div className="min-w-0 flex-1 text-sm flex items-center gap-1.5">
@@ -486,9 +496,9 @@ export function GroupsPanel({
                                 <span className="font-medium truncate">
                                   {b?.name ?? "?"}
                                 </span>
-                                {m.played && !done && (
-                                  <span className="badge-green shrink-0">
-                                    gespielt
+                                {inProgress && (
+                                  <span className="badge-amber shrink-0">
+                                    Wird gespielt
                                   </span>
                                 )}
                               </div>
@@ -497,7 +507,11 @@ export function GroupsPanel({
                                   {m.setsA}:{m.setsB}
                                 </span>
                               ) : (
-                                <span className="text-xs text-ink-400 font-mono">
+                                <span
+                                  className={`text-xs font-mono ${
+                                    inProgress ? "text-amber-700" : "text-ink-400"
+                                  }`}
+                                >
                                   T{m.tableNumber ?? "?"}
                                 </span>
                               )}
@@ -517,12 +531,12 @@ export function GroupsPanel({
                               aria-pressed={m.played}
                               title={
                                 m.played
-                                  ? "Markierung als gespielt entfernen"
-                                  : "Als gespielt markieren"
+                                  ? "Markierung „Wird gespielt“ entfernen"
+                                  : "Als „Wird gespielt“ markieren"
                               }
                               className={`shrink-0 self-center rounded-md px-2 py-1 text-xs transition-colors ${
                                 m.played
-                                  ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                                  ? "bg-amber-200 text-amber-800 hover:bg-amber-300"
                                   : "text-ink-400 hover:bg-ink-100 hover:text-ink-700"
                               }`}
                             >
