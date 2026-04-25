@@ -126,6 +126,140 @@ describe("computeStandings", () => {
     expect(s.rows.every((r) => r.tied)).toBe(true);
   });
 
+  it("breaks 3-way ties using head-to-head sub-table (ITTF-style)", () => {
+    // Re-creates the Group B scenario where three players are tied at 2-2
+    // but their head-to-head sub-table cleanly separates them, even though
+    // overall set/point differential would order them differently.
+    const [bahr, mayer, seufert, schmitt, koehler] = [
+      player("bahr"),
+      player("mayer"),
+      player("seufert"),
+      player("schmitt"),
+      player("koehler"),
+    ];
+    const g = group(
+      [bahr, mayer, seufert, schmitt, koehler],
+      [
+        // Schmitt beats Koehler 2:1 (11:4, 3:11, 11:0)
+        {
+          id: "m1",
+          a: "schmitt",
+          b: "koehler",
+          sets: [
+            { a: 11, b: 4 },
+            { a: 3, b: 11 },
+            { a: 11, b: 0 },
+          ],
+        },
+        // Mayer beats Bahr 2:0 (11:1, 11:9)
+        {
+          id: "m2",
+          a: "bahr",
+          b: "mayer",
+          sets: [
+            { a: 1, b: 11 },
+            { a: 9, b: 11 },
+          ],
+        },
+        // Koehler beats Seufert 2:1 (11:9, 8:11, 6:11) — wait, scores in screenshot: 9:11, 11:8, 11:6
+        {
+          id: "m3",
+          a: "koehler",
+          b: "seufert",
+          sets: [
+            { a: 9, b: 11 },
+            { a: 11, b: 8 },
+            { a: 11, b: 6 },
+          ],
+        },
+        // Bahr beats Schmitt 2:1 (6:11, 11:8, 11:5)
+        {
+          id: "m4",
+          a: "schmitt",
+          b: "bahr",
+          sets: [
+            { a: 11, b: 6 },
+            { a: 8, b: 11 },
+            { a: 5, b: 11 },
+          ],
+        },
+        // Seufert beats Mayer 2:1 (11:8, 0:11, 11:9)
+        {
+          id: "m5",
+          a: "seufert",
+          b: "mayer",
+          sets: [
+            { a: 11, b: 8 },
+            { a: 0, b: 11 },
+            { a: 11, b: 9 },
+          ],
+        },
+        // Bahr beats Koehler 2:0 (11:5, 11:8)
+        {
+          id: "m6",
+          a: "koehler",
+          b: "bahr",
+          sets: [
+            { a: 5, b: 11 },
+            { a: 8, b: 11 },
+          ],
+        },
+        // Bahr beats Seufert 2:0 (11:3, 11:3)
+        {
+          id: "m7",
+          a: "bahr",
+          b: "seufert",
+          sets: [
+            { a: 11, b: 3 },
+            { a: 11, b: 3 },
+          ],
+        },
+        // Schmitt beats Mayer 2:1 (7:11, 11:6, 11:5)
+        {
+          id: "m8",
+          a: "mayer",
+          b: "schmitt",
+          sets: [
+            { a: 11, b: 7 },
+            { a: 6, b: 11 },
+            { a: 5, b: 11 },
+          ],
+        },
+        // Seufert beats Schmitt 2:0 (11:3, 11:0)
+        {
+          id: "m9",
+          a: "seufert",
+          b: "schmitt",
+          sets: [
+            { a: 11, b: 3 },
+            { a: 11, b: 0 },
+          ],
+        },
+        // Mayer beats Koehler 2:0 (11:3, 11:0)
+        {
+          id: "m10",
+          a: "mayer",
+          b: "koehler",
+          sets: [
+            { a: 11, b: 3 },
+            { a: 11, b: 0 },
+          ],
+        },
+      ],
+    );
+    const s = computeStandings(g);
+    // Bahr clear winner with 3 wins.
+    expect(s.rows[0]!.playerId).toBe("bahr");
+    expect(s.rows[0]!.wins).toBe(3);
+    // Among the three 2-win players: Seufert beat both other tied players,
+    // Schmitt beat Mayer, Mayer lost both. Sub-table H2H must apply even
+    // though overall setDiff (Mayer +2) would put Mayer first.
+    expect(s.rows[1]!.playerId).toBe("seufert");
+    expect(s.rows[2]!.playerId).toBe("schmitt");
+    expect(s.rows[3]!.playerId).toBe("mayer");
+    expect(s.rows[4]!.playerId).toBe("koehler");
+  });
+
   it("ranks are 1-based and contiguous", () => {
     const [p1, p2, p3] = [player("p1"), player("p2"), player("p3")];
     const g = group([p1, p2, p3], []);
