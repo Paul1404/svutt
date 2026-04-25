@@ -618,6 +618,179 @@ describe("API integration: full tournament happy path", () => {
     expect(second.status).toBe(409);
   });
 
+  test("PATCH participant renames after the draw", async () => {
+    const tRes = await call(
+      app,
+      "/api/tournaments",
+      { method: "POST", json: { name: "Rename", slug: "rename-t" } },
+      cookie,
+    );
+    const tId = (tRes.body as { tournament: { id: string } }).tournament.id;
+    const cRes = await call(
+      app,
+      `/api/tournaments/${tId}/categories`,
+      {
+        method: "POST",
+        json: { name: "Cat", slug: "rename-c", groupSize: 3 },
+      },
+      cookie,
+    );
+    const cat = (cRes.body as { category: { id: string } }).category;
+    await call(
+      app,
+      `/api/categories/${cat.id}/participants`,
+      { method: "POST", json: { names: "Old Name\nP2\nP3\nP4" } },
+      cookie,
+    );
+    await call(
+      app,
+      `/api/categories/${cat.id}/draw`,
+      { method: "POST", json: { seed: "rename" } },
+      cookie,
+    );
+    const state = await call(app, `/api/categories/${cat.id}`, {}, cookie);
+    const parts = (
+      state.body as { participants: { id: string; name: string }[] }
+    ).participants;
+    const target = parts.find((p) => p.name === "Old Name")!;
+
+    const patch = await call(
+      app,
+      `/api/categories/${cat.id}/participants/${target.id}`,
+      { method: "PATCH", json: { name: "New Name" } },
+      cookie,
+    );
+    expect(patch.status).toBe(200);
+    expect(
+      (patch.body as { participant: { name: string } }).participant.name,
+    ).toBe("New Name");
+  });
+
+  test("DELETE participant during group phase regenerates the group schedule", async () => {
+    const tRes = await call(
+      app,
+      "/api/tournaments",
+      { method: "POST", json: { name: "NoShow", slug: "noshow-t" } },
+      cookie,
+    );
+    const tId = (tRes.body as { tournament: { id: string } }).tournament.id;
+    const cRes = await call(
+      app,
+      `/api/tournaments/${tId}/categories`,
+      {
+        method: "POST",
+        json: { name: "Cat", slug: "noshow-c", groupSize: 4 },
+      },
+      cookie,
+    );
+    const cat = (cRes.body as { category: { id: string } }).category;
+    await call(
+      app,
+      `/api/categories/${cat.id}/participants`,
+      { method: "POST", json: { names: "P1\nP2\nP3\nP4" } },
+      cookie,
+    );
+    await call(
+      app,
+      `/api/categories/${cat.id}/draw`,
+      { method: "POST", json: { seed: "noshow" } },
+      cookie,
+    );
+
+    const before = await call(app, `/api/categories/${cat.id}`, {}, cookie);
+    const beforeBody = before.body as {
+      participants: { id: string; name: string }[];
+      matches: { id: string; participantAId: string; participantBId: string }[];
+    };
+    expect(beforeBody.matches.length).toBe(6);
+    const target = beforeBody.participants[0]!;
+
+    const del = await call(
+      app,
+      `/api/categories/${cat.id}/participants/${target.id}`,
+      { method: "DELETE" },
+      cookie,
+    );
+    expect(del.status).toBe(200);
+
+    const after = await call(app, `/api/categories/${cat.id}`, {}, cookie);
+    const afterBody = after.body as {
+      participants: { id: string }[];
+      members: { participantId: string }[];
+      matches: {
+        participantAId: string | null;
+        participantBId: string | null;
+      }[];
+    };
+    expect(afterBody.participants.find((p) => p.id === target.id)).toBeUndefined();
+    expect(
+      afterBody.members.find((m) => m.participantId === target.id),
+    ).toBeUndefined();
+    // 3 survivors → round-robin has 3 matches.
+    expect(afterBody.matches.length).toBe(3);
+    for (const m of afterBody.matches) {
+      expect(m.participantAId).not.toBe(target.id);
+      expect(m.participantBId).not.toBe(target.id);
+    }
+  });
+
+  test("DELETE participant rejects when a match has been played", async () => {
+    const tRes = await call(
+      app,
+      "/api/tournaments",
+      { method: "POST", json: { name: "Played", slug: "played-t" } },
+      cookie,
+    );
+    const tId = (tRes.body as { tournament: { id: string } }).tournament.id;
+    const cRes = await call(
+      app,
+      `/api/tournaments/${tId}/categories`,
+      {
+        method: "POST",
+        json: { name: "Cat", slug: "played-c", groupSize: 4 },
+      },
+      cookie,
+    );
+    const cat = (cRes.body as { category: { id: string } }).category;
+    await call(
+      app,
+      `/api/categories/${cat.id}/participants`,
+      { method: "POST", json: { names: "P1\nP2\nP3\nP4" } },
+      cookie,
+    );
+    await call(
+      app,
+      `/api/categories/${cat.id}/draw`,
+      { method: "POST", json: { seed: "played" } },
+      cookie,
+    );
+
+    const state = await call(app, `/api/categories/${cat.id}`, {}, cookie);
+    const stateBody = state.body as {
+      participants: { id: string }[];
+      matches: { id: string }[];
+    };
+    const firstMatch = stateBody.matches[0]!;
+    // Submit a result so at least one match is no longer pending.
+    await call(
+      app,
+      `/api/matches/${firstMatch.id}/result`,
+      {
+        method: "PUT",
+        json: { sets: [{ a: 11, b: 7 }, { a: 11, b: 9 }] },
+      },
+      cookie,
+    );
+
+    const del = await call(
+      app,
+      `/api/categories/${cat.id}/participants/${stateBody.participants[0]!.id}`,
+      { method: "DELETE" },
+      cookie,
+    );
+    expect(del.status).toBe(409);
+  });
+
   test("category PATCH updates new fields", async () => {
     const tRes = await call(
       app,
