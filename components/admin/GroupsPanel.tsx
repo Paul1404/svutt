@@ -78,6 +78,88 @@ export function GroupsPanel({
   );
   const [dragOverGroupId, setDragOverGroupId] = useState<string | null>(null);
   const [moving, setMoving] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  // Removal during the group phase has the same guards as drag-drop moves:
+  // refuse once any match has started or the bracket exists. The server
+  // double-checks; this just hides the button when it would always 409.
+  const canRemove =
+    (category.structure === "groups_ko" ||
+      category.structure === "round_robin" ||
+      category.structure === "round_robin_finals") &&
+    !anyTouched &&
+    !category.bracketDone;
+
+  function beginEdit(participantId: string, currentName: string) {
+    setEditingId(participantId);
+    setEditName(currentName);
+  }
+
+  async function saveEdit(participantId: string) {
+    const trimmed = editName.trim();
+    if (!trimmed) {
+      toast.show({ message: "Name darf nicht leer sein." });
+      return;
+    }
+    const current = partsById.get(participantId);
+    if (current && trimmed === current.name) {
+      setEditingId(null);
+      return;
+    }
+    setSavingEdit(true);
+    try {
+      const res = await fetch(
+        `/api/categories/${category.id}/participants/${participantId}`,
+        {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ name: trimmed }),
+        },
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.show({
+          message:
+            typeof data?.error === "string"
+              ? data.error
+              : "Speichern fehlgeschlagen.",
+        });
+        return;
+      }
+      toast.show({ message: `Name geändert: ${trimmed}.` });
+      setEditingId(null);
+      router.refresh();
+    } finally {
+      setSavingEdit(false);
+    }
+  }
+
+  async function removePlayer(participantId: string, name: string) {
+    if (
+      typeof window !== "undefined" &&
+      !window.confirm(`${name} aus der Gruppe entfernen?`)
+    ) {
+      return;
+    }
+    const res = await fetch(
+      `/api/categories/${category.id}/participants/${participantId}`,
+      { method: "DELETE" },
+    );
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      toast.show({
+        message:
+          typeof data?.error === "string"
+            ? data.error
+            : "Entfernen fehlgeschlagen.",
+      });
+      return;
+    }
+    toast.show({ message: `${name} entfernt.` });
+    router.refresh();
+  }
 
   async function movePlayer(participantId: string, targetGroupId: string) {
     setMoving(true);
@@ -118,8 +200,8 @@ export function GroupsPanel({
           </h2>
           <p className="mt-1 text-sm text-ink-500">
             {canMove
-              ? "Tippe auf ein Spiel, um das Ergebnis einzutragen. Spieler lassen sich per Drag & Drop zwischen Gruppen verschieben, solange noch nichts gespielt wurde."
-              : "Tippe auf ein Spiel, um das Ergebnis einzutragen."}
+              ? "Tippe auf ein Spiel, um das Ergebnis einzutragen. Spieler lassen sich per Drag & Drop zwischen Gruppen verschieben oder über die Aktionen umbenennen bzw. entfernen, solange noch nichts gespielt wurde."
+              : "Tippe auf ein Spiel, um das Ergebnis einzutragen. Namen lassen sich jederzeit korrigieren."}
           </p>
         </div>
         <div className="text-sm text-ink-600">
@@ -237,18 +319,93 @@ export function GroupsPanel({
                                 {r.rank}
                               </span>
                             </td>
-                            <td className="py-2 font-medium">
-                              <span className="inline-flex items-center gap-1.5">
-                                {canMove && (
-                                  <span
-                                    aria-hidden
-                                    className="text-ink-300 select-none"
+                            <td className="py-2 font-medium group/row">
+                              {editingId === r.playerId ? (
+                                <form
+                                  className="flex items-center gap-1"
+                                  onSubmit={(e) => {
+                                    e.preventDefault();
+                                    saveEdit(r.playerId);
+                                  }}
+                                >
+                                  <input
+                                    autoFocus
+                                    className="input h-7 px-2 py-0 text-sm"
+                                    value={editName}
+                                    disabled={savingEdit}
+                                    maxLength={120}
+                                    onChange={(e) =>
+                                      setEditName(e.target.value)
+                                    }
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Escape") {
+                                        e.preventDefault();
+                                        setEditingId(null);
+                                      }
+                                    }}
+                                  />
+                                  <button
+                                    type="submit"
+                                    disabled={savingEdit}
+                                    className="text-xs text-brand-600 hover:text-brand-700 px-1"
+                                    aria-label="Speichern"
                                   >
-                                    ⋮⋮
+                                    ✓
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={savingEdit}
+                                    onClick={() => setEditingId(null)}
+                                    className="text-xs text-ink-400 hover:text-ink-600 px-1"
+                                    aria-label="Abbrechen"
+                                  >
+                                    ✕
+                                  </button>
+                                </form>
+                              ) : (
+                                <span className="inline-flex items-center gap-1.5">
+                                  {canMove && (
+                                    <span
+                                      aria-hidden
+                                      className="text-ink-300 select-none"
+                                    >
+                                      ⋮⋮
+                                    </span>
+                                  )}
+                                  <span>
+                                    {partsById.get(r.playerId)?.name ?? "?"}
                                   </span>
-                                )}
-                                {partsById.get(r.playerId)?.name ?? "?"}
-                              </span>
+                                  <span className="ml-1 inline-flex items-center gap-2 opacity-0 group-hover/row:opacity-100 focus-within:opacity-100 transition-opacity">
+                                    <button
+                                      type="button"
+                                      className="text-[11px] text-ink-400 hover:text-brand-600"
+                                      onClick={() =>
+                                        beginEdit(
+                                          r.playerId,
+                                          partsById.get(r.playerId)?.name ?? "",
+                                        )
+                                      }
+                                    >
+                                      Bearbeiten
+                                    </button>
+                                    {canRemove && (
+                                      <button
+                                        type="button"
+                                        className="text-[11px] text-ink-400 hover:text-brand-600"
+                                        onClick={() =>
+                                          removePlayer(
+                                            r.playerId,
+                                            partsById.get(r.playerId)?.name ??
+                                              "Spieler",
+                                          )
+                                        }
+                                      >
+                                        Entfernen
+                                      </button>
+                                    )}
+                                  </span>
+                                </span>
+                              )}
                             </td>
                             <td className="py-2 text-right">
                               <StandingsCellTooltip

@@ -56,6 +56,15 @@ export const singleParticipantSchema = z.object({
   seed: z.number().int().min(1).max(9999).optional(),
 });
 
+export const updateParticipantSchema = z
+  .object({
+    name: z.string().trim().min(1).max(120).optional(),
+    club: z.string().trim().max(80).nullable().optional(),
+  })
+  .refine((v) => v.name !== undefined || v.club !== undefined, {
+    message: "Mindestens ein Feld muss übergeben werden.",
+  });
+
 export const drawSchema = z.object({
   seed: z.union([z.string(), z.number()]).optional(),
 });

@@ -16,6 +16,7 @@ import {
   parseBulkNames,
   singleParticipantSchema,
   updateCategorySchema,
+  updateParticipantSchema,
 } from "@/lib/validators";
 import {
   buildBracket,
@@ -191,6 +192,38 @@ export const categoryRoutes = new Hono()
       .returning();
     return c.json({ participant: row }, 201);
   })
+  // Rename a participant (or update club). Allowed at any point in the
+  // tournament because changing display text doesn't affect match logic -
+  // it's just a fix for typos or no-shows being relabeled.
+  .patch("/:id/participants/:participantId", async (c) => {
+    const id = c.req.param("id");
+    const pid = c.req.param("participantId");
+    const parsed = await parseJson(c, updateParticipantSchema);
+    if (!parsed.ok) return parsed.response;
+
+    const [cat] = await db
+      .select()
+      .from(categories)
+      .where(eq(categories.id, id))
+      .limit(1);
+    if (!cat) return notFound(c, "Spielklasse");
+
+    const updates: Partial<typeof participants.$inferInsert> = {};
+    if (parsed.data.name !== undefined) updates.name = parsed.data.name;
+    if (parsed.data.club !== undefined) {
+      const club = parsed.data.club;
+      updates.club = club === null ? null : club.trim() || null;
+    }
+
+    const [row] = await db
+      .update(participants)
+      .set(updates)
+      .where(and(eq(participants.id, pid), eq(participants.categoryId, id)))
+      .returning();
+    if (!row) return notFound(c, "Teilnehmer");
+    publishCategoryRevision(id);
+    return c.json({ participant: row });
+  })
   .delete("/:id/participants/:participantId", async (c) => {
     const id = c.req.param("id");
     const pid = c.req.param("participantId");
@@ -200,12 +233,171 @@ export const categoryRoutes = new Hono()
       .where(eq(categories.id, id))
       .limit(1);
     if (!cat) return notFound(c, "Spielklasse");
-    if (cat.drawDone) return conflict(c, "Auslosung bereits abgeschlossen.");
-    const [row] = await db
-      .delete(participants)
-      .where(and(eq(participants.id, pid), eq(participants.categoryId, id)))
-      .returning();
-    if (!row) return notFound(c, "Teilnehmer");
+
+    // Pre-draw: simple delete, the participant has no group/match yet.
+    if (!cat.drawDone) {
+      const [row] = await db
+        .delete(participants)
+        .where(and(eq(participants.id, pid), eq(participants.categoryId, id)))
+        .returning();
+      if (!row) return notFound(c, "Teilnehmer");
+      return c.json({ ok: true });
+    }
+
+    // Post-draw group-phase removal: used for no-shows. Same guard rails as
+    // /groups/move - we refuse once any match has been touched or the KO
+    // bracket exists, because both would silently invalidate persisted
+    // results. Only group-stage structures have a regenerable schedule.
+    if (
+      cat.structure !== "groups_ko" &&
+      cat.structure !== "round_robin" &&
+      cat.structure !== "round_robin_finals"
+    ) {
+      return conflict(
+        c,
+        "Entfernen nach Auslosung nur in Gruppen-/Liga-Strukturen möglich.",
+      );
+    }
+    if (cat.bracketDone) {
+      return conflict(
+        c,
+        "Finalbaum steht bereits - Entfernen würde Ergebnisse verwerfen.",
+      );
+    }
+
+    const catMatches = await db
+      .select()
+      .from(matches)
+      .where(eq(matches.categoryId, id));
+    const alreadyPlayed = catMatches.some((m) => m.status !== "pending");
+    if (alreadyPlayed) {
+      return conflict(
+        c,
+        "Mindestens ein Spiel wurde bereits begonnen - Entfernen nicht mehr möglich.",
+      );
+    }
+
+    const [membership] = await db
+      .select()
+      .from(groupMembers)
+      .where(eq(groupMembers.participantId, pid))
+      .limit(1);
+    // No group membership means the player wasn't placed (shouldn't happen
+    // post-draw, but treat as a plain delete).
+    if (!membership) {
+      const [row] = await db
+        .delete(participants)
+        .where(and(eq(participants.id, pid), eq(participants.categoryId, id)))
+        .returning();
+      if (!row) return notFound(c, "Teilnehmer");
+      publishCategoryRevision(id);
+      return c.json({ ok: true });
+    }
+
+    const sourceMembers = await db
+      .select({ participantId: groupMembers.participantId })
+      .from(groupMembers)
+      .where(eq(groupMembers.groupId, membership.groupId));
+    if (sourceMembers.length <= 2) {
+      return conflict(
+        c,
+        "Gruppe hätte nach dem Entfernen weniger als 2 Spieler.",
+      );
+    }
+
+    const [tournament] = await db
+      .select()
+      .from(tournaments)
+      .where(eq(tournaments.id, cat.tournamentId))
+      .limit(1);
+    if (!tournament) return notFound(c, "Turnier");
+
+    const remainingMembers = await db
+      .select({
+        participantId: groupMembers.participantId,
+        position: groupMembers.position,
+        name: participants.name,
+        club: participants.club,
+      })
+      .from(groupMembers)
+      .innerJoin(participants, eq(groupMembers.participantId, participants.id))
+      .where(eq(groupMembers.groupId, membership.groupId))
+      .orderBy(asc(groupMembers.position));
+    const survivors = remainingMembers.filter((m) => m.participantId !== pid);
+
+    const [deleted] = await db.transaction(async (tx) => {
+      // Drop the participant - cascades remove the groupMembers row and
+      // also any group matches involving them (matches.participantA/BId
+      // are ON DELETE SET NULL, so we wipe + regenerate the group's
+      // schedule below to keep the round-robin clean).
+      const [row] = await tx
+        .delete(participants)
+        .where(
+          and(eq(participants.id, pid), eq(participants.categoryId, id)),
+        )
+        .returning();
+
+      // Re-number positions so they stay 1..n contiguous in the source group.
+      for (let i = 0; i < survivors.length; i++) {
+        await tx
+          .update(groupMembers)
+          .set({ position: i + 1 })
+          .where(
+            and(
+              eq(groupMembers.groupId, membership.groupId),
+              eq(groupMembers.participantId, survivors[i]!.participantId),
+            ),
+          );
+      }
+
+      // Wipe + regenerate group matches just for the affected group. The
+      // rest of the category keeps its existing playOrder untouched.
+      await tx
+        .delete(matches)
+        .where(
+          and(
+            eq(matches.categoryId, id),
+            eq(matches.stage, "group"),
+            eq(matches.groupId, membership.groupId),
+          ),
+        );
+
+      const orderOffset = await tx
+        .select({ n: matches.playOrder })
+        .from(matches)
+        .where(eq(matches.categoryId, id))
+        .orderBy(desc(matches.playOrder))
+        .limit(1);
+      let nextOrder = (orderOffset[0]?.n ?? -1) + 1;
+
+      const groupPlayers: Player[] = survivors.map((m) => ({
+        id: m.participantId,
+        name: m.name,
+        club: m.club ?? undefined,
+      }));
+      if (groupPlayers.length >= 2) {
+        const plan = generateRoundRobin(groupPlayers);
+        for (const m of plan) {
+          await tx.insert(matches).values({
+            categoryId: id,
+            stage: "group",
+            groupId: membership.groupId,
+            round: m.round,
+            matchIndex: m.matchIndex,
+            participantAId: m.a.id,
+            participantBId: m.b.id,
+            playOrder: nextOrder,
+            tableNumber: (nextOrder % tournament.parallelTables) + 1,
+          });
+          nextOrder++;
+        }
+      }
+
+      return [row];
+    });
+
+    if (!deleted) return notFound(c, "Teilnehmer");
+    publishCategoryRevision(id);
     return c.json({ ok: true });
   })
   // Draw / plan - dispatches on category.structure.
