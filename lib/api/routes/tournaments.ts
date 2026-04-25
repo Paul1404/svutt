@@ -9,6 +9,7 @@ import {
   createTournamentSchema,
   updateTournamentSchema,
 } from "@/lib/validators";
+import { publishAdminRevision } from "@/lib/live";
 import { notFound, parseJson, conflict } from "../helpers";
 
 export const tournamentRoutes = new Hono()
@@ -47,6 +48,7 @@ export const tournamentRoutes = new Hono()
       })
       .returning();
 
+    publishAdminRevision();
     return c.json({ tournament: created }, 201);
   })
   .get("/:id", async (c) => {
@@ -91,6 +93,7 @@ export const tournamentRoutes = new Hono()
       .where(eq(tournaments.id, id))
       .returning();
     if (!row) return notFound(c, "Turnier");
+    publishAdminRevision();
     return c.json({ tournament: row });
   })
   .delete("/:id", async (c) => {
@@ -100,6 +103,7 @@ export const tournamentRoutes = new Hono()
       .where(eq(tournaments.id, id))
       .returning();
     if (!row) return notFound(c, "Turnier");
+    publishAdminRevision();
     return c.json({ ok: true });
   })
   // Categories scoped to a tournament
@@ -144,5 +148,6 @@ export const tournamentRoutes = new Hono()
         published: data.published ?? false,
       })
       .returning();
+    publishAdminRevision();
     return c.json({ category: created }, 201);
   });

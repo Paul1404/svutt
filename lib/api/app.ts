@@ -4,6 +4,7 @@ import { tournamentRoutes } from "./routes/tournaments";
 import { categoryRoutes } from "./routes/categories";
 import { matchRoutes } from "./routes/matches";
 import { publicRoutes } from "./routes/public";
+import { adminRoutes } from "./routes/admin";
 import { requireAdmin } from "./middleware";
 
 export const api = new Hono().basePath("/api");
@@ -21,6 +22,8 @@ for (const p of [
   "/categories/*",
   "/matches",
   "/matches/*",
+  "/admin",
+  "/admin/*",
 ]) {
   api.use(p, requireAdmin);
 }
@@ -28,5 +31,6 @@ for (const p of [
 api.route("/tournaments", tournamentRoutes);
 api.route("/categories", categoryRoutes);
 api.route("/matches", matchRoutes);
+api.route("/admin", adminRoutes);
 
 export type ApiType = typeof api;

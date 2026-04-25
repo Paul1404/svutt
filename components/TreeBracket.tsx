@@ -286,18 +286,27 @@ export function TreeBracket({
           const top = centerY(m.id, r.round, m.matchIndex) - cardH / 2;
           const left = columnX(r.round);
 
+          // Card visual states (mutually exclusive, in priority order):
+          //   1. Finale winner: gold treatment, kept as hardcoded amber so
+          //      the trophy framing matches the rest of the tournament UI.
+          //   2. In progress (admin flagged "wird gespielt"): amber tint via
+          //      the dark-mode-aware .bracket-card-live class.
+          //   3. Finished (non-finale): subtle emerald tint so admins can see
+          //      at a glance which slots are still pending.
+          const stateClass = isFinaleWinner
+            ? "ring-2 ring-amber-400 bg-amber-50/70 overflow-hidden"
+            : inProgress
+              ? "bracket-card-live"
+              : done && !isBye
+                ? "bracket-card-done"
+                : "";
           const className = [
             "absolute",
-            isFinaleWinner
-              ? "card ring-2 ring-amber-400 bg-amber-50/70 overflow-hidden"
-              : inProgress
-                ? canClick
-                  ? "card-hover cursor-pointer ring-2 ring-amber-300 bg-amber-50/70"
-                  : "card ring-2 ring-amber-300 bg-amber-50/70"
-                : canClick
-                  ? "card-hover cursor-pointer"
-                  : "card",
-          ].join(" ");
+            canClick ? "card-hover cursor-pointer" : "card",
+            stateClass,
+          ]
+            .filter(Boolean)
+            .join(" ");
 
           const style = {
             left,
@@ -368,21 +377,27 @@ export function TreeBracket({
                 labelSize={dims.labelSize}
               />
               <div
-                className={`mt-1 flex items-center gap-1 font-mono tabular-nums truncate ${
-                  inProgress ? "text-amber-700" : "text-ink-500"
-                }`}
+                className="mt-1 flex items-center gap-1 font-mono tabular-nums truncate text-ink-500"
                 style={{ fontSize: dims.labelSize }}
               >
                 {inProgress && !isFinaleWinner && (
                   <span
-                    className="inline-flex items-center gap-1 rounded bg-amber-200/70 px-1 py-px font-semibold uppercase tracking-wider text-amber-800"
+                    className="bracket-pill-live inline-flex items-center gap-1 rounded px-1 py-px font-semibold uppercase tracking-wider"
                     style={{ fontSize: Math.max(dims.labelSize - 1, 8) }}
                   >
                     <span
-                      className="h-1 w-1 animate-pulse rounded-full bg-amber-600"
+                      className="bracket-pill-live-dot h-1 w-1 animate-pulse rounded-full"
                       aria-hidden
                     />
                     Live
+                  </span>
+                )}
+                {done && !isBye && !isFinaleWinner && (
+                  <span
+                    className="bracket-pill-done inline-flex items-center gap-1 rounded px-1 py-px font-semibold uppercase tracking-wider"
+                    style={{ fontSize: Math.max(dims.labelSize - 1, 8) }}
+                  >
+                    Beendet
                   </span>
                 )}
                 <span className="truncate">

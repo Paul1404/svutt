@@ -200,6 +200,47 @@ html[data-theme="dark"] .match-row-live .match-row-live-meta {
   color: #fcd34d;
 }
 
+/* Bracket card states. Live and finished cards both need a tint that stays
+   readable on the dark surface palette - amber-50/emerald-50 hardcodes
+   would render near-white. We expose three tones (live/done/finale) so the
+   TreeBracket can swap state without inlining colors. */
+.bracket-card-live {
+  background: rgb(254 243 199 / 0.6);
+  border-color: rgb(252 211 77);
+  box-shadow: inset 0 0 0 1px rgb(252 211 77);
+}
+html[data-theme="dark"] .bracket-card-live {
+  background: rgb(245 158 11 / 0.14);
+  border-color: rgb(245 158 11 / 0.55);
+  box-shadow: inset 0 0 0 1px rgb(245 158 11 / 0.55);
+}
+.bracket-card-done {
+  background: rgb(236 253 245 / 0.55);
+  border-color: rgb(110 231 183 / 0.7);
+}
+html[data-theme="dark"] .bracket-card-done {
+  background: rgb(16 185 129 / 0.1);
+  border-color: rgb(16 185 129 / 0.4);
+}
+.bracket-pill-live {
+  background: rgb(252 211 77 / 0.7);
+  color: #92400e;
+}
+.bracket-pill-live-dot { background: #d97706; }
+html[data-theme="dark"] .bracket-pill-live {
+  background: rgb(245 158 11 / 0.25);
+  color: #fcd34d;
+}
+html[data-theme="dark"] .bracket-pill-live-dot { background: #fbbf24; }
+.bracket-pill-done {
+  background: rgb(167 243 208 / 0.7);
+  color: #065f46;
+}
+html[data-theme="dark"] .bracket-pill-done {
+  background: rgb(16 185 129 / 0.22);
+  color: #6ee7b7;
+}
+
 /* Brief amber pulse used by the player search palette to point the eye at
    the row the admin just jumped to. Works on both <tr> and <li>. */
 @keyframes player-search-hit-pulse {

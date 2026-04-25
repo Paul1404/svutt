@@ -306,6 +306,47 @@ describe("buildBracket", () => {
     expect(topHalf(locate("A1"))).not.toBe(topHalf(locate("B1")));
   });
 
+  it("avoids round-0 same-group rematches with irregular qualifier counts", () => {
+    // 3 groups × Top 2 = 6 qualifiers padded into an 8-slot bracket. The
+    // raw classical seeding pairs C1 vs C2 (last group's winner meets its
+    // own runner-up) - that's the exact rematch admins flagged. The
+    // swap-to-avoid pass must split them by trading one rank-2 slot with
+    // another rank-2 from a different group.
+    const groups = ["A", "B", "C"].map((lbl, gi) =>
+      makeGroup(
+        `g${gi}`,
+        lbl,
+        [0, 1, 2, 3].map((pi) => makePlayer(`${lbl}${pi + 1}`)),
+      ),
+    );
+    const br = buildBracket({ groups, advancementCount: 2 });
+    expect(br.size).toBe(8);
+
+    const r0 = br.matches.filter((m) => m.round === 0);
+    for (const m of r0) {
+      if (m.a.kind !== "player" || m.b.kind !== "player") continue;
+      const aSrc = m.a.source;
+      const bSrc = m.b.source;
+      if ("groupLabel" in aSrc && "groupLabel" in bSrc) {
+        expect(aSrc.groupLabel).not.toBe(bSrc.groupLabel);
+      }
+    }
+
+    // Byes still go to the strongest qualifiers. The fix only swaps players
+    // of the same rank-tier, so the bye topology is unchanged - 6 players
+    // in an 8-bracket means the two top seeds (A1, B1) get the byes.
+    const byePlayers = new Set<string>();
+    for (const m of r0) {
+      if (m.a.kind === "empty" && m.b.kind === "player")
+        byePlayers.add(m.b.playerId);
+      if (m.b.kind === "empty" && m.a.kind === "player")
+        byePlayers.add(m.a.playerId);
+    }
+    expect(byePlayers.size).toBe(2);
+    expect(byePlayers.has("A1")).toBe(true);
+    expect(byePlayers.has("B1")).toBe(true);
+  });
+
   it("handles a trivial 2-group tournament with Top 1", () => {
     const groups = ["A", "B"].map((lbl, gi) =>
       makeGroup(`g${gi}`, lbl, [makePlayer(`${lbl}1`), makePlayer(`${lbl}2`)]),

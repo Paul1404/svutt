@@ -284,6 +284,13 @@ function buildTree(seeds: readonly BracketSlot[], idPrefix: string): Bracket {
     slots[pos] = seeds[seedIdx] ?? { kind: "empty" };
   }
 
+  // Avoid round-0 rematches between two players from the same group (e.g.
+  // the C-group's 1st and 2nd qualifier ending up paired with classical
+  // seeding when the qualifier count isn't a clean multiple of group count).
+  // Only swaps two real-player slots of the same rank-tier, never touches
+  // empties, so byes still land on the top seeds.
+  swapToAvoidSameGroupRound0(slots);
+
   const totalRounds = Math.log2(size);
   const matches: BracketMatch[] = [];
 
@@ -332,4 +339,83 @@ function buildTree(seeds: readonly BracketSlot[], idPrefix: string): Bracket {
 
 function matchId(prefix: string, round: number, idx: number): string {
   return `${prefix}-r${round}-m${idx}`;
+}
+
+/** Group label of a player slot, or `null` for empty / pending slots. */
+function slotGroupLabel(s: BracketSlot): string | null {
+  if (s.kind !== "player") return null;
+  return s.source.groupLabel;
+}
+
+/**
+ * Rank-tier of a player slot: 1 for group winners, 2+ for runners-up. Used
+ * to keep swaps within the same strength tier so seeding integrity (top
+ * seeds get easier round-0 pairings, byes go to the strongest qualifiers)
+ * is preserved.
+ */
+function slotTier(s: BracketSlot): number | null {
+  if (s.kind !== "player") return null;
+  return s.source.type === "winner" ? 1 : s.source.groupRank;
+}
+
+function sameGroup(a: BracketSlot, b: BracketSlot): boolean {
+  const ga = slotGroupLabel(a);
+  const gb = slotGroupLabel(b);
+  return ga !== null && gb !== null && ga === gb;
+}
+
+/**
+ * Walk round-0 pairings and break any same-group rematch by swapping one
+ * side with another seed of the same rank-tier. Mutates `slots` in place.
+ *
+ * Strategy: for every conflicting pair, scan the other pairs for a swap
+ * that resolves both pairs (and doesn't create a new conflict). If no
+ * tier-matching swap exists, we leave the pair alone - that's vanishingly
+ * rare in practice (would need every same-tier seed to also be from the
+ * conflicting group, which means there's literally no way to avoid it).
+ */
+function swapToAvoidSameGroupRound0(slots: BracketSlot[]): void {
+  const numPairs = slots.length / 2;
+  for (let k = 0; k < numPairs; k++) {
+    const a = slots[2 * k]!;
+    const b = slots[2 * k + 1]!;
+    if (!sameGroup(a, b)) continue;
+
+    // Try to swap `b` with another seed `x` such that both new pairs are
+    // safe. Walking outward from k keeps the swap local, which preserves
+    // seed strength as much as possible.
+    let resolved = false;
+    for (let dist = 1; dist < numPairs && !resolved; dist++) {
+      for (const j of [k + dist, k - dist]) {
+        if (j < 0 || j >= numPairs || j === k) continue;
+        const c = slots[2 * j]!;
+        const d = slots[2 * j + 1]!;
+        // Prefer swapping `b` with `d` (same side of the pair). Only swap
+        // two players of the same rank-tier so seeding integrity holds.
+        if (
+          slotTier(b) !== null &&
+          slotTier(b) === slotTier(d) &&
+          !sameGroup(a, d) &&
+          !sameGroup(c, b)
+        ) {
+          slots[2 * k + 1] = d;
+          slots[2 * j + 1] = b;
+          resolved = true;
+          break;
+        }
+        // Fallback: swap `b` with `c`.
+        if (
+          slotTier(b) !== null &&
+          slotTier(b) === slotTier(c) &&
+          !sameGroup(a, c) &&
+          !sameGroup(b, d)
+        ) {
+          slots[2 * k + 1] = c;
+          slots[2 * j] = b;
+          resolved = true;
+          break;
+        }
+      }
+    }
+  }
 }
