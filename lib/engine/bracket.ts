@@ -1,4 +1,5 @@
 import { computeStandings } from "./standings";
+import { seedingOrder } from "./koOnly";
 import type {
   Bracket,
   BracketMatch,
@@ -26,6 +27,16 @@ export type BracketInput = {
   luckyLoserEnabled?: boolean;
 };
 
+type SeededEntry = {
+  slot: BracketSlot;
+  groupLabel: string;
+  groupRank: number;
+  /** Sort keys for seeding, best first. */
+  wins: number;
+  setDiff: number;
+  pointDiff: number;
+};
+
 export type LuckyLoserEntry = {
   playerId: PlayerId;
   groupLabel: string;
@@ -51,6 +62,26 @@ export function nextPowerOfTwo(n: number): number {
   return p;
 }
 
+/**
+ * Flatten group standings into a map of participantId → {groupLabel, groupRank}.
+ * Useful for labeling who came from which group in bracket views ("1. Gruppe A",
+ * "3. Gruppe B", …). Rank is 1-based; rank 1 is the group winner.
+ */
+export function buildBracketOrigins(
+  standings: readonly GroupStanding[],
+): Map<PlayerId, { groupLabel: string; groupRank: number }> {
+  const out = new Map<PlayerId, { groupLabel: string; groupRank: number }>();
+  for (const s of standings) {
+    for (const row of s.rows) {
+      out.set(row.playerId, {
+        groupLabel: s.groupLabel,
+        groupRank: row.rank,
+      });
+    }
+  }
+  return out;
+}
+
 function labelForRound(round: number, totalRounds: number): string {
   const fromEnd = totalRounds - round - 1;
   if (fromEnd === 0) return "Finale";
@@ -64,8 +95,10 @@ function labelForRound(round: number, totalRounds: number): string {
  * Build the main KO bracket + optional loser bracket from group results.
  *
  * Main bracket: the top `advancementCount` of every group (default 2).
- * Seeding interleaves winners with runners-up in reverse group order so that
- * same-group players cannot meet in the first round (when advancementCount=2).
+ * Qualifiers are ranked globally by group rank, then wins / setDiff / pointDiff
+ * and placed into classical seeding positions. That way byes always go to the
+ * top seeds (the strongest qualifiers) and top seeds can only meet late in
+ * the tree (1 vs 2 in the final, top 4 in the semis, etc.).
  *
  * Loser bracket: the remaining players (rank > advancementCount), seeded by
  * their standing row, best-to-worst.
@@ -88,7 +121,10 @@ export function buildBracket(input: BracketInput): BuiltBracket {
 
   // ---- Main bracket ----
   const mainEntries = buildMainEntries(standings, advancementCount);
-  const main = buildTree(mainEntries, "ko");
+  const main = buildTree(
+    mainEntries.map((e) => e.slot),
+    "ko",
+  );
 
   // ---- Loser bracket ----
   const losersEntries: LuckyLoserEntry[] = luckyLoserEnabled
@@ -120,23 +156,25 @@ export function buildBracket(input: BracketInput): BuiltBracket {
 }
 
 /**
- * Seeds the main bracket. Slots go: winners in group order, then runners-up
- * in reverse group order, then 3rd-placers in group order, and so on. With
- * the "first half vs second half" pairing rule this keeps same-group players
- * on opposite ends of the bracket.
+ * Rank the main-bracket qualifiers globally by strength so byes land on the
+ * top seeds via classical seeding. Ordering: group rank asc (rank 1 before
+ * rank 2), then wins / setDiff / pointDiff desc, stable by group label.
+ *
+ * Returns entries in seed order (best first). Empty entries are not
+ * included; empty seeding positions are filled later by `buildTree` when
+ * the qualifier count isn't a power of two.
  */
 function buildMainEntries(
   standings: GroupStanding[],
   advancementCount: number,
-): BracketSlot[] {
-  const slots: BracketSlot[] = [];
+): SeededEntry[] {
+  const entries: SeededEntry[] = [];
   for (let rank = 0; rank < advancementCount; rank++) {
-    const order =
-      rank % 2 === 0 ? standings : [...standings].reverse();
-    for (const s of order) {
+    for (const s of standings) {
       const row = s.rows[rank];
-      if (row) {
-        slots.push({
+      if (!row) continue;
+      entries.push({
+        slot: {
           kind: "player",
           playerId: row.playerId,
           source:
@@ -147,13 +185,23 @@ function buildMainEntries(
                   groupLabel: s.groupLabel,
                   groupRank: rank + 1,
                 },
-        });
-      } else {
-        slots.push({ kind: "empty" });
-      }
+        },
+        groupLabel: s.groupLabel,
+        groupRank: rank + 1,
+        wins: row.wins,
+        setDiff: row.setDiff,
+        pointDiff: row.pointDiff,
+      });
     }
   }
-  return slots;
+  entries.sort((x, y) => {
+    if (x.groupRank !== y.groupRank) return x.groupRank - y.groupRank;
+    if (y.wins !== x.wins) return y.wins - x.wins;
+    if (y.setDiff !== x.setDiff) return y.setDiff - x.setDiff;
+    if (y.pointDiff !== x.pointDiff) return y.pointDiff - x.pointDiff;
+    return x.groupLabel.localeCompare(y.groupLabel);
+  });
+  return entries;
 }
 
 /**
@@ -190,31 +238,39 @@ function buildLosersPool(
 }
 
 /**
- * Build a single-elimination tree from a list of seeds. Empty slots are
- * appended to pad to the next power of two.
+ * Build a single-elimination tree from a strength-ranked seed list.
  *
- * Every seeded player appears in a round-0 match card — a lone player paired
- * with an empty opponent becomes an explicit round-0 bye ("Player X vs …")
- * and its winner slot propagates as `pending` into round 1 just like a real
- * match. This keeps players from visually skipping the first round.
+ * Seeds are placed at classical bracket positions so that:
+ *   - The top seed meets the bottom seed in round 0, seed 2 meets the
+ *     second-worst seed, and so on (1-vs-N, 2-vs-(N-1), …).
+ *   - Top seeds cannot meet until the final (seed 1 vs seed 2), top 4 not
+ *     until the semifinal, etc.
+ *   - Byes (empty seeds beyond the qualifier count) naturally land opposite
+ *     the top seeds: with 10 qualifiers in a 16-bracket, the top 6 seeds
+ *     get round-0 byes and only the bottom 4 play round 0.
  *
- * For rounds beyond 0, byes only arise when a whole subtree is empty (all
- * seeds fell in the opposite half). There the filled side is propagated as-is
- * so we don't paint phantom "pending vs …" cards deep in the tree. A pair
- * where both slots are empty propagates as empty.
+ * Round 0 always emits a match card for every real player (including byes
+ * against empty slots) so no one visually skips the first round. Later
+ * rounds collapse empty subtrees so we never paint phantom cards deep in
+ * the tree.
  */
 function buildTree(seeds: readonly BracketSlot[], idPrefix: string): Bracket {
   const nonEmpty = seeds.length;
   if (nonEmpty === 0) return { size: 0, matches: [] };
 
   const size = nextPowerOfTwo(nonEmpty);
-  const slots: BracketSlot[] = seeds.slice();
-  while (slots.length < size) slots.push({ kind: "empty" });
-
   if (size === 1) return { size: 1, matches: [] };
 
+  // Place seed k (0-based, best first) at its classical bracket position.
+  // order[pos] = k means "seed k goes into bracket slot pos".
+  const order = seedingOrder(size);
+  const slots: BracketSlot[] = new Array(size);
+  for (let pos = 0; pos < size; pos++) {
+    const seedIdx = order[pos]!;
+    slots[pos] = seeds[seedIdx] ?? { kind: "empty" };
+  }
+
   const totalRounds = Math.log2(size);
-  const half = size / 2;
   const matches: BracketMatch[] = [];
 
   const makeMatch = (
@@ -226,10 +282,6 @@ function buildTree(seeds: readonly BracketSlot[], idPrefix: string): Bracket {
     const aEmpty = a.kind === "empty";
     const bEmpty = b.kind === "empty";
     if (aEmpty && bEmpty) return { kind: "empty" };
-    // Round 0: always emit a match card for any player with a slot, even if
-    // their opponent is empty (bye). Later rounds collapse (pending, empty)
-    // byes to the filled side so we don't generate hollow cards in subtrees
-    // that have no real matches.
     if (round > 0) {
       if (aEmpty) return b;
       if (bEmpty) return a;
@@ -246,15 +298,13 @@ function buildTree(seeds: readonly BracketSlot[], idPrefix: string): Bracket {
     return { kind: "pending", fromMatchId: id };
   };
 
-  // Round 0 uses "first half vs second half" pairing so same-group seeds
-  // (who are placed at mirrored positions) stay on opposite ends of the
-  // bracket.
+  // Round 0: pair adjacent seed positions (classical 1-vs-N pairing).
   let feeds: BracketSlot[] = [];
-  for (let i = 0; i < half; i++) {
-    feeds.push(makeMatch(0, i, slots[i]!, slots[i + half]!));
+  for (let i = 0; i < size / 2; i++) {
+    feeds.push(makeMatch(0, i, slots[i * 2]!, slots[i * 2 + 1]!));
   }
 
-  // Rounds 1+ pair adjacent feeds.
+  // Rounds 1+: pair adjacent winners from the previous round.
   for (let r = 1; r < totalRounds; r++) {
     const next: BracketSlot[] = [];
     for (let i = 0; i < feeds.length; i += 2) {

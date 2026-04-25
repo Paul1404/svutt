@@ -32,7 +32,7 @@ export function ClubMark({
       >
         <Image
           src="/logo.png"
-          alt="SV 1945 Untereuerheim e.V. — Vereinslogo"
+          alt="SV 1945 Untereuerheim e.V. - Vereinslogo"
           width={cfg.img}
           height={cfg.img}
           priority

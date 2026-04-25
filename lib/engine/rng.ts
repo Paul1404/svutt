@@ -1,5 +1,5 @@
 /**
- * Deterministic seeded RNG using Mulberry32. Pure and portable — allows
+ * Deterministic seeded RNG using Mulberry32. Pure and portable - allows
  * reproducing draws during tests and debugging.
  */
 export type Rng = () => number;

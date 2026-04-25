@@ -13,7 +13,7 @@ if (!connectionString && process.env.NODE_ENV !== "test") {
   // Defer throwing until someone actually uses the DB so that pure unit tests
   // can import schema types without a live database.
   // eslint-disable-next-line no-console
-  console.warn("[svutt] DATABASE_URL is not set — DB queries will fail.");
+  console.warn("[svutt] DATABASE_URL is not set - DB queries will fail.");
 }
 
 const client =

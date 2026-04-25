@@ -58,7 +58,7 @@ export function ChipGroup<T extends number | string>({
             max={customMax}
             disabled={disabled}
             value={isCustom ? value : ""}
-            placeholder="—"
+            placeholder="-"
             onChange={(e) => {
               const n = parseInt(e.target.value, 10);
               if (!Number.isNaN(n)) onChange(n as T);

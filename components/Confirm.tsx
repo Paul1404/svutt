@@ -100,7 +100,7 @@ function ConfirmDialog({
 
   useEffect(() => {
     previouslyFocused.current = document.activeElement;
-    // Give the cancel button focus by default — safer than confirm when a
+    // Give the cancel button focus by default - safer than confirm when a
     // user mashes Enter. Enter still works globally because the confirm
     // button is wired to it below.
     cancelBtn.current?.focus();
@@ -124,7 +124,7 @@ function ConfirmDialog({
         onClose(false);
       } else if (e.key === "Enter") {
         // Only trigger confirm via Enter when the user hasn't focused the
-        // cancel button — matches how native dialogs behave.
+        // cancel button - matches how native dialogs behave.
         if (document.activeElement !== cancelBtn.current) {
           e.preventDefault();
           onClose(true);

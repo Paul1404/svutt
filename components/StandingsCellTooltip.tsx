@@ -21,7 +21,7 @@ const METRIC_LABELS: Record<Metric, string> = {
 };
 
 const METRIC_HINTS: Record<Metric, string> = {
-  wins: "Anzahl gewonnener Spiele — Niederlagen.",
+  wins: "Anzahl gewonnener Spiele - Niederlagen.",
   sets: "Summe gewonnene Sätze minus verlorene Sätze.",
   points: "Summe gewonnene Ballpunkte minus verlorene Ballpunkte.",
 };
@@ -132,7 +132,7 @@ export function StandingsCellTooltip({
     <span ref={wrapRef} className="inline-block">
       <button
         type="button"
-        aria-label={`${METRIC_LABELS[metric]} — Details anzeigen`}
+        aria-label={`${METRIC_LABELS[metric]} - Details anzeigen`}
         aria-expanded={open}
         aria-describedby={open ? id : undefined}
         onClick={() => setOpen((v) => !v)}
@@ -140,7 +140,7 @@ export function StandingsCellTooltip({
           if (e.pointerType === "mouse") setOpen(true);
         }}
         onFocus={(e) => {
-          // Touch devices synthesize focus on tap — rely on onClick there so
+          // Touch devices synthesize focus on tap - rely on onClick there so
           // tapping toggles instead of latching open.
           if (e.currentTarget.matches(":focus-visible")) setOpen(true);
         }}

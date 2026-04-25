@@ -56,7 +56,25 @@ describe("computeGroupShape", () => {
 
   it("handles preferred size 8", () => {
     expect(computeGroupShape(16, 8)).toEqual([8, 8]);
-    expect(computeGroupShape(20, 8)).toEqual([10, 10]);
+    // 20 @ 8 splits to 3 groups of [7,7,6] rather than 2 groups of 10 -
+    // groups of 10 sit too far above the preferred size.
+    expect(computeGroupShape(20, 8)).toEqual([7, 7, 6]);
+  });
+
+  it("splits 23 players at preferred 6 into [6,6,6,5] rather than [8,8,7]", () => {
+    expect(computeGroupShape(23, 6)).toEqual([6, 6, 6, 5]);
+  });
+
+  it("keeps 24 players at preferred 6 as four clean groups of 6", () => {
+    expect(computeGroupShape(24, 6)).toEqual([6, 6, 6, 6]);
+  });
+
+  it("keeps fewer, bigger groups when they still fit near the preferred size", () => {
+    // lower=4 groups would be [5,4,4,4]; upper=5 would be [4,4,4,4,1]-ish
+    // (actually capped to [4,4,4,4,1] → 4 groups is the fair choice).
+    expect(computeGroupShape(17, 4)).toEqual([5, 4, 4, 4]);
+    // 11/4: lower=2 → [6,5] is 2 over preferred; upper=3 → [4,4,3] is cleaner.
+    expect(computeGroupShape(11, 4)).toEqual([4, 4, 3]);
   });
 
   it("handles empty pool", () => {
@@ -127,7 +145,7 @@ describe("orderBySeed", () => {
   });
 });
 
-describe("drawGroups — seeded_snake mode", () => {
+describe("drawGroups - seeded_snake mode", () => {
   it("ignores the RNG seed and uses participant.seed order", () => {
     const pool: SeededPlayer[] = seededPlayers([
       { id: "p1", seed: 1 },
@@ -188,7 +206,7 @@ describe("drawGroups — seeded_snake mode", () => {
   });
 });
 
-describe("drawGroups — paste_order mode", () => {
+describe("drawGroups - paste_order mode", () => {
   it("fills groups sequentially in input order, no shuffle", () => {
     const pool = players(8);
     const groups = drawGroups(pool, {

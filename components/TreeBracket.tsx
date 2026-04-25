@@ -6,10 +6,27 @@ import { Trophy } from "@/components/Icon";
 
 export type TreeBracketMatch = Match;
 
+/**
+ * Origin of a player in the KO bracket: which group they came from and at
+ * what rank (1 = group winner). Used for the small "woher?" caption under
+ * each name so viewers can see at a glance why a player is there - not just
+ * "because they advanced" but "because they won Gruppe A", etc.
+ */
+export type BracketOrigin = {
+  groupLabel: string;
+  groupRank: number;
+};
+
 type Props = {
   matches: TreeBracketMatch[];
   sets: MatchSetRow[];
   participants: Participant[];
+  /**
+   * Optional map from participantId → origin (group + rank). When provided,
+   * each round-0 card shows a small caption under the player name so viewers
+   * can see why someone advanced (e.g. "1. Gruppe A").
+   */
+  origins?: Map<string, BracketOrigin>;
   onMatchClick?: (match: TreeBracketMatch) => void;
   highlightFinal?: boolean;
 };
@@ -26,7 +43,7 @@ type Dims = {
 
 const DESKTOP: Dims = {
   cardWidth: 240,
-  cardHeight: 94,
+  cardHeight: 112,
   columnGap: 56,
   rowGap: 22,
   fontSize: 14,
@@ -36,13 +53,18 @@ const DESKTOP: Dims = {
 
 const MOBILE: Dims = {
   cardWidth: 156,
-  cardHeight: 78,
+  cardHeight: 92,
   columnGap: 22,
   rowGap: 14,
   fontSize: 12,
   labelSize: 9,
   padX: 8,
 };
+
+function formatOrigin(o: BracketOrigin): string {
+  if (o.groupRank === 1) return `1. Gruppe ${o.groupLabel}`;
+  return `${o.groupRank}. Gruppe ${o.groupLabel}`;
+}
 
 /**
  * Real-tree single-elimination bracket. Matches are positioned absolutely so
@@ -54,6 +76,7 @@ export function TreeBracket({
   matches,
   sets,
   participants,
+  origins,
   onMatchClick,
   highlightFinal = false,
 }: Props) {
@@ -258,6 +281,19 @@ export function TreeBracket({
             padding: `${dims.padX - 2}px ${dims.padX}px`,
           } as const;
 
+          // Show origins only on the first round - after that the story
+          // is "winner of the previous card" and an origin line would clutter.
+          const showOrigins = r.round === 0 && !!origins;
+          const originA = showOrigins && a ? origins.get(a.id) : undefined;
+          const originB = showOrigins && b ? origins.get(b.id) : undefined;
+          // The "advancing side" in a bye: the player whose opponent is an
+          // empty slot. We add a tiny "kampflos weiter" caption so the card
+          // itself explains the advance.
+          const byeAdvancesA = isBye && !!a && !b;
+          const byeAdvancesB = isBye && !!b && !a;
+          const byeCaption = "kampflos weiter";
+          const opponentMissing = isBye ? "kein:e Gegner:in" : null;
+
           const content = (
             <>
               {isFinaleWinner && (
@@ -270,18 +306,42 @@ export function TreeBracket({
               )}
               <Row
                 name={a?.name ?? (isBye ? "Freilos" : "…")}
+                caption={
+                  a
+                    ? byeAdvancesA
+                      ? byeCaption
+                      : originA
+                        ? formatOrigin(originA)
+                        : null
+                    : isBye
+                      ? opponentMissing
+                      : null
+                }
                 score={done && !isBye ? m.setsA : null}
                 winner={winnerA}
                 placeholder={!a}
                 compact={isMobile}
+                labelSize={dims.labelSize}
               />
               <div className="my-1 h-px bg-ink-100" />
               <Row
                 name={b?.name ?? (isBye ? "Freilos" : "…")}
+                caption={
+                  b
+                    ? byeAdvancesB
+                      ? byeCaption
+                      : originB
+                        ? formatOrigin(originB)
+                        : null
+                    : isBye
+                      ? opponentMissing
+                      : null
+                }
                 score={done && !isBye ? m.setsB : null}
                 winner={winnerB}
                 placeholder={!b}
                 compact={isMobile}
+                labelSize={dims.labelSize}
               />
               <div
                 className="mt-1 text-ink-500 font-mono tabular-nums truncate"
@@ -326,29 +386,43 @@ export function TreeBracket({
 
 function Row({
   name,
+  caption,
   score,
   winner,
   placeholder,
   compact,
+  labelSize,
 }: {
   name: string;
+  caption: string | null;
   score: number | null;
   winner: boolean;
   placeholder: boolean;
   compact: boolean;
+  labelSize: number;
 }) {
   return (
     <div
-      className="flex items-center justify-between py-0.5"
+      className="flex items-start justify-between py-0.5"
       style={{ fontSize: compact ? 12 : 14 }}
     >
-      <span
-        className={`truncate ${
-          placeholder ? "italic text-ink-400" : winner ? "font-bold" : ""
-        }`}
-      >
-        {name}
-      </span>
+      <div className="min-w-0 flex-1">
+        <div
+          className={`truncate ${
+            placeholder ? "italic text-ink-400" : winner ? "font-bold" : ""
+          }`}
+        >
+          {name}
+        </div>
+        {caption && (
+          <div
+            className="truncate text-ink-400 italic"
+            style={{ fontSize: labelSize }}
+          >
+            {caption}
+          </div>
+        )}
+      </div>
       <span
         className={`pl-1.5 font-mono tabular-nums ${winner ? "font-bold text-brand-700" : "text-ink-500"}`}
         style={{ fontSize: compact ? 11 : 12 }}

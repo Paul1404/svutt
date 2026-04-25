@@ -11,7 +11,12 @@ import {
   participants,
   tournaments,
 } from "@/lib/db/schema";
-import { computeStandings, type EngineGroup, type Player } from "@/lib/engine";
+import {
+  buildBracketOrigins,
+  computeStandings,
+  type EngineGroup,
+  type Player,
+} from "@/lib/engine";
 import {
   isTournamentStructure,
   type TournamentStructure,
@@ -125,6 +130,7 @@ export default async function PublicCategoryPage({
   });
 
   const standings = engineGroups.map(computeStandings);
+  const bracketOrigins = buildBracketOrigins(standings);
 
   const groupMatches = matchRows.filter((m) => m.stage === "group");
   const koMatches = matchRows.filter((m) => m.stage === "ko");
@@ -205,6 +211,7 @@ export default async function PublicCategoryPage({
                 losersMatches={losersMatches}
                 sets={setRows}
                 participants={parts}
+                origins={bracketOrigins}
               />
             )}
           </>

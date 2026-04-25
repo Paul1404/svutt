@@ -9,7 +9,7 @@ export type TestDb = ReturnType<typeof drizzle<typeof schema>>;
 
 /**
  * Spin up a fresh in-process Postgres (PGlite) with the full SVUTT schema
- * applied. Each call returns an isolated database — no shared state.
+ * applied. Each call returns an isolated database - no shared state.
  *
  * This lets us exercise the Hono API without a real Postgres on the host.
  */

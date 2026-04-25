@@ -80,7 +80,7 @@ export function PublishToggle({
         </span>
         <div>
           <div className="font-semibold tracking-tight text-amber-900">
-            Entwurf — noch nicht öffentlich
+            Entwurf - noch nicht öffentlich
           </div>
           <p className="mt-0.5 text-sm text-amber-900/80">
             Nur Admins sehen diese Spielklasse. Auf der öffentlichen

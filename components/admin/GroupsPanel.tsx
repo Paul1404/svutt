@@ -217,7 +217,7 @@ export function GroupsPanel({
                               e.dataTransfer.effectAllowed = "move";
                               // Set payload so browsers with strict DnD
                               // validation (Firefox) actually initiate the
-                              // drag — the value itself is not used.
+                              // drag - the value itself is not used.
                               e.dataTransfer.setData("text/plain", r.playerId);
                             }}
                             onDragEnd={() => {

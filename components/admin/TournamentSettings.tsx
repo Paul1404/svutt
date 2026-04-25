@@ -195,7 +195,7 @@ function DangerZone({
             Gefahrenzone
           </h3>
           <p className="mt-1 text-sm text-brand-800">
-            Das Turnier komplett löschen — inklusive aller Spielklassen,
+            Das Turnier komplett löschen - inklusive aller Spielklassen,
             Teilnehmer und Ergebnisse. Lässt sich nicht rückgängig machen.
           </p>
 

@@ -1,7 +1,7 @@
 // Tiny in-process pub/sub for live result updates. Admins mutate data
 // (result entered, draw done, bracket built, ...) and push a "revision"
 // event into a per-category bus; public SSE clients are subscribed and get
-// told to re-fetch. There is no persistence — if the server restarts every
+// told to re-fetch. There is no persistence - if the server restarts every
 // client just reconnects and keeps polling the HTTP fallback.
 //
 // Designed for the single-instance Railway deployment this project actually
@@ -26,7 +26,7 @@ function state() {
   if (!globalThis.__svutt_live__) {
     const bus = new EventEmitter();
     // Each SSE client registers one listener per connection. The cap is
-    // generous enough that Node stops warning us — the real backpressure
+    // generous enough that Node stops warning us - the real backpressure
     // comes from browsers limiting open connections to the same origin.
     bus.setMaxListeners(1000);
     globalThis.__svutt_live__ = {
@@ -39,7 +39,7 @@ function state() {
 
 /**
  * Bump the revision for a category and notify every connected subscriber.
- * Safe to call from any admin route — never throws even if nothing is
+ * Safe to call from any admin route - never throws even if nothing is
  * listening.
  */
 export function publishCategoryRevision(categoryId: string): number {

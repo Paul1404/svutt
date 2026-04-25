@@ -18,7 +18,7 @@ export function StandingsExplainer() {
       <div className="px-4 pb-4 pt-1 text-sm text-ink-600 space-y-3">
         <p>
           Die Platzierung in jeder Gruppe richtet sich nach den folgenden
-          Kriterien — jeweils in dieser Reihenfolge, erst bei Gleichstand wird
+          Kriterien - jeweils in dieser Reihenfolge, erst bei Gleichstand wird
           das nächste Kriterium gezogen:
         </p>
         <ol className="list-decimal pl-5 space-y-1 marker:text-ink-400">
@@ -35,7 +35,7 @@ export function StandingsExplainer() {
           </li>
           <li>
             <strong>Direkter Vergleich</strong>: nur wenn genau zwei Spieler
-            in allen drei Werten darüber gleich sind — dann entscheidet, wer
+            in allen drei Werten darüber gleich sind - dann entscheidet, wer
             das Spiel gegen den anderen gewonnen hat.
           </li>
           <li>

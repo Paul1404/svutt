@@ -245,7 +245,7 @@ export function CategorySettings({
         </div>
         {drawn && (
           <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-            Gruppen sind bereits gezogen — Gruppengröße und Spielmodus lassen
+            Gruppen sind bereits gezogen - Gruppengröße und Spielmodus lassen
             sich nicht mehr ändern. Satz-Regeln bleiben anpassbar.
           </div>
         )}
@@ -334,7 +334,7 @@ export function CategorySettings({
                     (6 Spiele pro Gruppe). Bei ungerader Teilnehmerzahl verteilen
                     wir die Überhänge automatisch, damit keine winzige Gruppe
                     entsteht. Bei „Jeder gegen jeden“ wird ohnehin eine einzige
-                    Gruppe gebildet — der Wert dient nur der Ablage.
+                    Gruppe gebildet - der Wert dient nur der Ablage.
                   </HelpTooltip>
                 </div>
                 <ChipGroup
@@ -389,7 +389,7 @@ export function CategorySettings({
             <div>
               <div className="flex items-center gap-1 mb-1.5">
                 <span className="label mb-0">Spielmodus</span>
-                <HelpTooltip label="Best of — wie viele Sätze bis zum Sieg?">
+                <HelpTooltip label="Best of - wie viele Sätze bis zum Sieg?">
                   <strong>Bo1</strong> = ein Satz entscheidet.{" "}
                   <strong>Bo3</strong> = zwei Gewinnsätze (klassisch im Breiten­sport).{" "}
                   <strong>Bo5</strong> = drei Gewinnsätze (Vereins­meisterschaft).{" "}
@@ -693,7 +693,7 @@ function PreviewPanel({
                       ? preview.losersKoMatches > 0
                         ? `${preview.koMatches} + ${preview.losersKoMatches}`
                         : String(preview.koMatches)
-                      : "—"
+                      : "-"
                   }
                 />
               </>

@@ -71,7 +71,7 @@ function labelForRound(round: number, totalRounds: number): string {
  *
  * Pool ordering: players with a numeric `seed` come first (ascending), then
  * unseeded players in shuffled order (deterministic if a `seed` option is
- * passed). Byes fill the trailing bracket positions — the top seed gets the
+ * passed). Byes fill the trailing bracket positions - the top seed gets the
  * first bye, etc.
  */
 export function buildKoOnly(input: KoOnlyInput): BuiltKoOnly {
