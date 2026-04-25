@@ -10,6 +10,7 @@ import { ChevronDown } from "@/components/Icon";
 import { StandingsExplainer } from "@/components/StandingsExplainer";
 import { StandingsCellTooltip } from "@/components/StandingsCellTooltip";
 import { computeBreakdownsByPlayer } from "@/lib/engine/standings-breakdown";
+import { displayName } from "@/lib/displayName";
 
 type Props = {
   groups: Group[];
@@ -103,7 +104,10 @@ export function PublicGroupView({
                               </span>
                             </td>
                             <td className="py-2 font-medium">
-                              {partsById.get(r.playerId)?.name ?? "?"}
+                              {(() => {
+                                const n = partsById.get(r.playerId)?.name;
+                                return n ? displayName(n) : "?";
+                              })()}
                             </td>
                             <td className="py-2 text-right">
                               <StandingsCellTooltip
@@ -160,11 +164,11 @@ export function PublicGroupView({
                         <div className="flex items-center justify-between gap-2">
                           <span className="truncate text-sm flex items-center gap-1.5 min-w-0">
                             <span className="font-medium truncate">
-                              {a?.name ?? "?"}
+                              {a ? displayName(a.name) : "?"}
                             </span>
                             <span className="text-ink-400">vs</span>
                             <span className="font-medium truncate">
-                              {b?.name ?? "?"}
+                              {b ? displayName(b.name) : "?"}
                             </span>
                             {inProgress && (
                               <span className="badge-amber shrink-0">

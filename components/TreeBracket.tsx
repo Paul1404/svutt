@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Match, MatchSetRow, Participant } from "@/lib/db/schema";
 import { Trophy } from "@/components/Icon";
+import { displayName } from "@/lib/displayName";
 
 export type TreeBracketMatch = Match;
 
@@ -346,7 +347,7 @@ export function TreeBracket({
                 </div>
               )}
               <Row
-                name={a?.name ?? (isBye ? "Freilos" : "…")}
+                name={a ? displayName(a.name) : isBye ? "Freilos" : "…"}
                 caption={captionA}
                 subCaption={subCaptionA}
                 score={done && !isBye ? m.setsA : null}
@@ -357,7 +358,7 @@ export function TreeBracket({
               />
               <div className="my-1 h-px bg-ink-100" />
               <Row
-                name={b?.name ?? (isBye ? "Freilos" : "…")}
+                name={b ? displayName(b.name) : isBye ? "Freilos" : "…"}
                 caption={captionB}
                 subCaption={subCaptionB}
                 score={done && !isBye ? m.setsB : null}

@@ -16,6 +16,7 @@ import { StandingsExplainer } from "@/components/StandingsExplainer";
 import { StandingsCellTooltip } from "@/components/StandingsCellTooltip";
 import { useToast } from "@/components/Toast";
 import { computeBreakdownsByPlayer } from "@/lib/engine/standings-breakdown";
+import { displayName } from "@/lib/displayName";
 
 type Props = {
   tournamentId: string;
@@ -393,7 +394,10 @@ export function GroupsPanel({
                                     </span>
                                   )}
                                   <span>
-                                    {partsById.get(r.playerId)?.name ?? "?"}
+                                    {(() => {
+                                      const n = partsById.get(r.playerId)?.name;
+                                      return n ? displayName(n) : "?";
+                                    })()}
                                   </span>
                                   <span className="ml-1 inline-flex items-center gap-2 opacity-0 group-hover/row:opacity-100 focus-within:opacity-100 transition-opacity">
                                     <button
@@ -491,11 +495,11 @@ export function GroupsPanel({
                             <div className="flex items-center justify-between gap-2">
                               <div className="min-w-0 flex-1 text-sm flex items-center gap-1.5">
                                 <span className="font-medium truncate">
-                                  {a?.name ?? "?"}
+                                  {a ? displayName(a.name) : "?"}
                                 </span>
                                 <span className="text-ink-400">vs</span>
                                 <span className="font-medium truncate">
-                                  {b?.name ?? "?"}
+                                  {b ? displayName(b.name) : "?"}
                                 </span>
                                 {inProgress && (
                                   <span className="badge-amber shrink-0">
