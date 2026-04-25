@@ -477,7 +477,7 @@ export function GroupsPanel({
                           key={m.id}
                           className={`flex items-stretch gap-1 rounded-lg transition-colors ${
                             inProgress
-                              ? "bg-amber-50 ring-1 ring-inset ring-amber-200"
+                              ? "match-row-live ring-1 ring-inset ring-amber-200"
                               : ""
                           }`}
                         >
@@ -510,7 +510,7 @@ export function GroupsPanel({
                               ) : (
                                 <span
                                   className={`text-xs font-mono ${
-                                    inProgress ? "text-amber-700" : "text-ink-400"
+                                    inProgress ? "match-row-live-meta" : "text-ink-400"
                                   }`}
                                 >
                                   T{m.tableNumber ?? "?"}

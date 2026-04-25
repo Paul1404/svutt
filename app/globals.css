@@ -185,6 +185,21 @@ html[data-theme="dark"] .badge-red {
   --tw-ring-color: rgb(239 68 68 / 0.4);
 }
 
+/* Highlight for the row of a match flagged "Wird gespielt". The hardcoded
+   amber-50 background reads as cream in light mode but doesn't adapt in dark
+   mode, where inherited body text becomes near-white and is unreadable on
+   cream. Swap to a tinted amber on dark surfaces. */
+.match-row-live {
+  background: #fffbeb;
+}
+.match-row-live .match-row-live-meta { color: #b45309; }
+html[data-theme="dark"] .match-row-live {
+  background: rgb(245 158 11 / 0.12);
+}
+html[data-theme="dark"] .match-row-live .match-row-live-meta {
+  color: #fcd34d;
+}
+
 /* Brief amber pulse used by the player search palette to point the eye at
    the row the admin just jumped to. Works on both <tr> and <li>. */
 @keyframes player-search-hit-pulse {

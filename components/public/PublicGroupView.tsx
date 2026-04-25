@@ -154,7 +154,7 @@ export function PublicGroupView({
                       <li
                         key={m.id}
                         className={`px-5 py-2.5 ${
-                          inProgress ? "bg-amber-50" : ""
+                          inProgress ? "match-row-live" : ""
                         }`}
                       >
                         <div className="flex items-center justify-between gap-2">
@@ -179,7 +179,7 @@ export function PublicGroupView({
                           ) : (
                             <span
                               className={`text-xs font-mono tabular-nums ${
-                                inProgress ? "text-amber-700" : "text-ink-400"
+                                inProgress ? "match-row-live-meta" : "text-ink-400"
                               }`}
                             >
                               T{m.tableNumber ?? "?"}
