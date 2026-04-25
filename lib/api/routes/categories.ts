@@ -817,7 +817,11 @@ export const categoryRoutes = new Hono()
     if (!tournament) return notFound(c, "Turnier");
 
     const existingKo = await db
-      .select({ status: matches.status })
+      .select({
+        status: matches.status,
+        participantAId: matches.participantAId,
+        participantBId: matches.participantBId,
+      })
       .from(matches)
       .where(
         and(
@@ -825,7 +829,15 @@ export const categoryRoutes = new Hono()
           inArray(matches.stage, ["ko", "ko_losers"] as const),
         ),
       );
-    const hasPlayedKo = existingKo.some((m) => m.status !== "pending");
+    // A bye/freilos match is auto-finished at insert time with one side null.
+    // Treat only matches with both participants set as "really played" so a
+    // bracket consisting only of byes can still be rebuilt.
+    const hasPlayedKo = existingKo.some(
+      (m) =>
+        m.status !== "pending" &&
+        m.participantAId !== null &&
+        m.participantBId !== null,
+    );
     if (hasPlayedKo) {
       return conflict(
         c,
