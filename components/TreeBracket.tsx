@@ -32,6 +32,12 @@ type Props = {
    */
   origins?: Map<string, BracketOrigin>;
   onMatchClick?: (match: TreeBracketMatch) => void;
+  /**
+   * Optional admin-only handler to flip the "currently being played" marker
+   * on a bracket match. When provided, each pending card with both players
+   * known shows a small toggle button.
+   */
+  onTogglePlayed?: (match: TreeBracketMatch, next: boolean) => void;
   highlightFinal?: boolean;
 };
 
@@ -86,6 +92,7 @@ export function TreeBracket({
   participants,
   origins,
   onMatchClick,
+  onTogglePlayed,
   highlightFinal = false,
 }: Props) {
   const isMobile = useIsMobile();
@@ -261,8 +268,14 @@ export function TreeBracket({
             done &&
             (m.koLabel ?? "").toLowerCase() === "finale" &&
             !!m.winnerParticipantId;
+          const inProgress = !!m.played && !done;
           const canClick =
             !!onMatchClick && !!m.participantAId && !!m.participantBId;
+          const canToggle =
+            !!onTogglePlayed &&
+            !done &&
+            !!m.participantAId &&
+            !!m.participantBId;
           // The finale winner card renders an extra "Sieger" header, so it
           // needs more height than the standard fixed cardHeight. Keep the
           // vertical center aligned with its siblings so bracket lines still
@@ -276,9 +289,13 @@ export function TreeBracket({
             "absolute",
             isFinaleWinner
               ? "card ring-2 ring-amber-400 bg-amber-50/70 overflow-hidden"
-              : canClick
-                ? "card-hover cursor-pointer"
-                : "card",
+              : inProgress
+                ? canClick
+                  ? "card-hover cursor-pointer ring-2 ring-amber-300 bg-amber-50/70"
+                  : "card ring-2 ring-amber-300 bg-amber-50/70"
+                : canClick
+                  ? "card-hover cursor-pointer"
+                  : "card",
           ].join(" ");
 
           const style = {
@@ -318,7 +335,7 @@ export function TreeBracket({
           const subCaptionA = byeAdvancesA ? "kampflos weiter" : null;
           const subCaptionB = byeAdvancesB ? "kampflos weiter" : null;
 
-          const content = (
+          const inner = (
             <>
               {isFinaleWinner && (
                 <div
@@ -350,38 +367,91 @@ export function TreeBracket({
                 labelSize={dims.labelSize}
               />
               <div
-                className="mt-1 text-ink-500 font-mono tabular-nums truncate"
+                className={`mt-1 flex items-center gap-1 font-mono tabular-nums truncate ${
+                  inProgress ? "text-amber-700" : "text-ink-500"
+                }`}
                 style={{ fontSize: dims.labelSize }}
               >
-                T{m.tableNumber ?? "?"}
-                {matchSets.length > 0 && (
-                  <>
-                    {" · "}
-                    {matchSets
-                      .map((s) => `${s.pointsA}:${s.pointsB}`)
-                      .join(", ")}
-                  </>
+                {inProgress && !isFinaleWinner && (
+                  <span
+                    className="inline-flex items-center gap-1 rounded bg-amber-200/70 px-1 py-px font-semibold uppercase tracking-wider text-amber-800"
+                    style={{ fontSize: Math.max(dims.labelSize - 1, 8) }}
+                  >
+                    <span
+                      className="h-1 w-1 animate-pulse rounded-full bg-amber-600"
+                      aria-hidden
+                    />
+                    Live
+                  </span>
                 )}
+                <span className="truncate">
+                  T{m.tableNumber ?? "?"}
+                  {matchSets.length > 0 && (
+                    <>
+                      {" · "}
+                      {matchSets
+                        .map((s) => `${s.pointsA}:${s.pointsB}`)
+                        .join(", ")}
+                    </>
+                  )}
+                </span>
               </div>
             </>
           );
 
+          // Toggle sits in the top-right corner. We use stopPropagation so
+          // clicking it doesn't also fire the card's open-result handler.
+          const toggleButton = canToggle ? (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onTogglePlayed?.(m, !m.played);
+              }}
+              aria-pressed={!!m.played}
+              title={
+                m.played
+                  ? "Markierung „Wird gespielt“ entfernen"
+                  : "Als „Wird gespielt“ markieren"
+              }
+              className={`absolute right-1.5 top-1.5 z-10 rounded-md px-1.5 py-0.5 text-[10px] font-semibold transition-colors ${
+                m.played
+                  ? "bg-amber-200 text-amber-800 hover:bg-amber-300"
+                  : "bg-ink-50 text-ink-400 hover:bg-ink-100 hover:text-ink-700"
+              }`}
+            >
+              ✓
+            </button>
+          ) : null;
+
+          // Use role="button" on a div instead of a real <button> when the
+          // card needs both a click target and an inner toggle button -
+          // nested <button>s aren't valid HTML.
           if (canClick) {
             return (
-              <button
+              <div
                 key={m.id}
-                type="button"
-                className={`${className} block text-left`}
+                role="button"
+                tabIndex={0}
+                className={`${className} relative text-left`}
                 style={style}
                 onClick={() => onMatchClick?.(m)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onMatchClick?.(m);
+                  }
+                }}
               >
-                {content}
-              </button>
+                {inner}
+                {toggleButton}
+              </div>
             );
           }
           return (
-            <div key={m.id} className={className} style={style}>
-              {content}
+            <div key={m.id} className={`${className} relative`} style={style}>
+              {inner}
+              {toggleButton}
             </div>
           );
         }),

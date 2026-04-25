@@ -78,6 +78,25 @@ export function BracketPanel({
     }
   }
 
+  async function togglePlayed(matchId: string, next: boolean) {
+    const res = await fetch(`/api/matches/${matchId}/played`, {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ played: next }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      toast.show({
+        message:
+          typeof data?.error === "string"
+            ? data.error
+            : "Markierung fehlgeschlagen.",
+      });
+      return;
+    }
+    router.refresh();
+  }
+
   const allMatches = [...koMatches, ...(losersMatches ?? [])];
   const openMatch = allMatches.find((m) => m.id === openMatchId) ?? null;
   const hasLosers = !!losersMatches && losersMatches.length > 0;
@@ -151,6 +170,7 @@ export function BracketPanel({
             origins={origins}
             highlightFinal
             onMatchClick={(m) => setOpenMatchId(m.id)}
+            onTogglePlayed={(m, next) => togglePlayed(m.id, next)}
           />
         </div>
       )}
@@ -173,6 +193,7 @@ export function BracketPanel({
               participants={participants}
               origins={origins}
               onMatchClick={(m) => setOpenMatchId(m.id)}
+              onTogglePlayed={(m, next) => togglePlayed(m.id, next)}
             />
           </div>
         </div>
