@@ -4,6 +4,7 @@ export * from "./rng";
 export * from "./draw";
 export * from "./roundRobin";
 export * from "./standings";
+export * from "./tournamentStats";
 export * from "./bracket";
 export * from "./schedule";
 export * from "./format";

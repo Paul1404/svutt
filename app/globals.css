@@ -244,6 +244,74 @@ html[data-theme="dark"] .wizard-step-dot[data-state="current"] {
   @apply bg-brand-500;
 }
 
+/* Stats panel highlight tones. Mirror the badge colour-flipping pattern so
+   each card stays readable in dark mode. */
+.stats-highlight {
+  background: var(--color-surface);
+  border-color: var(--color-ink-200);
+  color: var(--color-ink-900);
+}
+.stats-highlight-label { color: var(--color-ink-500); }
+.stats-highlight-sub { color: var(--color-ink-500); }
+
+.stats-highlight-brand {
+  background: color-mix(in srgb, var(--color-brand-50) 80%, transparent);
+  border-color: var(--color-brand-200);
+  color: var(--color-brand-900);
+}
+.stats-highlight-brand .stats-highlight-label,
+.stats-highlight-brand .stats-highlight-sub { color: var(--color-brand-700); }
+
+.stats-highlight-amber {
+  background: rgb(254 243 199 / 0.6);
+  border-color: rgb(252 211 77 / 0.7);
+  color: #78350f;
+}
+.stats-highlight-amber .stats-highlight-label,
+.stats-highlight-amber .stats-highlight-sub { color: #b45309; }
+
+.stats-highlight-emerald {
+  background: rgb(209 250 229 / 0.55);
+  border-color: rgb(110 231 183 / 0.7);
+  color: #064e3b;
+}
+.stats-highlight-emerald .stats-highlight-label,
+.stats-highlight-emerald .stats-highlight-sub { color: #047857; }
+
+.stats-highlight-ink {
+  background: var(--color-surface-2);
+  border-color: var(--color-ink-200);
+  color: var(--color-ink-900);
+}
+
+html[data-theme="dark"] .stats-highlight-brand {
+  background: rgb(239 68 68 / 0.12);
+  border-color: rgb(239 68 68 / 0.4);
+  color: #fecaca;
+}
+html[data-theme="dark"] .stats-highlight-brand .stats-highlight-label,
+html[data-theme="dark"] .stats-highlight-brand .stats-highlight-sub {
+  color: #fca5a5;
+}
+html[data-theme="dark"] .stats-highlight-amber {
+  background: rgb(245 158 11 / 0.12);
+  border-color: rgb(245 158 11 / 0.4);
+  color: #fde68a;
+}
+html[data-theme="dark"] .stats-highlight-amber .stats-highlight-label,
+html[data-theme="dark"] .stats-highlight-amber .stats-highlight-sub {
+  color: #fcd34d;
+}
+html[data-theme="dark"] .stats-highlight-emerald {
+  background: rgb(16 185 129 / 0.12);
+  border-color: rgb(16 185 129 / 0.4);
+  color: #a7f3d0;
+}
+html[data-theme="dark"] .stats-highlight-emerald .stats-highlight-label,
+html[data-theme="dark"] .stats-highlight-emerald .stats-highlight-sub {
+  color: #6ee7b7;
+}
+
 /* Tournament winner banner. */
 @keyframes winner-sparkle {
   0%, 100% { opacity: 0.55; transform: scale(0.9) rotate(0deg); }
