@@ -152,14 +152,19 @@ export function PublicGroupView({
                     return (
                       <li key={m.id} className="px-5 py-2.5">
                         <div className="flex items-center justify-between gap-2">
-                          <span className="truncate text-sm">
-                            <span className="font-medium">
+                          <span className="truncate text-sm flex items-center gap-1.5 min-w-0">
+                            <span className="font-medium truncate">
                               {a?.name ?? "?"}
                             </span>
-                            <span className="text-ink-400 mx-1.5">vs</span>
-                            <span className="font-medium">
+                            <span className="text-ink-400">vs</span>
+                            <span className="font-medium truncate">
                               {b?.name ?? "?"}
                             </span>
+                            {m.played && !finished && (
+                              <span className="badge-green shrink-0">
+                                gespielt
+                              </span>
+                            )}
                           </span>
                           {finished ? (
                             <span className="tabular-nums font-mono text-sm font-bold text-brand-700">

@@ -161,6 +161,25 @@ export function GroupsPanel({
     router.refresh();
   }
 
+  async function togglePlayed(matchId: string, next: boolean) {
+    const res = await fetch(`/api/matches/${matchId}/played`, {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ played: next }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      toast.show({
+        message:
+          typeof data?.error === "string"
+            ? data.error
+            : "Markierung fehlgeschlagen.",
+      });
+      return;
+    }
+    router.refresh();
+  }
+
   async function movePlayer(participantId: string, targetGroupId: string) {
     setMoving(true);
     try {
@@ -452,21 +471,26 @@ export function GroupsPanel({
                       const matchSets = setsByMatch.get(m.id) ?? [];
                       const done = m.status === "finished";
                       return (
-                        <li key={m.id}>
+                        <li key={m.id} className="flex items-stretch gap-1">
                           <button
                             type="button"
                             onClick={() => setOpenMatchId(m.id)}
-                            className="w-full text-left rounded-lg px-2.5 py-2 hover:bg-ink-50 transition-colors"
+                            className="flex-1 min-w-0 text-left rounded-lg px-2.5 py-2 hover:bg-ink-50 transition-colors"
                           >
                             <div className="flex items-center justify-between gap-2">
-                              <div className="min-w-0 flex-1 text-sm">
-                                <span className="font-medium">
+                              <div className="min-w-0 flex-1 text-sm flex items-center gap-1.5">
+                                <span className="font-medium truncate">
                                   {a?.name ?? "?"}
                                 </span>
-                                <span className="text-ink-400 mx-1.5">vs</span>
-                                <span className="font-medium">
+                                <span className="text-ink-400">vs</span>
+                                <span className="font-medium truncate">
                                   {b?.name ?? "?"}
                                 </span>
+                                {m.played && !done && (
+                                  <span className="badge-green shrink-0">
+                                    gespielt
+                                  </span>
+                                )}
                               </div>
                               {done ? (
                                 <span className="tabular-nums font-mono text-sm font-semibold text-brand-700">
@@ -486,6 +510,25 @@ export function GroupsPanel({
                               </div>
                             )}
                           </button>
+                          {!done && (
+                            <button
+                              type="button"
+                              onClick={() => togglePlayed(m.id, !m.played)}
+                              aria-pressed={m.played}
+                              title={
+                                m.played
+                                  ? "Markierung als gespielt entfernen"
+                                  : "Als gespielt markieren"
+                              }
+                              className={`shrink-0 self-center rounded-md px-2 py-1 text-xs transition-colors ${
+                                m.played
+                                  ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                                  : "text-ink-400 hover:bg-ink-100 hover:text-ink-700"
+                              }`}
+                            >
+                              ✓
+                            </button>
+                          )}
                         </li>
                       );
                     })}

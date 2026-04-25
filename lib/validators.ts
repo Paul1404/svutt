@@ -80,6 +80,10 @@ export const submitResultSchema = z.object({
   sets: z.array(setScoreSchema).min(1).max(7),
 });
 
+export const setMatchPlayedSchema = z.object({
+  played: z.boolean(),
+});
+
 export const loginSchema = z.object({
   username: z.string().trim().min(1).max(120),
   password: z.string().min(1).max(200),

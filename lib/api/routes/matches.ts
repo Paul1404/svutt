@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { categories, matches, matchSets } from "@/lib/db/schema";
-import { submitResultSchema } from "@/lib/validators";
+import { setMatchPlayedSchema, submitResultSchema } from "@/lib/validators";
 import { computeMatchOutcome, validateMatchInput } from "@/lib/engine";
 import { publishCategoryRevision } from "@/lib/live";
 import { notFound, parseJson } from "../helpers";
@@ -155,4 +155,30 @@ export const matchRoutes = new Hono()
     });
     publishCategoryRevision(match.categoryId);
     return c.json({ ok: true });
+  })
+  .put("/:id/played", async (c) => {
+    const id = c.req.param("id");
+    const parsed = await parseJson(c, setMatchPlayedSchema);
+    if (!parsed.ok) return parsed.response;
+
+    const [match] = await db
+      .select()
+      .from(matches)
+      .where(eq(matches.id, id))
+      .limit(1);
+    if (!match) return notFound(c, "Spiel");
+    if (match.stage !== "group") {
+      return c.json(
+        { error: "Played-Markierung ist nur für Gruppenspiele verfügbar." },
+        400,
+      );
+    }
+
+    await db
+      .update(matches)
+      .set({ played: parsed.data.played, updatedAt: new Date() })
+      .where(eq(matches.id, id));
+
+    publishCategoryRevision(match.categoryId);
+    return c.json({ ok: true, played: parsed.data.played });
   });
