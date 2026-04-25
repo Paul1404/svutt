@@ -14,6 +14,7 @@ import {
 import {
   buildBracketOrigins,
   computeStandings,
+  computeTournamentStats,
   type EngineGroup,
   type Player,
 } from "@/lib/engine";
@@ -27,6 +28,7 @@ import { PublicBracket } from "@/components/public/PublicBracket";
 import { PublicSwissView } from "@/components/public/PublicSwissView";
 import { TournamentWinner } from "@/components/public/TournamentWinner";
 import { GameResults } from "@/components/public/GameResults";
+import { StatsPanel } from "@/components/public/StatsPanel";
 import { ArrowLeft } from "@/components/Icon";
 import { ClubMark } from "@/components/ClubMark";
 
@@ -131,6 +133,12 @@ export default async function PublicCategoryPage({
 
   const standings = engineGroups.map(computeStandings);
   const bracketOrigins = buildBracketOrigins(standings);
+  const tournamentStats = computeTournamentStats(
+    matchRows,
+    setRows,
+    parts,
+    category.setPoints,
+  );
 
   const groupMatches = matchRows.filter((m) => m.stage === "group");
   const koMatches = matchRows.filter((m) => m.stage === "ko");
@@ -215,6 +223,9 @@ export default async function PublicCategoryPage({
               />
             )}
           </>
+        )}
+        {category.drawDone && tournamentStats.finishedMatches > 0 && (
+          <StatsPanel stats={tournamentStats} participants={parts} />
         )}
         {category.drawDone && matchRows.length > 0 && (
           <GameResults

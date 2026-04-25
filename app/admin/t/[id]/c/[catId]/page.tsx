@@ -22,9 +22,11 @@ import { TestPopulatePanel } from "@/components/admin/TestPopulatePanel";
 import { PlayerSearchPalette } from "@/components/admin/PlayerSearchPalette";
 import { LivePlayPanel } from "@/components/admin/LivePlayPanel";
 import { GameResults } from "@/components/public/GameResults";
+import { StatsPanel } from "@/components/public/StatsPanel";
 import {
   buildBracketOrigins,
   computeStandings,
+  computeTournamentStats,
   type EngineGroup,
   type Player,
 } from "@/lib/engine";
@@ -130,6 +132,12 @@ export default async function CategoryDetailPage({
 
   const standings = engineGroups.map(computeStandings);
   const bracketOrigins = buildBracketOrigins(standings);
+  const tournamentStats = computeTournamentStats(
+    matchRows,
+    setRows,
+    parts,
+    category.setPoints,
+  );
 
   const groupMatches = matchRows.filter((m) => m.stage === "group");
   const koMatches = matchRows.filter((m) => m.stage === "ko");
@@ -286,6 +294,13 @@ export default async function CategoryDetailPage({
         </>
       )}
 
+      {category.drawDone && tournamentStats.finishedMatches > 0 && (
+        <StatsPanel
+          stats={tournamentStats}
+          participants={parts}
+          variant="admin"
+        />
+      )}
       {category.drawDone && matchRows.length > 0 && (
         <GameResults
           matches={matchRows}
