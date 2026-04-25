@@ -19,6 +19,7 @@ import { SwissPanel } from "@/components/admin/SwissPanel";
 import { CategorySettings } from "@/components/admin/CategorySettings";
 import { PublishToggle } from "@/components/admin/PublishToggle";
 import { TestPopulatePanel } from "@/components/admin/TestPopulatePanel";
+import { PlayerSearchPalette } from "@/components/admin/PlayerSearchPalette";
 import { GameResults } from "@/components/public/GameResults";
 import {
   buildBracketOrigins,
@@ -157,9 +158,14 @@ export default async function CategoryDetailPage({
         >
           <ArrowLeft size={14} /> {tournament.name}
         </Link>
-        <h1 className="mt-3 text-3xl font-bold tracking-tight">
-          {category.name}
-        </h1>
+        <div className="mt-3 flex items-start justify-between gap-3 flex-wrap">
+          <h1 className="text-3xl font-bold tracking-tight">
+            {category.name}
+          </h1>
+          {parts.length > 0 && (
+            <PlayerSearchPalette participants={parts} />
+          )}
+        </div>
         <p className="mt-1 text-sm text-ink-500">
           {parts.length} Teilnehmer
           <span className="text-ink-300 mx-1.5">·</span>

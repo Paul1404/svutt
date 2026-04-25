@@ -182,7 +182,11 @@ export function SwissPanel({
             </thead>
             <tbody>
               {standings.rows.map((r) => (
-                <tr key={r.playerId} className="border-t border-ink-100">
+                <tr
+                  key={r.playerId}
+                  id={`player-row-${r.playerId}`}
+                  className="border-t border-ink-100"
+                >
                   <td className="py-2">
                     <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-ink-100 text-ink-500 text-[11px] font-bold">
                       {r.rank}
