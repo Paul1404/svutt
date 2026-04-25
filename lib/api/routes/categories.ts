@@ -39,7 +39,7 @@ import {
   planSwissRound,
   type SwissHistoryMatch,
 } from "@/lib/engine/swiss";
-import { publishCategoryRevision } from "@/lib/live";
+import { publishAdminRevision, publishCategoryRevision } from "@/lib/live";
 import { conflict, notFound, parseJson } from "../helpers";
 
 export const categoryRoutes = new Hono()
@@ -125,6 +125,7 @@ export const categoryRoutes = new Hono()
       .where(eq(categories.id, id))
       .returning();
     if (!row) return notFound(c, "Spielklasse");
+    publishAdminRevision();
     return c.json({ ok: true });
   })
   // Participants
@@ -174,6 +175,7 @@ export const categoryRoutes = new Hono()
           })),
         )
         .returning();
+      publishAdminRevision();
       return c.json({ participants: rows }, 201);
     }
 
@@ -190,6 +192,7 @@ export const categoryRoutes = new Hono()
         seed: parsed.data.seed ?? null,
       })
       .returning();
+    publishAdminRevision();
     return c.json({ participant: row }, 201);
   })
   // Rename a participant (or update club). Allowed at any point in the
@@ -241,6 +244,7 @@ export const categoryRoutes = new Hono()
         .where(and(eq(participants.id, pid), eq(participants.categoryId, id)))
         .returning();
       if (!row) return notFound(c, "Teilnehmer");
+      publishAdminRevision();
       return c.json({ ok: true });
     }
 

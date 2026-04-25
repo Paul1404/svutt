@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { readSession } from "@/lib/auth/session";
 import { LogoutButton } from "@/components/admin/LogoutButton";
+import { AdminAutoRefresh } from "@/components/admin/AdminAutoRefresh";
 import { ClubMark } from "@/components/ClubMark";
 import { ExternalLink } from "@/components/Icon";
 import { ToastProvider } from "@/components/Toast";
@@ -20,6 +21,7 @@ export default async function AdminLayout({
     <ToastProvider>
     <ConfirmProvider>
     <div className="min-h-screen bg-page-2">
+      {session && <AdminAutoRefresh />}
       {session && (
         <header className="sticky top-0 z-20 border-b border-ink-200/80 bg-surface/80 backdrop-blur-md">
           <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between gap-3">

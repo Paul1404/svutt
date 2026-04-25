@@ -18,6 +18,7 @@ declare global {
     | {
         bus: EventEmitter;
         revisions: Map<string, number>;
+        adminRevision: number;
       }
     | undefined;
 }
@@ -32,6 +33,7 @@ function state() {
     globalThis.__svutt_live__ = {
       bus,
       revisions: new Map(),
+      adminRevision: 0,
     };
   }
   return globalThis.__svutt_live__;
@@ -40,13 +42,15 @@ function state() {
 /**
  * Bump the revision for a category and notify every connected subscriber.
  * Safe to call from any admin route - never throws even if nothing is
- * listening.
+ * listening. Also bumps the global admin bus so admin SSE clients (which
+ * may be looking at a different page than the public viewer) refresh too.
  */
 export function publishCategoryRevision(categoryId: string): number {
   const s = state();
   const next = (s.revisions.get(categoryId) ?? 0) + 1;
   s.revisions.set(categoryId, next);
   s.bus.emit(`cat:${categoryId}`, next);
+  publishAdminRevision();
   return next;
 }
 
@@ -63,5 +67,31 @@ export function subscribeCategory(
   s.bus.on(event, listener);
   return () => {
     s.bus.off(event, listener);
+  };
+}
+
+/**
+ * Bump the global admin revision. Call from mutation routes that don't
+ * already publish a category revision (creating tournaments/categories,
+ * tournament settings changes) so admin SSE clients also pick them up.
+ * Single counter is fine: there's only one admin user, scoping per-route
+ * isn't worth the complexity, and the resulting client refresh is cheap.
+ */
+export function publishAdminRevision(): number {
+  const s = state();
+  s.adminRevision += 1;
+  s.bus.emit("admin", s.adminRevision);
+  return s.adminRevision;
+}
+
+export function currentAdminRevision(): number {
+  return state().adminRevision;
+}
+
+export function subscribeAdmin(listener: LiveListener): () => void {
+  const s = state();
+  s.bus.on("admin", listener);
+  return () => {
+    s.bus.off("admin", listener);
   };
 }
