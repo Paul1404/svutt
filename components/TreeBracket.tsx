@@ -426,14 +426,18 @@ export function TreeBracket({
 
           // Use role="button" on a div instead of a real <button> when the
           // card needs both a click target and an inner toggle button -
-          // nested <button>s aren't valid HTML.
+          // nested <button>s aren't valid HTML. The card is already
+          // position:absolute, which establishes a containing block for the
+          // absolutely-positioned toggle button - no need for an extra
+          // `relative` class (which would override `absolute` since Tailwind
+          // emits .relative after .absolute).
           if (canClick) {
             return (
               <div
                 key={m.id}
                 role="button"
                 tabIndex={0}
-                className={`${className} relative text-left`}
+                className={`${className} text-left`}
                 style={style}
                 onClick={() => onMatchClick?.(m)}
                 onKeyDown={(e) => {
@@ -449,7 +453,7 @@ export function TreeBracket({
             );
           }
           return (
-            <div key={m.id} className={`${className} relative`} style={style}>
+            <div key={m.id} className={className} style={style}>
               {inner}
               {toggleButton}
             </div>
