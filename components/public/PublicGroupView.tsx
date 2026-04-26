@@ -11,6 +11,7 @@ import { StandingsExplainer } from "@/components/StandingsExplainer";
 import { StandingsCellTooltip } from "@/components/StandingsCellTooltip";
 import { computeBreakdownsByPlayer } from "@/lib/engine/standings-breakdown";
 import { displayName } from "@/lib/displayName";
+import { matchLabel } from "@/lib/matchLabel";
 
 type Props = {
   groups: Group[];
@@ -59,15 +60,20 @@ export function PublicGroupView({
             .filter((m) => m.groupId === g.id)
             .sort((a, b) => (a.playOrder ?? 0) - (b.playOrder ?? 0));
           const done = gMatches.filter((m) => m.status === "finished").length;
+          const allDone = gMatches.length > 0 && done === gMatches.length;
           return (
             <div key={g.id} className="card overflow-hidden">
               <div className="flex items-center justify-between px-5 py-3 border-b border-ink-100 bg-ink-50/50">
                 <h3 className="font-semibold tracking-tight">
                   Gruppe {g.label}
                 </h3>
-                <span className="text-xs text-ink-500 tabular-nums">
-                  {done}/{gMatches.length}
-                </span>
+                {allDone ? (
+                  <span className="badge-green">Abgeschlossen</span>
+                ) : (
+                  <span className="text-xs text-ink-500 tabular-nums">
+                    {done}/{gMatches.length}
+                  </span>
+                )}
               </div>
 
               {standing && (
@@ -166,7 +172,7 @@ export function PublicGroupView({
                             <span className="font-medium truncate">
                               {a ? displayName(a.name) : "?"}
                             </span>
-                            <span className="text-ink-400">vs</span>
+                            <span className="text-ink-400">gg.</span>
                             <span className="font-medium truncate">
                               {b ? displayName(b.name) : "?"}
                             </span>
@@ -186,7 +192,7 @@ export function PublicGroupView({
                                 inProgress ? "match-row-live-meta" : "text-ink-400"
                               }`}
                             >
-                              T{m.tableNumber ?? "?"}
+                              {matchLabel(m) || "—"}
                             </span>
                           )}
                         </div>

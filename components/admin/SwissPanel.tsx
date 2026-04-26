@@ -17,6 +17,7 @@ import { ChevronDown, Trophy } from "@/components/Icon";
 import { MatchResultDialog } from "./MatchResultDialog";
 import { useToast } from "@/components/Toast";
 import { HelpTooltip } from "@/components/Tooltip";
+import { matchLabel } from "@/lib/matchLabel";
 
 type Props = {
   category: Category;
@@ -265,7 +266,7 @@ export function SwissPanel({
                             </span>
                           ) : (
                             <>
-                              <span className="text-ink-400 mx-1.5">vs</span>
+                              <span className="text-ink-400 mx-1.5">gg.</span>
                               <span className="font-medium">
                                 {b?.name ?? "?"}
                               </span>
@@ -278,7 +279,7 @@ export function SwissPanel({
                           </span>
                         ) : !bye ? (
                           <span className="text-xs text-ink-400 font-mono tabular-nums">
-                            T{m.tableNumber ?? "?"}
+                            {matchLabel(m) || "—"}
                           </span>
                         ) : null}
                       </div>

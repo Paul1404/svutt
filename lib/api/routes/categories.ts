@@ -26,6 +26,7 @@ import {
   generateRandomMatchSets,
   generateRoundRobin,
   scheduleMatches,
+  scheduleMatchesWithRest,
   isTournamentStructure,
   type EngineGroup,
   type Player,
@@ -531,18 +532,30 @@ export const categoryRoutes = new Hono()
             (x.matchIndex ?? 0) - (y.matchIndex ?? 0),
         );
 
-        const scheduled = scheduleMatches(
-          allMatchInserts.map((_m, i) => `tmp-${i}`),
+        // Smart scheduler: keeps the same player off two consecutive time
+        // slots when a different match is available. The order coming in
+        // (round, matchIndex) acts as a tiebreaker, so the round-robin's
+        // natural round progression survives where it can.
+        const scheduled = scheduleMatchesWithRest(
+          allMatchInserts.map((m, i) => ({
+            id: `tmp-${i}`,
+            a: m.participantAId ?? null,
+            b: m.participantBId ?? null,
+          })),
           scheduleCfg,
         );
-        allMatchInserts.forEach((m, i) => {
-          const s = scheduled[i]!;
-          m.playOrder = s.playOrder;
-          m.tableNumber = s.tableNumber;
+        const orderedInserts = scheduled.map((s) => {
+          const tmpIdx = Number(s.matchId.slice(4));
+          const base = allMatchInserts[tmpIdx]!;
+          return {
+            ...base,
+            playOrder: s.playOrder,
+            tableNumber: s.tableNumber,
+          };
         });
 
-        if (allMatchInserts.length > 0) {
-          await tx.insert(matches).values(allMatchInserts);
+        if (orderedInserts.length > 0) {
+          await tx.insert(matches).values(orderedInserts);
         }
 
         await tx

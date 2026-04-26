@@ -26,7 +26,7 @@ const COPY: Record<
   },
   round_robin_finals: {
     title: "Liga-Spielplan erstellen",
-    body: "Alle Teilnehmer spielen gegen alle. Am Ende der Liga spielen Platz 1 vs. 2 um den Titel und Platz 3 vs. 4 um Bronze - die Finalspiele erstellst du später mit einem Klick.",
+    body: "Alle Teilnehmer spielen gegen alle. Am Ende der Liga spielen Platz 1 gegen 2 um den Titel und Platz 3 gegen 4 um Bronze - die Finalspiele erstellst du später mit einem Klick.",
     action: "Liga auslosen",
     minPlayers: 4,
   },

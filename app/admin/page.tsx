@@ -1,18 +1,23 @@
 import Link from "next/link";
 import { db } from "@/lib/db/client";
-import { tournaments } from "@/lib/db/schema";
-import { desc } from "drizzle-orm";
+import { categories, matches, tournaments } from "@/lib/db/schema";
+import { desc, inArray } from "drizzle-orm";
 import { CreateTournamentForm } from "@/components/admin/CreateTournamentForm";
 import { ArrowRight, Plus, AlertTriangle } from "@/components/Icon";
+import {
+  categoryStatus,
+  deriveTournamentStatus,
+  type DerivedStatus,
+} from "@/lib/tournamentStatus";
 
 export const dynamic = "force-dynamic";
 
-function statusLabel(status: string): { label: string; cls: string } {
+function statusLabel(status: DerivedStatus): { label: string; cls: string } {
   switch (status) {
     case "running":
       return { label: "Läuft gerade", cls: "badge-green" };
     case "finished":
-      return { label: "Abgeschlossen", cls: "badge-slate" };
+      return { label: "Beendet", cls: "badge-slate" };
     default:
       return { label: "In Vorbereitung", cls: "badge-amber" };
   }
@@ -21,11 +26,68 @@ function statusLabel(status: string): { label: string; cls: string } {
 export default async function AdminHomePage() {
   let list: (typeof tournaments.$inferSelect)[] = [];
   let dbError: string | null = null;
+  let statusByTournament = new Map<string, DerivedStatus>();
   try {
     list = await db
       .select()
       .from(tournaments)
       .orderBy(desc(tournaments.createdAt));
+
+    if (list.length > 0) {
+      const ids = list.map((t) => t.id);
+      const cats = await db
+        .select({
+          tournamentId: categories.tournamentId,
+          id: categories.id,
+          drawDone: categories.drawDone,
+          bracketDone: categories.bracketDone,
+          structure: categories.structure,
+        })
+        .from(categories)
+        .where(inArray(categories.tournamentId, ids));
+
+      const catIds = cats.map((c) => c.id);
+      const matchRows = catIds.length
+        ? await db
+            .select({
+              categoryId: matches.categoryId,
+              status: matches.status,
+              participantAId: matches.participantAId,
+              participantBId: matches.participantBId,
+            })
+            .from(matches)
+            .where(inArray(matches.categoryId, catIds))
+        : [];
+
+      const countsByCat = new Map<
+        string,
+        { totalPlayable: number; pendingPlayable: number }
+      >();
+      for (const m of matchRows) {
+        if (m.participantAId === null || m.participantBId === null) continue;
+        const c = countsByCat.get(m.categoryId) ?? {
+          totalPlayable: 0,
+          pendingPlayable: 0,
+        };
+        c.totalPlayable++;
+        if (m.status !== "finished") c.pendingPlayable++;
+        countsByCat.set(m.categoryId, c);
+      }
+
+      const perTournament = new Map<string, DerivedStatus[]>();
+      for (const c of cats) {
+        const counts = countsByCat.get(c.id) ?? {
+          totalPlayable: 0,
+          pendingPlayable: 0,
+        };
+        const arr = perTournament.get(c.tournamentId) ?? [];
+        arr.push(categoryStatus(c, counts));
+        perTournament.set(c.tournamentId, arr);
+      }
+      for (const [tid, statuses] of perTournament) {
+        statusByTournament.set(tid, deriveTournamentStatus(statuses));
+      }
+    }
   } catch (e) {
     dbError = e instanceof Error ? e.message : "Datenbank nicht erreichbar.";
   }
@@ -73,7 +135,8 @@ export default async function AdminHomePage() {
         ) : (
           <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {list.map((t) => {
-              const s = statusLabel(t.status);
+              const derived = statusByTournament.get(t.id) ?? "draft";
+              const s = statusLabel(derived);
               return (
                 <li key={t.id}>
                   <Link

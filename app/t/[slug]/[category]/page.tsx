@@ -31,6 +31,7 @@ import { GameResults } from "@/components/public/GameResults";
 import { StatsPanel } from "@/components/public/StatsPanel";
 import { ArrowLeft } from "@/components/Icon";
 import { ClubMark } from "@/components/ClubMark";
+import { categoryMatchCounts, isCategoryFinished } from "@/lib/tournamentStatus";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -151,6 +152,8 @@ export default async function PublicCategoryPage({
     ? category.structure
     : "groups_ko";
 
+  const finished = isCategoryFinished(category, categoryMatchCounts(matchRows));
+
   return (
     <div className="min-h-screen bg-page">
       <AutoRefresh
@@ -168,9 +171,16 @@ export default async function PublicCategoryPage({
             </Link>
             <ClubMark size="sm" showLabel={false} />
           </div>
-          <h1 className="mt-2 text-xl sm:text-2xl font-bold tracking-tight">
-            {category.name}
-          </h1>
+          <div className="mt-2 flex flex-wrap items-center gap-2.5">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
+              {category.name}
+            </h1>
+            {finished && (
+              <span className="inline-flex items-center rounded-full bg-white/15 px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ring-white/30">
+                Beendet
+              </span>
+            )}
+          </div>
         </div>
       </header>
 

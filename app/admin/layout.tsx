@@ -33,10 +33,10 @@ export default async function AdminLayout({
                 <ClubMark size="sm" showLabel={false} />
                 <span className="truncate">SV Untereuerheim</span>
                 <span className="text-xs font-medium text-ink-400 px-1.5 py-0.5 rounded bg-ink-100 shrink-0">
-                  Admin
+                  Organisator
                 </span>
               </Link>
-              <nav aria-label="Admin-Navigation" className="hidden md:flex text-sm text-ink-600 gap-5 font-medium">
+              <nav aria-label="Organisator-Navigation" className="hidden md:flex text-sm text-ink-600 gap-5 font-medium">
                 <Link
                   href="/admin"
                   className="hover:text-brand-600 transition-colors"

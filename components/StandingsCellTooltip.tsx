@@ -188,7 +188,7 @@ function MetricBreakdown({
             className="flex items-center justify-between gap-2"
           >
             <span className="min-w-0 flex-1 truncate">
-              vs <span className="font-medium">{b.opponentName}</span>
+              gg. <span className="font-medium">{b.opponentName}</span>
             </span>
             {metric === "wins" && (
               <span

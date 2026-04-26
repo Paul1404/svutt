@@ -5,6 +5,7 @@ import {
 } from "@/lib/engine/swiss";
 import type { SeededPlayer } from "@/lib/engine/draw";
 import { ChevronDown } from "@/components/Icon";
+import { matchLabel } from "@/lib/matchLabel";
 
 type Props = {
   participants: Participant[];
@@ -141,7 +142,7 @@ export function PublicSwissView({ participants, matches, sets }: Props) {
                           </span>
                         ) : (
                           <>
-                            <span className="text-ink-400 mx-1.5">vs</span>
+                            <span className="text-ink-400 mx-1.5">gg.</span>
                             <span className="font-medium">
                               {b?.name ?? "?"}
                             </span>
@@ -154,7 +155,7 @@ export function PublicSwissView({ participants, matches, sets }: Props) {
                         </span>
                       ) : !bye ? (
                         <span className="text-xs text-ink-400 font-mono tabular-nums">
-                          T{m.tableNumber ?? "?"}
+                          {matchLabel(m) || "—"}
                         </span>
                       ) : null}
                     </div>

@@ -116,7 +116,7 @@ export function BracketPanel({
             </h2>
             <p className="mt-1 text-sm text-ink-500">
               {finalsOnly
-                ? "Platz 1 vs. 2 im Finale, Platz 3 vs. 4 um Bronze."
+                ? "Platz 1 gegen 2 im Finale, Platz 3 gegen 4 um Bronze."
                 : category.luckyLoserEnabled
                   ? "Gesetzter KO-Baum: die Gruppenbesten ziehen ein, die Stärksten bekommen ein Freilos in die nächste Runde. Nicht qualifizierte Spieler:innen bilden die Trostrunde."
                   : "Gesetzter KO-Baum: die Gruppenbesten ziehen ein, die Stärksten bekommen ein Freilos in die nächste Runde."}
