@@ -10,6 +10,7 @@ import { ChevronDown, Users } from "@/components/Icon";
 import { CallList } from "@/components/CallList";
 import { StandingsExplainer } from "@/components/StandingsExplainer";
 import { StandingsCellTooltip } from "@/components/StandingsCellTooltip";
+import { MatchMeta } from "@/components/MatchMeta";
 import { computeBreakdownsByPlayer } from "@/lib/engine/standings-breakdown";
 import { displayName } from "@/lib/displayName";
 import { matchLabel } from "@/lib/matchLabel";
@@ -208,12 +209,15 @@ export function PublicGroupView({
                             </span>
                           )}
                         </div>
-                        {matchSets.length > 0 && (
-                          <div className="mt-0.5 text-[11px] text-ink-500 font-mono tabular-nums">
-                            {matchSets
-                              .map((s) => `${s.pointsA}:${s.pointsB}`)
-                              .join(", ")}
-                          </div>
+                        {finished && (
+                          <MatchMeta
+                            match={m}
+                            sets={matchSets.map((s) => ({
+                              pointsA: s.pointsA,
+                              pointsB: s.pointsB,
+                            }))}
+                            className="mt-1.5"
+                          />
                         )}
                       </li>
                     );

@@ -5,6 +5,7 @@ import {
 } from "@/lib/engine/swiss";
 import type { SeededPlayer } from "@/lib/engine/draw";
 import { ChevronDown } from "@/components/Icon";
+import { MatchMeta } from "@/components/MatchMeta";
 import { matchLabel } from "@/lib/matchLabel";
 
 type Props = {
@@ -159,12 +160,15 @@ export function PublicSwissView({ participants, matches, sets }: Props) {
                         </span>
                       ) : null}
                     </div>
-                    {matchSets.length > 0 && (
-                      <div className="mt-0.5 text-[11px] text-ink-500 font-mono tabular-nums">
-                        {matchSets
-                          .map((s) => `${s.pointsA}:${s.pointsB}`)
-                          .join(", ")}
-                      </div>
+                    {!bye && finished && (
+                      <MatchMeta
+                        match={m}
+                        sets={matchSets.map((s) => ({
+                          pointsA: s.pointsA,
+                          pointsB: s.pointsB,
+                        }))}
+                        className="mt-1.5"
+                      />
                     )}
                   </li>
                 );
