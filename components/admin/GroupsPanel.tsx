@@ -12,8 +12,10 @@ import type {
 } from "@/lib/db/schema";
 import type { GroupStanding } from "@/lib/engine/types";
 import { MatchResultDialog } from "./MatchResultDialog";
+import { CallList } from "@/components/CallList";
 import { StandingsExplainer } from "@/components/StandingsExplainer";
 import { StandingsCellTooltip } from "@/components/StandingsCellTooltip";
+import { Users } from "@/components/Icon";
 import { useToast } from "@/components/Toast";
 import { computeBreakdownsByPlayer } from "@/lib/engine/standings-breakdown";
 import { displayName } from "@/lib/displayName";
@@ -213,23 +215,44 @@ export function GroupsPanel({
   }
 
   return (
-    <section className="space-y-5">
-      <div className="flex items-end justify-between gap-3 flex-wrap">
-        <div>
-          <h2 className="text-xl font-semibold tracking-tight">
-            Gruppenphase
-          </h2>
-          <p className="mt-1 text-sm text-ink-500">
-            {canMove
-              ? "Tippe auf ein Spiel, um das Ergebnis einzutragen. Spieler lassen sich per Drag & Drop zwischen Gruppen verschieben oder über die Aktionen umbenennen bzw. entfernen, solange noch nichts gespielt wurde."
-              : "Tippe auf ein Spiel, um das Ergebnis einzutragen. Namen lassen sich jederzeit korrigieren."}
-          </p>
-        </div>
-        <div className="text-sm text-ink-600">
-          <span className="font-semibold tabular-nums">{finished}</span>
-          <span className="text-ink-400"> / {totalMatches} Spielen fertig</span>
+    <section className="space-y-6">
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <header className="flex items-start gap-3">
+          <span className="mt-1 hidden sm:inline-block h-7 w-0.5 rounded-full bg-gradient-to-b from-brand-500 via-brand-400 to-brand-200" />
+          <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 ring-1 ring-inset ring-brand-200/60">
+            <Users size={18} />
+          </span>
+          <div className="min-w-0">
+            <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-700">
+              Spielplan
+            </div>
+            <h2 className="mt-0.5 text-2xl font-bold tracking-tight text-ink-900">
+              Gruppenphase
+            </h2>
+            <p className="mt-1 text-sm text-ink-500 max-w-xl">
+              {canMove
+                ? "Tippe auf ein Spiel, um das Ergebnis einzutragen. Spieler lassen sich per Drag & Drop zwischen Gruppen verschieben oder über die Aktionen umbenennen bzw. entfernen, solange noch nichts gespielt wurde."
+                : "Tippe auf ein Spiel, um das Ergebnis einzutragen. Namen lassen sich jederzeit korrigieren."}
+            </p>
+          </div>
+        </header>
+        <div className="text-right text-sm">
+          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-ink-500">
+            Fortschritt
+          </div>
+          <div className="mt-0.5 font-mono tabular-nums text-ink-600">
+            <span className="text-base font-bold text-ink-900">{finished}</span>
+            <span className="text-ink-400"> / {totalMatches}</span>
+          </div>
         </div>
       </div>
+
+      <CallList
+        matches={matches}
+        participants={participants}
+        groups={groups}
+        onMarkLive={togglePlayed}
+      />
 
       <StandingsExplainer />
 

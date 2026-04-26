@@ -6,7 +6,8 @@ import type {
   Participant,
 } from "@/lib/db/schema";
 import type { GroupStanding } from "@/lib/engine/types";
-import { ChevronDown } from "@/components/Icon";
+import { ChevronDown, Users } from "@/components/Icon";
+import { CallList } from "@/components/CallList";
 import { StandingsExplainer } from "@/components/StandingsExplainer";
 import { StandingsCellTooltip } from "@/components/StandingsCellTooltip";
 import { computeBreakdownsByPlayer } from "@/lib/engine/standings-breakdown";
@@ -48,8 +49,19 @@ export function PublicGroupView({
   );
 
   return (
-    <section className="space-y-5">
-      <h2 className="text-xl font-semibold tracking-tight">Gruppenphase</h2>
+    <section className="space-y-6">
+      <SectionHeading
+        eyebrow="Spielplan"
+        title="Gruppenphase"
+        subtitle="Jeder gegen jeden — die Bestplatzierten ziehen weiter."
+        icon={<Users size={18} />}
+      />
+
+      <CallList
+        matches={matches}
+        participants={participants}
+        groups={groups}
+      />
 
       <StandingsExplainer />
 
@@ -213,5 +225,39 @@ export function PublicGroupView({
         })}
       </div>
     </section>
+  );
+}
+
+function SectionHeading({
+  eyebrow,
+  title,
+  subtitle,
+  icon,
+}: {
+  eyebrow: string;
+  title: string;
+  subtitle?: string;
+  icon?: React.ReactNode;
+}) {
+  return (
+    <header className="flex items-start gap-3">
+      <span className="mt-1 hidden sm:inline-block h-7 w-0.5 rounded-full bg-gradient-to-b from-brand-500 via-brand-400 to-brand-200" />
+      {icon && (
+        <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 ring-1 ring-inset ring-brand-200/60">
+          {icon}
+        </span>
+      )}
+      <div className="min-w-0">
+        <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-700">
+          {eyebrow}
+        </div>
+        <h2 className="mt-0.5 text-2xl font-bold tracking-tight text-ink-900">
+          {title}
+        </h2>
+        {subtitle && (
+          <p className="mt-1 text-sm text-ink-500 max-w-xl">{subtitle}</p>
+        )}
+      </div>
+    </header>
   );
 }

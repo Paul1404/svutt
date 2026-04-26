@@ -160,8 +160,16 @@ export default async function PublicCategoryPage({
         streamUrl={`/api/public/t/${tournament.slug}/c/${category.slug}/live`}
         fallbackSeconds={30}
       />
-      <header className="sticky top-0 z-10 border-b border-brand-800/20 bg-brand-700 text-white shadow-pop">
-        <div className="mx-auto max-w-5xl px-4 py-4">
+      <header className="sticky top-0 z-10 border-b border-brand-800/20 bg-gradient-to-br from-brand-800 via-brand-700 to-brand-600 text-white shadow-pop">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-25"
+          style={{
+            background:
+              "radial-gradient(50% 80% at 100% 0%, rgba(255,255,255,0.18) 0%, transparent 60%)",
+          }}
+        />
+        <div className="relative mx-auto max-w-5xl px-4 py-4">
           <div className="flex items-center justify-between gap-3">
             <Link
               href={`/t/${tournament.slug}`}
@@ -172,7 +180,10 @@ export default async function PublicCategoryPage({
             <ClubMark size="sm" showLabel={false} />
           </div>
           <div className="mt-2 flex flex-wrap items-center gap-2.5">
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
+            <span className="text-[10px] font-bold uppercase tracking-[0.24em] text-brand-200/90">
+              Spielklasse
+            </span>
+            <h1 className="basis-full text-xl sm:text-2xl font-bold tracking-tight">
               {category.name}
             </h1>
             {finished && (
