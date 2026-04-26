@@ -73,16 +73,16 @@ export function PublishToggle({
   }
 
   return (
-    <div className="card p-4 flex items-start justify-between gap-4 flex-wrap border-amber-200 bg-amber-50/60">
+    <div className="card publish-toggle-draft p-4 flex items-start justify-between gap-4 flex-wrap">
       <div className="flex items-start gap-3">
-        <span className="text-amber-700 mt-0.5">
+        <span className="publish-toggle-draft-icon mt-0.5">
           <EyeOff size={18} />
         </span>
         <div>
-          <div className="font-semibold tracking-tight text-amber-900">
+          <div className="publish-toggle-draft-title font-semibold tracking-tight">
             Entwurf - noch nicht öffentlich
           </div>
-          <p className="mt-0.5 text-sm text-amber-900/80">
+          <p className="publish-toggle-draft-text mt-0.5 text-sm">
             Nur Admins sehen diese Spielklasse. Auf der öffentlichen
             Turnierseite wird sie ausgeblendet, bis du sie freischaltest.
           </p>

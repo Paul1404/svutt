@@ -149,17 +149,13 @@ export function BracketPanel({
       </div>
 
       {!canBuild && koMatches.length === 0 && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+        <div className="alert-amber">
           {finalsOnly
             ? "Erst alle Ligaspiele abschließen, dann kannst du die Finalspiele starten."
             : "Erst alle Gruppenspiele abschließen, dann kannst du den Finalbaum starten."}
         </div>
       )}
-      {error && (
-        <div className="rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-sm text-brand-700">
-          {error}
-        </div>
-      )}
+      {error && <div className="alert-brand">{error}</div>}
 
       {koMatches.length > 0 && (
         <div className="overflow-x-auto -mx-6 px-6 pt-6">

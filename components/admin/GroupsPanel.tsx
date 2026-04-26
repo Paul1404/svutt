@@ -577,7 +577,7 @@ export function GroupsPanel({
                               }
                               className={`shrink-0 self-center rounded-md px-2 py-1 text-xs transition-colors ${
                                 m.played
-                                  ? "bg-amber-200 text-amber-800 hover:bg-amber-300"
+                                  ? "played-toggle-on"
                                   : "text-ink-400 hover:bg-ink-100 hover:text-ink-700"
                               }`}
                             >

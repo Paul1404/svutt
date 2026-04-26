@@ -76,10 +76,10 @@ export function LivePlayPanel({ matches, participants }: Props) {
       <button
         type="button"
         onClick={() => setCollapsed(false)}
-        className="fixed left-3 top-24 z-30 inline-flex items-center gap-1.5 rounded-full bg-amber-200 px-3 py-1.5 text-xs font-semibold text-amber-900 shadow-soft hover:bg-amber-300 transition-colors"
+        className="live-panel-pill fixed left-3 top-24 z-30 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold shadow-soft transition-colors"
         title="Aktive Spiele anzeigen"
       >
-        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-600" />
+        <span className="live-panel-pill-dot h-1.5 w-1.5 animate-pulse rounded-full" />
         {live.length} live
       </button>
     );
@@ -90,21 +90,21 @@ export function LivePlayPanel({ matches, participants }: Props) {
       aria-label="Aktive Spiele"
       className="fixed left-3 top-24 z-30 hidden xl:block w-64"
     >
-      <div className="card overflow-hidden border-amber-200">
-        <div className="flex items-center justify-between gap-2 px-3 py-2 bg-amber-50 border-b border-amber-200">
-          <div className="flex items-center gap-1.5 text-amber-800">
+      <div className="card live-panel-card overflow-hidden">
+        <div className="live-panel-header flex items-center justify-between gap-2 px-3 py-2 border-b">
+          <div className="flex items-center gap-1.5">
             <Radio size={14} />
             <span className="text-xs font-semibold uppercase tracking-wider">
               Wird gespielt
             </span>
-            <span className="text-xs font-mono text-amber-700 tabular-nums">
+            <span className="live-panel-header-meta text-xs font-mono tabular-nums">
               ({live.length})
             </span>
           </div>
           <button
             type="button"
             onClick={() => setCollapsed(true)}
-            className="text-amber-700 hover:text-amber-900 transition-colors"
+            className="live-panel-header-meta hover:opacity-80 transition-opacity"
             title="Einklappen"
             aria-label="Aktive Spiele einklappen"
           >
@@ -123,23 +123,23 @@ export function LivePlayPanel({ matches, participants }: Props) {
                     <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-ink-500">
                       {matchNumber(m) !== null && (
                         <>
-                          <span className="font-mono tabular-nums text-amber-700">
+                          <span className="live-panel-row-meta font-mono tabular-nums">
                             {matchNumber(m)}
                           </span>
                           <span className="text-ink-300">·</span>
                         </>
                       )}
-                      <span className="font-mono tabular-nums text-amber-700">
+                      <span className="live-panel-row-meta font-mono tabular-nums">
                         T{m.tableNumber ?? "?"}
                       </span>
                       <span className="text-ink-300">·</span>
                       <span>{stageLabel(m)}</span>
                     </div>
-                    <div className="mt-0.5 truncate font-medium">
+                    <div className="mt-0.5 truncate font-medium text-ink-900">
                       {a?.name ?? "?"}
                     </div>
                     <div className="truncate text-ink-500">gg.</div>
-                    <div className="truncate font-medium">
+                    <div className="truncate font-medium text-ink-900">
                       {b?.name ?? "?"}
                     </div>
                   </div>
@@ -147,7 +147,7 @@ export function LivePlayPanel({ matches, participants }: Props) {
                     type="button"
                     onClick={() => clearPlayed(m.id)}
                     disabled={busy}
-                    className="shrink-0 rounded-md bg-amber-100 px-2 py-1 text-[11px] font-semibold text-amber-800 hover:bg-amber-200 disabled:opacity-50 transition-colors"
+                    className="live-panel-clear shrink-0 rounded-md px-2 py-1 text-[11px] font-semibold disabled:opacity-50 transition-colors"
                     title="Markierung „Wird gespielt“ entfernen"
                   >
                     {busy ? "…" : "Fertig"}
