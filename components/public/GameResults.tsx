@@ -137,7 +137,7 @@ export function GameResults({ matches, sets, participants, groups }: Props) {
                                     {a?.name ?? "?"}
                                   </span>
                                   <span className="text-ink-400 mx-1.5">
-                                    vs
+                                    gg.
                                   </span>
                                   <span
                                     className={

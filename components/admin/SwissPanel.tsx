@@ -266,7 +266,7 @@ export function SwissPanel({
                             </span>
                           ) : (
                             <>
-                              <span className="text-ink-400 mx-1.5">vs</span>
+                              <span className="text-ink-400 mx-1.5">gg.</span>
                               <span className="font-medium">
                                 {b?.name ?? "?"}
                               </span>

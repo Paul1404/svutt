@@ -40,7 +40,7 @@ const STRUCTURE_DESCRIPTIONS: Record<TournamentStructure, string> = {
     "Klassisch: Gruppenphase (jede:r gegen jede:n), danach KO-Finalbaum.",
   round_robin: "Alle spielen gegen alle. Eine einzige Rangliste, kein KO.",
   round_robin_finals:
-    "Alle spielen gegen alle. Anschließend spielen Platz 1 vs. 2 um den Titel und Platz 3 vs. 4 um Bronze.",
+    "Alle spielen gegen alle. Anschließend spielen Platz 1 gegen 2 um den Titel und Platz 3 gegen 4 um Bronze.",
   ko_only:
     "Direkter KO-Baum aus der Setzliste. Keine Gruppen, keine zweite Chance.",
   swiss:

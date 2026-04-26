@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import QRCode from "qrcode";
-import { Share } from "@/components/Icon";
+import { Share, ExternalLink } from "@/components/Icon";
 
 export function QrShare({ slug }: { slug: string }) {
   const [dataUrl, setDataUrl] = useState<string | null>(null);
@@ -53,7 +53,7 @@ export function QrShare({ slug }: { slug: string }) {
           Auf Handy oder Leinwand zeigen
         </h3>
         <p className="mt-1 text-sm text-ink-500">
-          QR-Code scannen oder Link weitergeben.
+          QR-Code scannen, Link weitergeben oder den Aushang ausdrucken.
         </p>
 
         {dataUrl && (
@@ -67,7 +67,22 @@ export function QrShare({ slug }: { slug: string }) {
           {url}
         </div>
 
-        <div className="flex gap-2 mt-5">
+        <a
+          href={`/t/${slug}/aushang`}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-4 flex items-center justify-between gap-2 rounded-lg border border-ink-200 px-3 py-2.5 text-sm hover:bg-ink-50 hover:border-brand-300 transition-colors"
+        >
+          <span className="flex items-center gap-2">
+            <span className="font-medium">Aushang zum Drucken</span>
+            <span className="text-xs text-ink-500">
+              A4-Poster mit QR-Code und Anleitung
+            </span>
+          </span>
+          <ExternalLink size={14} className="text-ink-400" />
+        </a>
+
+        <div className="flex gap-2 mt-4">
           <button
             className="btn-secondary flex-1"
             onClick={async () => {

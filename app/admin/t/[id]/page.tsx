@@ -1,22 +1,27 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { asc, eq } from "drizzle-orm";
+import { asc, eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db/client";
-import { categories, tournaments } from "@/lib/db/schema";
+import { categories, matches, tournaments } from "@/lib/db/schema";
 import { CreateCategoryForm } from "@/components/admin/CreateCategoryForm";
 import { TournamentSettings } from "@/components/admin/TournamentSettings";
 import { TestAutoRunAllPanel } from "@/components/admin/TestAutoRunAllPanel";
 import { QrShare } from "@/components/admin/QrShare";
 import { ArrowLeft, ArrowRight } from "@/components/Icon";
+import {
+  categoryStatus,
+  deriveTournamentStatus,
+  type DerivedStatus,
+} from "@/lib/tournamentStatus";
 
 export const dynamic = "force-dynamic";
 
-function statusLabel(status: string): { label: string; cls: string } {
+function statusLabel(status: DerivedStatus): { label: string; cls: string } {
   switch (status) {
     case "running":
       return { label: "Läuft", cls: "badge-green" };
     case "finished":
-      return { label: "Abgeschlossen", cls: "badge-slate" };
+      return { label: "Beendet", cls: "badge-slate" };
     default:
       return { label: "In Vorbereitung", cls: "badge-amber" };
   }
@@ -41,7 +46,46 @@ export default async function TournamentDetailPage({
     .where(eq(categories.tournamentId, id))
     .orderBy(asc(categories.sortOrder));
 
-  const s = statusLabel(tournament.status);
+  const matchRows = cats.length
+    ? await db
+        .select({
+          categoryId: matches.categoryId,
+          status: matches.status,
+          participantAId: matches.participantAId,
+          participantBId: matches.participantBId,
+        })
+        .from(matches)
+        .where(
+          inArray(
+            matches.categoryId,
+            cats.map((c) => c.id),
+          ),
+        )
+    : [];
+
+  const countsByCat = new Map<
+    string,
+    { totalPlayable: number; pendingPlayable: number }
+  >();
+  for (const m of matchRows) {
+    if (m.participantAId === null || m.participantBId === null) continue;
+    const c = countsByCat.get(m.categoryId) ?? {
+      totalPlayable: 0,
+      pendingPlayable: 0,
+    };
+    c.totalPlayable++;
+    if (m.status !== "finished") c.pendingPlayable++;
+    countsByCat.set(m.categoryId, c);
+  }
+
+  const catStatuses = cats.map((c) =>
+    categoryStatus(
+      c,
+      countsByCat.get(c.id) ?? { totalPlayable: 0, pendingPlayable: 0 },
+    ),
+  );
+  const tournamentStatus = deriveTournamentStatus(catStatuses);
+  const s = statusLabel(tournamentStatus);
 
   return (
     <div className="space-y-10">
@@ -109,43 +153,48 @@ export default async function TournamentDetailPage({
           </div>
         ) : (
           <ul className="grid gap-4 sm:grid-cols-2">
-            {cats.map((c) => (
-              <li key={c.id}>
-                <Link
-                  href={`/admin/t/${tournament.id}/c/${c.id}`}
-                  className="card-hover group block p-5"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <div className="font-semibold tracking-tight group-hover:text-brand-700 transition-colors">
-                        {c.name}
+            {cats.map((c, i) => {
+              const isFinished = catStatuses[i] === "finished";
+              return (
+                <li key={c.id}>
+                  <Link
+                    href={`/admin/t/${tournament.id}/c/${c.id}`}
+                    className="card-hover group block p-5"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="font-semibold tracking-tight group-hover:text-brand-700 transition-colors">
+                          {c.name}
+                        </div>
+                        <div className="mt-1 text-xs text-ink-500">
+                          Gruppen à {c.groupSize}
+                          <span className="text-ink-300 mx-1.5">·</span>
+                          Best of {c.winSets * 2 - 1}
+                        </div>
                       </div>
-                      <div className="mt-1 text-xs text-ink-500">
-                        Gruppen à {c.groupSize}
-                        <span className="text-ink-300 mx-1.5">·</span>
-                        Best of {c.winSets * 2 - 1}
-                      </div>
+                      <span className="text-ink-300 group-hover:text-brand-600 group-hover:translate-x-0.5 transition-all">
+                        <ArrowRight size={14} />
+                      </span>
                     </div>
-                    <span className="text-ink-300 group-hover:text-brand-600 group-hover:translate-x-0.5 transition-all">
-                      <ArrowRight size={14} />
-                    </span>
-                  </div>
-                  <div className="mt-3 flex gap-1.5 flex-wrap">
-                    {!c.published && (
-                      <span className="badge-amber">Entwurf</span>
-                    )}
-                    {c.drawDone ? (
-                      <span className="badge-green">Gruppen gezogen</span>
-                    ) : (
-                      <span className="badge-slate">Noch nicht gezogen</span>
-                    )}
-                    {c.bracketDone && (
-                      <span className="badge-red">Finalrunde läuft</span>
-                    )}
-                  </div>
-                </Link>
-              </li>
-            ))}
+                    <div className="mt-3 flex gap-1.5 flex-wrap">
+                      {!c.published && (
+                        <span className="badge-amber">Entwurf</span>
+                      )}
+                      {isFinished ? (
+                        <span className="badge-slate">Beendet</span>
+                      ) : c.drawDone ? (
+                        <span className="badge-green">Gruppen gezogen</span>
+                      ) : (
+                        <span className="badge-slate">Noch nicht gezogen</span>
+                      )}
+                      {!isFinished && c.bracketDone && (
+                        <span className="badge-red">Finalrunde läuft</span>
+                      )}
+                    </div>
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         )}
 

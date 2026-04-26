@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { and, eq, asc } from "drizzle-orm";
+import { and, eq, asc, inArray } from "drizzle-orm";
 import { db } from "@/lib/db/client";
-import { categories, tournaments } from "@/lib/db/schema";
+import { categories, matches, tournaments } from "@/lib/db/schema";
 import { ArrowLeft, ArrowRight, Calendar, MapPin } from "@/components/Icon";
 import { ClubMark } from "@/components/ClubMark";
+import { categoryStatus } from "@/lib/tournamentStatus";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -32,6 +33,38 @@ export default async function PublicTournamentPage({
       ),
     )
     .orderBy(asc(categories.sortOrder));
+
+  const catMatchRows = cats.length
+    ? await db
+        .select({
+          categoryId: matches.categoryId,
+          status: matches.status,
+          participantAId: matches.participantAId,
+          participantBId: matches.participantBId,
+        })
+        .from(matches)
+        .where(
+          inArray(
+            matches.categoryId,
+            cats.map((c) => c.id),
+          ),
+        )
+    : [];
+
+  const countsByCat = new Map<
+    string,
+    { totalPlayable: number; pendingPlayable: number }
+  >();
+  for (const m of catMatchRows) {
+    if (m.participantAId === null || m.participantBId === null) continue;
+    const c = countsByCat.get(m.categoryId) ?? {
+      totalPlayable: 0,
+      pendingPlayable: 0,
+    };
+    c.totalPlayable++;
+    if (m.status !== "finished") c.pendingPlayable++;
+    countsByCat.set(m.categoryId, c);
+  }
 
   return (
     <div className="min-h-screen bg-page">
@@ -95,11 +128,19 @@ export default async function PublicTournamentPage({
         ) : (
           <ul className="grid gap-4 sm:grid-cols-2">
             {cats.map((c) => {
-              const statusBadge = c.bracketDone
-                ? { label: "Finalrunde", cls: "badge-red" }
-                : c.drawDone
-                  ? { label: "Gruppenphase", cls: "badge-green" }
-                  : { label: "Ausstehend", cls: "badge-slate" };
+              const counts = countsByCat.get(c.id) ?? {
+                totalPlayable: 0,
+                pendingPlayable: 0,
+              };
+              const status = categoryStatus(c, counts);
+              const statusBadge =
+                status === "finished"
+                  ? { label: "Beendet", cls: "badge-slate" }
+                  : c.bracketDone
+                    ? { label: "Finalrunde", cls: "badge-red" }
+                    : c.drawDone
+                      ? { label: "Gruppenphase", cls: "badge-green" }
+                      : { label: "Ausstehend", cls: "badge-slate" };
               return (
                 <li key={c.id}>
                   <Link

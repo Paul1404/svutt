@@ -498,7 +498,7 @@ export function GroupsPanel({
                                 <span className="font-medium truncate">
                                   {a ? displayName(a.name) : "?"}
                                 </span>
-                                <span className="text-ink-400">vs</span>
+                                <span className="text-ink-400">gg.</span>
                                 <span className="font-medium truncate">
                                   {b ? displayName(b.name) : "?"}
                                 </span>

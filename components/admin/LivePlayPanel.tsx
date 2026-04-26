@@ -138,7 +138,7 @@ export function LivePlayPanel({ matches, participants }: Props) {
                     <div className="mt-0.5 truncate font-medium">
                       {a?.name ?? "?"}
                     </div>
-                    <div className="truncate text-ink-500">vs</div>
+                    <div className="truncate text-ink-500">gg.</div>
                     <div className="truncate font-medium">
                       {b?.name ?? "?"}
                     </div>
