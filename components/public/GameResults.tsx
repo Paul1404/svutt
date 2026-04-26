@@ -5,7 +5,7 @@ import type {
   Participant,
 } from "@/lib/db/schema";
 import { Trophy } from "@/components/Icon";
-import { matchNumber } from "@/lib/matchLabel";
+import { MatchMeta } from "@/components/MatchMeta";
 
 type Props = {
   matches: Match[];
@@ -121,7 +121,6 @@ export function GameResults({ matches, sets, participants, groups }: Props) {
                           const winnerB =
                             m.winnerParticipantId === m.participantBId;
                           const matchSets = setsByMatch.get(m.id) ?? [];
-                          const table = m.tableNumber;
 
                           return (
                             <li key={m.id} className="px-5 py-3">
@@ -153,34 +152,14 @@ export function GameResults({ matches, sets, participants, groups }: Props) {
                                   {m.setsA}:{m.setsB}
                                 </span>
                               </div>
-                              {(matchSets.length > 0 ||
-                                typeof table === "number" ||
-                                matchNumber(m) !== null) && (
-                                <div className="mt-0.5 flex items-center gap-2 text-[11px] font-mono tabular-nums text-ink-500">
-                                  {matchNumber(m) !== null && (
-                                    <span>{matchNumber(m)}</span>
-                                  )}
-                                  {matchNumber(m) !== null &&
-                                    typeof table === "number" && (
-                                      <span className="text-ink-300">·</span>
-                                    )}
-                                  {typeof table === "number" && (
-                                    <span>T{table}</span>
-                                  )}
-                                  {matchSets.length > 0 &&
-                                    (typeof table === "number" ||
-                                      matchNumber(m) !== null) && (
-                                      <span className="text-ink-300">·</span>
-                                    )}
-                                  {matchSets.length > 0 && (
-                                    <span>
-                                      {matchSets
-                                        .map((s) => `${s.pointsA}:${s.pointsB}`)
-                                        .join(", ")}
-                                    </span>
-                                  )}
-                                </div>
-                              )}
+                              <MatchMeta
+                                match={m}
+                                sets={matchSets.map((s) => ({
+                                  pointsA: s.pointsA,
+                                  pointsB: s.pointsB,
+                                }))}
+                                className="mt-1.5"
+                              />
                             </li>
                           );
                         })}

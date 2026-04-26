@@ -3,8 +3,8 @@ import { notFound } from "next/navigation";
 import { and, eq, asc, inArray } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { categories, matches, tournaments } from "@/lib/db/schema";
-import { ArrowLeft, ArrowRight, Calendar, MapPin } from "@/components/Icon";
-import { ClubMark } from "@/components/ClubMark";
+import { ArrowRight, Calendar, MapPin } from "@/components/Icon";
+import { PageHeader } from "@/components/PageHeader";
 import { categoryStatus } from "@/lib/tournamentStatus";
 
 export const dynamic = "force-dynamic";
@@ -66,56 +66,37 @@ export default async function PublicTournamentPage({
     countsByCat.set(m.categoryId, c);
   }
 
+  const meta = [
+    tournament.location
+      ? {
+          key: "location",
+          icon: <MapPin size={12} />,
+          label: tournament.location,
+        }
+      : null,
+    tournament.startDate
+      ? {
+          key: "date",
+          icon: <Calendar size={12} />,
+          label: new Date(tournament.startDate).toLocaleDateString("de-DE", {
+            weekday: "long",
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+          }),
+        }
+      : null,
+  ].filter(Boolean) as { key: string; icon: React.ReactNode; label: string }[];
+
   return (
     <div className="min-h-screen bg-page">
-      <header className="relative overflow-hidden bg-gradient-to-br from-brand-800 via-brand-700 to-brand-600 text-white">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 opacity-30"
-          style={{
-            background:
-              "radial-gradient(60% 80% at 100% 0%, rgba(255,255,255,0.18) 0%, transparent 60%)",
-          }}
-        />
-        <div className="relative mx-auto max-w-4xl px-4 py-10 sm:py-14">
-          <div className="flex items-center justify-between gap-4">
-            <Link
-              href="/"
-              className="inline-flex items-center gap-1 text-sm text-brand-100 hover:text-white transition-colors"
-            >
-              <ArrowLeft size={14} /> Alle Turniere
-            </Link>
-            <ClubMark size="sm" showLabel={false} />
-          </div>
-          <div className="mt-6 text-[10px] font-bold uppercase tracking-[0.24em] text-brand-200/90">
-            Turnier
-          </div>
-          <h1 className="mt-1 text-3xl sm:text-5xl font-bold tracking-tight">
-            {tournament.name}
-          </h1>
-          {(tournament.location || tournament.startDate) && (
-            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-brand-100">
-              {tournament.location && (
-                <span className="inline-flex items-center gap-1.5 text-sm">
-                  <MapPin size={14} />
-                  {tournament.location}
-                </span>
-              )}
-              {tournament.startDate && (
-                <span className="inline-flex items-center gap-1.5 text-sm">
-                  <Calendar size={14} />
-                  {new Date(tournament.startDate).toLocaleDateString("de-DE", {
-                    weekday: "long",
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                  })}
-                </span>
-              )}
-            </div>
-          )}
-        </div>
-      </header>
+      <PageHeader
+        eyebrow="Turnier"
+        title={tournament.name}
+        backHref="/"
+        backLabel="Alle Turniere"
+        meta={meta}
+      />
 
       <main id="main" tabIndex={-1} className="mx-auto max-w-4xl px-4 py-10 space-y-6">
         <div className="flex items-end justify-between gap-3 flex-wrap">

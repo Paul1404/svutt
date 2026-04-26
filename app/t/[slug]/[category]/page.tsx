@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db/client";
@@ -29,8 +28,7 @@ import { PublicSwissView } from "@/components/public/PublicSwissView";
 import { TournamentWinner } from "@/components/public/TournamentWinner";
 import { GameResults } from "@/components/public/GameResults";
 import { StatsPanel } from "@/components/public/StatsPanel";
-import { ArrowLeft } from "@/components/Icon";
-import { ClubMark } from "@/components/ClubMark";
+import { PageHeader } from "@/components/PageHeader";
 import { categoryMatchCounts, isCategoryFinished } from "@/lib/tournamentStatus";
 
 export const dynamic = "force-dynamic";
@@ -160,40 +158,22 @@ export default async function PublicCategoryPage({
         streamUrl={`/api/public/t/${tournament.slug}/c/${category.slug}/live`}
         fallbackSeconds={30}
       />
-      <header className="sticky top-0 z-10 border-b border-brand-800/20 bg-gradient-to-br from-brand-800 via-brand-700 to-brand-600 text-white shadow-pop">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 opacity-25"
-          style={{
-            background:
-              "radial-gradient(50% 80% at 100% 0%, rgba(255,255,255,0.18) 0%, transparent 60%)",
-          }}
-        />
-        <div className="relative mx-auto max-w-5xl px-4 py-4">
-          <div className="flex items-center justify-between gap-3">
-            <Link
-              href={`/t/${tournament.slug}`}
-              className="inline-flex items-center gap-1 text-sm text-brand-100 hover:text-white transition-colors min-w-0 truncate"
-            >
-              <ArrowLeft size={14} /> {tournament.name}
-            </Link>
-            <ClubMark size="sm" showLabel={false} />
-          </div>
-          <div className="mt-2 flex flex-wrap items-center gap-2.5">
-            <span className="text-[10px] font-bold uppercase tracking-[0.24em] text-brand-200/90">
-              Spielklasse
+      <PageHeader
+        variant="compact"
+        sticky
+        maxWidthClass="max-w-5xl"
+        eyebrow="Spielklasse"
+        title={category.name}
+        backHref={`/t/${tournament.slug}`}
+        backLabel={tournament.name}
+        badge={
+          finished ? (
+            <span className="inline-flex items-center rounded-full bg-white/15 px-2.5 py-0.5 text-xs font-semibold text-white ring-1 ring-inset ring-white/30">
+              Beendet
             </span>
-            <h1 className="basis-full text-xl sm:text-2xl font-bold tracking-tight">
-              {category.name}
-            </h1>
-            {finished && (
-              <span className="inline-flex items-center rounded-full bg-white/15 px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ring-white/30">
-                Beendet
-              </span>
-            )}
-          </div>
-        </div>
-      </header>
+          ) : null
+        }
+      />
 
       <main id="main" tabIndex={-1} className="mx-auto max-w-5xl px-4 py-8 space-y-10">
         {category.drawDone && (
