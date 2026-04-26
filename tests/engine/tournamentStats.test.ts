@@ -38,6 +38,7 @@ function match(
     setsA,
     setsB,
     winnerParticipantId: winnerId,
+    forfeitedBy: null,
     tableNumber: null,
     playOrder: null,
     played: false,

@@ -21,6 +21,11 @@ type Props = {
    * match, which removes it from the call list automatically.
    */
   onEnterResult?: (matchId: string) => void;
+  /**
+   * When provided, the live row exposes a "DQ" action that opens the
+   * disqualify dialog for the running match.
+   */
+  onDisqualify?: (matchId: string) => void;
 };
 
 const VISIBLE_UP_NEXT = 4;
@@ -42,6 +47,7 @@ export function CallList({
   groups,
   onMarkLive,
   onEnterResult,
+  onDisqualify,
 }: Props) {
   const [showAll, setShowAll] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -138,6 +144,9 @@ export function CallList({
                 onClear={() => markLive(m.id, false)}
                 onEnterResult={
                   onEnterResult ? () => onEnterResult(m.id) : undefined
+                }
+                onDisqualify={
+                  onDisqualify ? () => onDisqualify(m.id) : undefined
                 }
               />
             ))}
@@ -254,6 +263,7 @@ function CallRow({
   onMarkLive,
   onClear,
   onEnterResult,
+  onDisqualify,
 }: {
   match: Match;
   index: number | null;
@@ -265,6 +275,7 @@ function CallRow({
   onMarkLive?: () => void;
   onClear?: () => void;
   onEnterResult?: () => void;
+  onDisqualify?: () => void;
 }) {
   const a = partsById.get(match.participantAId ?? "");
   const b = partsById.get(match.participantBId ?? "");
@@ -345,7 +356,7 @@ function CallRow({
           </div>
         </div>
 
-        {adminMode && live && (onEnterResult || onClear) && (
+        {adminMode && live && (onEnterResult || onClear || onDisqualify) && (
           <div className="self-center shrink-0 flex items-center gap-1.5">
             {onEnterResult && (
               <button
@@ -356,6 +367,17 @@ function CallRow({
                 title="Spiel ist fertig. Ergebnis eintragen."
               >
                 Ergebnis
+              </button>
+            )}
+            {onDisqualify && (
+              <button
+                type="button"
+                onClick={onDisqualify}
+                disabled={busy}
+                className="rounded-md px-2 py-1 text-[11px] font-bold uppercase tracking-wider text-brand-700 ring-1 ring-inset ring-brand-200 bg-surface hover:bg-brand-50 disabled:opacity-50 transition-colors"
+                title="Einen Spieler disqualifizieren. Der andere gewinnt automatisch."
+              >
+                DQ
               </button>
             )}
             {onClear && (

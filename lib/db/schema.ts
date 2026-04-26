@@ -220,6 +220,12 @@ export const matches = pgTable(
       () => participants.id,
       { onDelete: "set null" },
     ),
+    // Set when an admin disqualifies a player from this match. The winner is
+    // still the OTHER player; this column just records who was DQ'd so the UI
+    // can label the match accordingly. Cleared together with the result.
+    forfeitedBy: uuid("forfeited_by").references(() => participants.id, {
+      onDelete: "set null",
+    }),
     // Scheduling. We only track table number and play order - absolute
     // wall-clock times are intentionally not persisted.
     tableNumber: integer("table_number"),

@@ -196,8 +196,15 @@ export function PublicGroupView({
                             )}
                           </span>
                           {finished ? (
-                            <span className="tabular-nums font-mono text-sm font-bold text-brand-700">
-                              {m.setsA}:{m.setsB}
+                            <span className="flex items-center gap-1.5">
+                              {m.forfeitedBy && (
+                                <span className="badge-amber shrink-0">
+                                  Disq.
+                                </span>
+                              )}
+                              <span className="tabular-nums font-mono text-sm font-bold text-brand-700">
+                                {m.setsA}:{m.setsB}
+                              </span>
                             </span>
                           ) : (
                             <span

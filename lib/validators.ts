@@ -84,6 +84,10 @@ export const setMatchPlayedSchema = z.object({
   played: z.boolean(),
 });
 
+export const forfeitMatchSchema = z.object({
+  forfeitParticipantId: z.string().uuid(),
+});
+
 export const loginSchema = z.object({
   username: z.string().trim().min(1).max(120),
   password: z.string().min(1).max(200),
