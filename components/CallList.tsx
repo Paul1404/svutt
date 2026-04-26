@@ -289,7 +289,7 @@ function CallRow({
     <li
       className={`group/row rounded-lg ring-1 transition-colors ${
         live
-          ? "bg-amber-50/80 ring-amber-200"
+          ? "call-row-live"
           : index === 1
             ? "bg-brand-50/40 ring-brand-200/70"
             : "bg-surface ring-ink-200/70 hover:ring-ink-300"
@@ -298,8 +298,8 @@ function CallRow({
       <div className="flex items-stretch gap-3 px-3 py-2.5">
         <div className="flex flex-col items-center justify-center w-9 shrink-0">
           {live ? (
-            <span className="relative inline-flex h-7 w-7 items-center justify-center rounded-full bg-amber-200 text-amber-800">
-              <span className="absolute inset-0 rounded-full bg-amber-400/40 animate-ping" />
+            <span className="call-row-live-icon relative inline-flex h-7 w-7 items-center justify-center rounded-full">
+              <span className="call-row-live-icon-pulse absolute inset-0 rounded-full animate-ping" />
               <Radio size={12} />
             </span>
           ) : (
@@ -320,7 +320,7 @@ function CallRow({
             {typeof match.playOrder === "number" && (
               <span
                 className={`font-semibold ${
-                  live ? "text-amber-800" : "text-ink-700"
+                  live ? "call-row-live-meta" : "text-ink-700"
                 }`}
               >
                 #{match.playOrder + 1}
@@ -331,7 +331,7 @@ function CallRow({
                 <span className="text-ink-300">·</span>
                 <span
                   className={
-                    live ? "text-amber-700" : "font-semibold text-brand-700"
+                    live ? "call-row-live-table" : "font-semibold text-brand-700"
                   }
                 >
                   Tisch {match.tableNumber}
@@ -346,11 +346,19 @@ function CallRow({
             )}
           </div>
           <div className="mt-0.5 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm">
-            <span className="font-semibold text-ink-900 truncate">
+            <span
+              className={`font-semibold truncate ${
+                live ? "call-row-live-name" : "text-ink-900"
+              }`}
+            >
               {a ? displayName(a.name) : "?"}
             </span>
             <span className="text-ink-400 text-xs">gegen</span>
-            <span className="font-semibold text-ink-900 truncate">
+            <span
+              className={`font-semibold truncate ${
+                live ? "call-row-live-name" : "text-ink-900"
+              }`}
+            >
               {b ? displayName(b.name) : "?"}
             </span>
           </div>
@@ -363,7 +371,7 @@ function CallRow({
                 type="button"
                 onClick={onEnterResult}
                 disabled={busy}
-                className="rounded-md bg-amber-500 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-white shadow-soft hover:bg-amber-600 disabled:opacity-50 transition-colors"
+                className="call-row-live-result rounded-md px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider shadow-soft disabled:opacity-50 transition-colors"
                 title="Spiel ist fertig. Ergebnis eintragen."
               >
                 Ergebnis
@@ -385,7 +393,7 @@ function CallRow({
                 type="button"
                 onClick={onClear}
                 disabled={busy}
-                className="rounded-md px-2 py-1 text-[11px] font-medium text-amber-800/70 hover:text-amber-900 hover:bg-amber-100 disabled:opacity-50 transition-colors"
+                className="call-row-live-cancel rounded-md px-2 py-1 text-[11px] font-medium disabled:opacity-50 transition-colors"
                 title="Markierung „Wird gespielt“ entfernen, ohne Ergebnis einzutragen"
               >
                 {busy ? "…" : "Abbrechen"}

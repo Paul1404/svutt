@@ -133,16 +133,12 @@ export function DrawPanel({
       </div>
 
       {!canDraw && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+        <div className="alert-amber">
           Du brauchst mindestens {copy.minPlayers} Spieler. Aktuell sind es{" "}
           {participantCount}.
         </div>
       )}
-      {error && (
-        <div className="rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-sm text-brand-700">
-          {error}
-        </div>
-      )}
+      {error && <div className="alert-brand">{error}</div>}
     </section>
   );
 }

@@ -200,6 +200,170 @@ html[data-theme="dark"] .match-row-live .match-row-live-meta {
   color: #fcd34d;
 }
 
+/* Inline alert/notice banners. Tinted info boxes that need to flip to a
+   readable, on-dark variant. Hardcoded amber-50/text-amber-800 etc. would
+   leave near-white text on near-white in dark mode for inner content. */
+@utility alert {
+  @apply rounded-lg border px-3 py-2 text-sm;
+}
+@utility alert-amber {
+  @apply alert border-amber-200 bg-amber-50 text-amber-900;
+}
+@utility alert-emerald {
+  @apply alert border-emerald-200 bg-emerald-50 text-emerald-900;
+}
+@utility alert-brand {
+  @apply alert border-brand-200 bg-brand-50 text-brand-700;
+}
+html[data-theme="dark"] .alert-amber {
+  background: rgb(245 158 11 / 0.12);
+  border-color: rgb(245 158 11 / 0.4);
+  color: #fde68a;
+}
+html[data-theme="dark"] .alert-emerald {
+  background: rgb(16 185 129 / 0.12);
+  border-color: rgb(16 185 129 / 0.4);
+  color: #a7f3d0;
+}
+html[data-theme="dark"] .alert-brand {
+  background: rgb(239 68 68 / 0.12);
+  border-color: rgb(239 68 68 / 0.4);
+  color: #fecaca;
+}
+
+/* Live-play sidebar (admin). Hardcoded amber palette would render unreadable
+   text-on-tinted-bg combos in dark mode, so swap to translucent amber tints
+   that read on the dark surface palette. */
+.live-panel-card {
+  border-color: rgb(252 211 77);
+}
+.live-panel-header {
+  background: #fffbeb;
+  border-color: rgb(252 211 77);
+  color: #92400e;
+}
+.live-panel-header-meta { color: #b45309; }
+.live-panel-pill {
+  background: rgb(252 211 77);
+  color: #78350f;
+}
+.live-panel-pill:hover { background: rgb(251 191 36); }
+.live-panel-pill-dot { background: #b45309; }
+.live-panel-clear {
+  background: rgb(254 243 199);
+  color: #92400e;
+}
+.live-panel-clear:hover { background: rgb(252 211 77); }
+.live-panel-row-meta { color: #b45309; }
+html[data-theme="dark"] .live-panel-card {
+  border-color: rgb(245 158 11 / 0.5);
+}
+html[data-theme="dark"] .live-panel-header {
+  background: rgb(245 158 11 / 0.14);
+  border-color: rgb(245 158 11 / 0.5);
+  color: #fcd34d;
+}
+html[data-theme="dark"] .live-panel-header-meta { color: #fbbf24; }
+html[data-theme="dark"] .live-panel-pill {
+  background: rgb(245 158 11 / 0.28);
+  color: #fcd34d;
+}
+html[data-theme="dark"] .live-panel-pill:hover {
+  background: rgb(245 158 11 / 0.4);
+}
+html[data-theme="dark"] .live-panel-pill-dot { background: #fbbf24; }
+html[data-theme="dark"] .live-panel-clear {
+  background: rgb(245 158 11 / 0.2);
+  color: #fcd34d;
+}
+html[data-theme="dark"] .live-panel-clear:hover {
+  background: rgb(245 158 11 / 0.32);
+}
+html[data-theme="dark"] .live-panel-row-meta { color: #fbbf24; }
+
+/* Live row in the admin call-list. Same amber-tint logic as match-row-live;
+   without this the bg-amber-50/80 stays light in dark mode while inner text
+   flips bright, producing white-on-white player names. */
+.call-row-live {
+  background: rgb(254 243 199 / 0.8);
+  --tw-ring-color: rgb(252 211 77);
+}
+.call-row-live .call-row-live-meta { color: #92400e; }
+.call-row-live .call-row-live-table { color: #b45309; }
+.call-row-live .call-row-live-name { color: #78350f; }
+.call-row-live-icon {
+  background: rgb(252 211 77);
+  color: #78350f;
+}
+.call-row-live-icon-pulse { background: rgb(251 191 36 / 0.4); }
+.call-row-live-result {
+  background: rgb(245 158 11);
+  color: #ffffff;
+}
+.call-row-live-result:hover { background: rgb(217 119 6); }
+.call-row-live-cancel { color: rgb(180 83 9 / 0.7); }
+.call-row-live-cancel:hover {
+  color: #78350f;
+  background: rgb(254 243 199);
+}
+html[data-theme="dark"] .call-row-live {
+  background: rgb(245 158 11 / 0.14);
+  --tw-ring-color: rgb(245 158 11 / 0.5);
+}
+html[data-theme="dark"] .call-row-live .call-row-live-meta { color: #fcd34d; }
+html[data-theme="dark"] .call-row-live .call-row-live-table { color: #fbbf24; }
+html[data-theme="dark"] .call-row-live .call-row-live-name { color: #fde68a; }
+html[data-theme="dark"] .call-row-live-icon {
+  background: rgb(245 158 11 / 0.32);
+  color: #fde68a;
+}
+html[data-theme="dark"] .call-row-live-icon-pulse {
+  background: rgb(251 191 36 / 0.3);
+}
+html[data-theme="dark"] .call-row-live-result {
+  background: rgb(217 119 6);
+  color: #ffffff;
+}
+html[data-theme="dark"] .call-row-live-result:hover {
+  background: rgb(180 83 9);
+}
+html[data-theme="dark"] .call-row-live-cancel { color: rgb(251 191 36 / 0.85); }
+html[data-theme="dark"] .call-row-live-cancel:hover {
+  color: #fde68a;
+  background: rgb(245 158 11 / 0.18);
+}
+
+/* Publish toggle "draft" card. Amber-tinted highlight that needs to flip
+   for dark mode so amber-900 text doesn't sit on near-white amber-50. */
+.publish-toggle-draft {
+  background: rgb(255 251 235 / 0.6);
+  border-color: rgb(252 211 77 / 0.7);
+}
+.publish-toggle-draft-icon { color: #b45309; }
+.publish-toggle-draft-title { color: #78350f; }
+.publish-toggle-draft-text { color: rgb(120 53 15 / 0.85); }
+html[data-theme="dark"] .publish-toggle-draft {
+  background: rgb(245 158 11 / 0.12);
+  border-color: rgb(245 158 11 / 0.4);
+}
+html[data-theme="dark"] .publish-toggle-draft-icon { color: #fbbf24; }
+html[data-theme="dark"] .publish-toggle-draft-title { color: #fde68a; }
+html[data-theme="dark"] .publish-toggle-draft-text { color: rgb(253 230 138 / 0.85); }
+
+/* Played-toggle button (admin). Same dark-mode swap. */
+.played-toggle-on {
+  background: rgb(252 211 77);
+  color: #78350f;
+}
+.played-toggle-on:hover { background: rgb(251 191 36); }
+html[data-theme="dark"] .played-toggle-on {
+  background: rgb(245 158 11 / 0.32);
+  color: #fde68a;
+}
+html[data-theme="dark"] .played-toggle-on:hover {
+  background: rgb(245 158 11 / 0.45);
+}
+
 /* Bracket card states. Live and finished cards both need a tint that stays
    readable on the dark surface palette - amber-50/emerald-50 hardcodes
    would render near-white. We expose three tones (live/done/finale) so the
@@ -221,6 +385,17 @@ html[data-theme="dark"] .bracket-card-live {
 html[data-theme="dark"] .bracket-card-done {
   background: rgb(16 185 129 / 0.1);
   border-color: rgb(16 185 129 / 0.4);
+}
+/* Finale winner card: gold treatment in light mode, tinted amber in dark
+   mode. Without the dark override, bg-amber-50 stays cream while inner
+   ink-900 text flips to near-white, producing white-on-white. */
+.bracket-card-finale {
+  box-shadow: inset 0 0 0 2px rgb(251 191 36);
+  background: rgb(254 243 199 / 0.7);
+}
+html[data-theme="dark"] .bracket-card-finale {
+  background: rgb(245 158 11 / 0.16);
+  box-shadow: inset 0 0 0 2px rgb(245 158 11 / 0.6);
 }
 .bracket-pill-live {
   background: rgb(252 211 77 / 0.7);
@@ -376,15 +551,32 @@ html[data-theme="dark"] .stats-highlight-emerald .stats-highlight-sub {
 .winner-sparkle {
   animation: winner-sparkle 2.4s ease-in-out infinite;
 }
+.winner-banner {
+  background: linear-gradient(
+    135deg,
+    #fffbeb,
+    #fef3c7,
+    #fffbeb
+  );
+  border-color: rgb(252 211 77 / 0.7);
+}
+.winner-banner-eyebrow { color: #b45309; }
+.winner-banner-title { color: #451a03; }
+.winner-banner-meta { color: rgb(120 53 15 / 0.85); }
+.winner-banner-meta-sep { color: rgb(180 83 9 / 0.5); }
 html[data-theme="dark"] .winner-banner {
   background: linear-gradient(
     135deg,
-    rgb(120 53 15 / 0.35),
-    rgb(180 83 9 / 0.25),
-    rgb(120 53 15 / 0.35)
+    rgb(120 53 15 / 0.4),
+    rgb(180 83 9 / 0.3),
+    rgb(120 53 15 / 0.4)
   );
   border-color: rgb(217 119 6 / 0.5);
 }
+html[data-theme="dark"] .winner-banner-eyebrow { color: #fcd34d; }
+html[data-theme="dark"] .winner-banner-title { color: #fef3c7; }
+html[data-theme="dark"] .winner-banner-meta { color: rgb(253 230 138 / 0.85); }
+html[data-theme="dark"] .winner-banner-meta-sep { color: rgb(252 211 77 / 0.45); }
 @media (prefers-reduced-motion: reduce) {
   .winner-sparkle { animation: none; }
 }

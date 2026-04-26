@@ -288,14 +288,15 @@ export function TreeBracket({
           const left = columnX(r.round);
 
           // Card visual states (mutually exclusive, in priority order):
-          //   1. Finale winner: gold treatment, kept as hardcoded amber so
-          //      the trophy framing matches the rest of the tournament UI.
+          //   1. Finale winner: gold treatment via .bracket-card-finale,
+          //      which carries the dark-mode override so amber-50 doesn't
+          //      stay light against bright ink-900 text.
           //   2. In progress (admin flagged "wird gespielt"): amber tint via
           //      the dark-mode-aware .bracket-card-live class.
           //   3. Finished (non-finale): subtle emerald tint so admins can see
           //      at a glance which slots are still pending.
           const stateClass = isFinaleWinner
-            ? "ring-2 ring-amber-400 bg-amber-50/70 overflow-hidden"
+            ? "bracket-card-finale overflow-hidden"
             : inProgress
               ? "bracket-card-live"
               : done && !isBye
@@ -433,7 +434,7 @@ export function TreeBracket({
               }
               className={`absolute right-1.5 top-1.5 z-10 rounded-md px-1.5 py-0.5 text-[10px] font-semibold transition-colors ${
                 m.played
-                  ? "bg-amber-200 text-amber-800 hover:bg-amber-300"
+                  ? "played-toggle-on"
                   : "bg-ink-50 text-ink-400 hover:bg-ink-100 hover:text-ink-700"
               }`}
             >

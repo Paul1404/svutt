@@ -93,7 +93,7 @@ export function TournamentWinner(props: Props) {
   return (
     <section
       aria-label="Siegerin oder Sieger"
-      className="winner-banner relative overflow-hidden rounded-2xl border border-amber-300/70 bg-gradient-to-br from-amber-50 via-amber-100 to-amber-50 p-6 sm:p-8 shadow-pop"
+      className="winner-banner relative overflow-hidden rounded-2xl border p-6 sm:p-8 shadow-pop"
     >
       <div
         aria-hidden
@@ -113,18 +113,18 @@ export function TournamentWinner(props: Props) {
           <Trophy size={32} />
         </div>
         <div className="min-w-0">
-          <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-amber-700">
+          <div className="winner-banner-eyebrow text-[11px] font-bold uppercase tracking-[0.2em]">
             Turniersieger
           </div>
-          <h2 className="mt-1 truncate text-2xl sm:text-3xl font-extrabold tracking-tight text-amber-950">
+          <h2 className="winner-banner-title mt-1 truncate text-2xl sm:text-3xl font-extrabold tracking-tight">
             {participant.name}
           </h2>
-          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-amber-900/80">
+          <div className="winner-banner-meta mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
             {participant.club && (
               <span className="font-medium">{participant.club}</span>
             )}
             {participant.club && subtitle && (
-              <span className="text-amber-700/50">·</span>
+              <span className="winner-banner-meta-sep">·</span>
             )}
             {subtitle && <span>{subtitle}</span>}
           </div>

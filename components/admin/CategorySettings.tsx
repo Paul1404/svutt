@@ -244,7 +244,7 @@ export function CategorySettings({
           </p>
         </div>
         {drawn && (
-          <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          <div className="alert-amber text-xs">
             Gruppen sind bereits gezogen - Gruppengröße und Spielmodus lassen
             sich nicht mehr ändern. Satz-Regeln bleiben anpassbar.
           </div>
