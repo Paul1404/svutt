@@ -10,12 +10,22 @@ type Props = {
   participants: Participant[];
   groups?: Group[];
   /**
-   * Callback for the inline "Aufrufen"/"Fertig" buttons. When omitted, the
-   * list is read-only — that's the public mode. The admin panel passes its
-   * own implementation that talks to /api/matches/:id/played and refreshes
-   * via next/router.
+   * Callback for the inline "Aufrufen" button. When omitted, the list is
+   * read-only (public mode). The admin panel passes its own implementation
+   * that talks to /api/matches/:id/played and refreshes via next/router.
    */
   onMarkLive?: (matchId: string, next: boolean) => Promise<void> | void;
+  /**
+   * When provided, the live row shows a primary "Ergebnis" button that opens
+   * the result-entry dialog for the match. Saving the result finishes the
+   * match, which removes it from the call list automatically.
+   */
+  onEnterResult?: (matchId: string) => void;
+  /**
+   * When provided, the live row exposes a "DQ" action that opens the
+   * disqualify dialog for the running match.
+   */
+  onDisqualify?: (matchId: string) => void;
 };
 
 const VISIBLE_UP_NEXT = 4;
@@ -36,6 +46,8 @@ export function CallList({
   participants,
   groups,
   onMarkLive,
+  onEnterResult,
+  onDisqualify,
 }: Props) {
   const [showAll, setShowAll] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -92,7 +104,7 @@ export function CallList({
                 Spielreihenfolge
               </h2>
               <p className="mt-0.5 text-sm text-ink-500">
-                In dieser Reihenfolge ausrufen — der Plan vermeidet, dass
+                In dieser Reihenfolge ausrufen. Der Plan vermeidet, dass
                 jemand zwei Spiele in Folge an den Tisch muss.
               </p>
             </div>
@@ -130,6 +142,12 @@ export function CallList({
                 adminMode={adminMode}
                 busy={busyId === m.id}
                 onClear={() => markLive(m.id, false)}
+                onEnterResult={
+                  onEnterResult ? () => onEnterResult(m.id) : undefined
+                }
+                onDisqualify={
+                  onDisqualify ? () => onDisqualify(m.id) : undefined
+                }
               />
             ))}
           </ul>
@@ -244,6 +262,8 @@ function CallRow({
   busy,
   onMarkLive,
   onClear,
+  onEnterResult,
+  onDisqualify,
 }: {
   match: Match;
   index: number | null;
@@ -254,6 +274,8 @@ function CallRow({
   busy: boolean;
   onMarkLive?: () => void;
   onClear?: () => void;
+  onEnterResult?: () => void;
+  onDisqualify?: () => void;
 }) {
   const a = partsById.get(match.participantAId ?? "");
   const b = partsById.get(match.participantBId ?? "");
@@ -334,16 +356,42 @@ function CallRow({
           </div>
         </div>
 
-        {adminMode && live && onClear && (
-          <button
-            type="button"
-            onClick={onClear}
-            disabled={busy}
-            className="self-center shrink-0 rounded-md bg-amber-200 px-2.5 py-1 text-[11px] font-semibold text-amber-900 hover:bg-amber-300 disabled:opacity-50 transition-colors"
-            title="Spiel als beendet aus „Wird gespielt“ nehmen"
-          >
-            {busy ? "…" : "Fertig"}
-          </button>
+        {adminMode && live && (onEnterResult || onClear || onDisqualify) && (
+          <div className="self-center shrink-0 flex items-center gap-1.5">
+            {onEnterResult && (
+              <button
+                type="button"
+                onClick={onEnterResult}
+                disabled={busy}
+                className="rounded-md bg-amber-500 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-white shadow-soft hover:bg-amber-600 disabled:opacity-50 transition-colors"
+                title="Spiel ist fertig. Ergebnis eintragen."
+              >
+                Ergebnis
+              </button>
+            )}
+            {onDisqualify && (
+              <button
+                type="button"
+                onClick={onDisqualify}
+                disabled={busy}
+                className="rounded-md px-2 py-1 text-[11px] font-bold uppercase tracking-wider text-brand-700 ring-1 ring-inset ring-brand-200 bg-surface hover:bg-brand-50 disabled:opacity-50 transition-colors"
+                title="Einen Spieler disqualifizieren. Der andere gewinnt automatisch."
+              >
+                DQ
+              </button>
+            )}
+            {onClear && (
+              <button
+                type="button"
+                onClick={onClear}
+                disabled={busy}
+                className="rounded-md px-2 py-1 text-[11px] font-medium text-amber-800/70 hover:text-amber-900 hover:bg-amber-100 disabled:opacity-50 transition-colors"
+                title="Markierung „Wird gespielt“ entfernen, ohne Ergebnis einzutragen"
+              >
+                {busy ? "…" : "Abbrechen"}
+              </button>
+            )}
+          </div>
         )}
         {adminMode && !live && onMarkLive && (
           <button
@@ -351,7 +399,7 @@ function CallRow({
             onClick={onMarkLive}
             disabled={busy}
             className="self-center shrink-0 rounded-md bg-brand-600 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-brand-700 disabled:opacity-50 transition-colors"
-            title="Spieler aufgerufen — Spiel beginnt"
+            title="Spieler aufgerufen. Spiel beginnt."
           >
             {busy ? "…" : "Aufrufen"}
           </button>

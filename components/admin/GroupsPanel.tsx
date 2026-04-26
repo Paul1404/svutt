@@ -12,6 +12,7 @@ import type {
 } from "@/lib/db/schema";
 import type { GroupStanding } from "@/lib/engine/types";
 import { MatchResultDialog } from "./MatchResultDialog";
+import { DisqualifyDialog } from "./DisqualifyDialog";
 import { CallList } from "@/components/CallList";
 import { StandingsExplainer } from "@/components/StandingsExplainer";
 import { StandingsCellTooltip } from "@/components/StandingsCellTooltip";
@@ -65,6 +66,8 @@ export function GroupsPanel({
 
   const [openMatchId, setOpenMatchId] = useState<string | null>(null);
   const openMatch = matches.find((m) => m.id === openMatchId) ?? null;
+  const [dqMatchId, setDqMatchId] = useState<string | null>(null);
+  const dqMatch = matches.find((m) => m.id === dqMatchId) ?? null;
 
   const totalMatches = matches.length;
   const finished = matches.filter((m) => m.status === "finished").length;
@@ -252,6 +255,8 @@ export function GroupsPanel({
         participants={participants}
         groups={groups}
         onMarkLive={togglePlayed}
+        onEnterResult={(id) => setOpenMatchId(id)}
+        onDisqualify={(id) => setDqMatchId(id)}
       />
 
       <StandingsExplainer />
@@ -532,8 +537,15 @@ export function GroupsPanel({
                                 )}
                               </div>
                               {done ? (
-                                <span className="tabular-nums font-mono text-sm font-semibold text-brand-700">
-                                  {m.setsA}:{m.setsB}
+                                <span className="flex items-center gap-1.5">
+                                  {m.forfeitedBy && (
+                                    <span className="badge-amber shrink-0">
+                                      Disq.
+                                    </span>
+                                  )}
+                                  <span className="tabular-nums font-mono text-sm font-semibold text-brand-700">
+                                    {m.setsA}:{m.setsB}
+                                  </span>
                                 </span>
                               ) : (
                                 <span
@@ -607,6 +619,33 @@ export function GroupsPanel({
             }
           }
           onClose={() => setOpenMatchId(null)}
+        />
+      )}
+
+      {dqMatch && dqMatch.participantAId && dqMatch.participantBId && (
+        <DisqualifyDialog
+          match={dqMatch}
+          playerA={
+            partsById.get(dqMatch.participantAId) ?? {
+              id: dqMatch.participantAId,
+              name: "?",
+              club: null,
+              seed: null,
+              categoryId: "",
+              createdAt: new Date(),
+            }
+          }
+          playerB={
+            partsById.get(dqMatch.participantBId) ?? {
+              id: dqMatch.participantBId,
+              name: "?",
+              club: null,
+              seed: null,
+              categoryId: "",
+              createdAt: new Date(),
+            }
+          }
+          onClose={() => setDqMatchId(null)}
         />
       )}
     </section>

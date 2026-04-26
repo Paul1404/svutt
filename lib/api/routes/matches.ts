@@ -2,7 +2,11 @@ import { Hono } from "hono";
 import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { categories, matches, matchSets } from "@/lib/db/schema";
-import { setMatchPlayedSchema, submitResultSchema } from "@/lib/validators";
+import {
+  forfeitMatchSchema,
+  setMatchPlayedSchema,
+  submitResultSchema,
+} from "@/lib/validators";
 import { computeMatchOutcome, validateMatchInput } from "@/lib/engine";
 import { publishCategoryRevision } from "@/lib/live";
 import { notFound, parseJson } from "../helpers";
@@ -81,6 +85,8 @@ export const matchRoutes = new Hono()
           setsA: outcome.setsA,
           setsB: outcome.setsB,
           winnerParticipantId: winnerId,
+          forfeitedBy: null,
+          played: false,
           updatedAt: new Date(),
         })
         .where(eq(matches.id, id));
@@ -128,6 +134,7 @@ export const matchRoutes = new Hono()
           setsA: 0,
           setsB: 0,
           winnerParticipantId: null,
+          forfeitedBy: null,
           updatedAt: new Date(),
         })
         .where(eq(matches.id, id));
@@ -181,4 +188,103 @@ export const matchRoutes = new Hono()
 
     publishCategoryRevision(match.categoryId);
     return c.json({ ok: true, played: parsed.data.played });
+  })
+  .put("/:id/forfeit", async (c) => {
+    const id = c.req.param("id");
+    const parsed = await parseJson(c, forfeitMatchSchema);
+    if (!parsed.ok) return parsed.response;
+
+    const [match] = await db
+      .select()
+      .from(matches)
+      .where(eq(matches.id, id))
+      .limit(1);
+    if (!match) return notFound(c, "Spiel");
+
+    if (!match.participantAId || !match.participantBId) {
+      return c.json({ error: "Spielpaarung steht noch nicht fest." }, 400);
+    }
+    if (match.status === "finished") {
+      return c.json(
+        { error: "Spiel ist bereits abgeschlossen." },
+        400,
+      );
+    }
+
+    const dqId = parsed.data.forfeitParticipantId;
+    if (dqId !== match.participantAId && dqId !== match.participantBId) {
+      return c.json(
+        { error: "Der disqualifizierte Spieler gehört nicht zu dieser Paarung." },
+        400,
+      );
+    }
+
+    const winnerId =
+      dqId === match.participantAId ? match.participantBId : match.participantAId;
+    const winnerSide: "A" | "B" =
+      winnerId === match.participantAId ? "A" : "B";
+
+    const [cat] = await db
+      .select()
+      .from(categories)
+      .where(eq(categories.id, match.categoryId))
+      .limit(1);
+    const winSets = cat?.winSets ?? 2;
+    const setPoints = cat?.setPoints ?? 11;
+
+    // Synthesize a clean sweep so standings (which read from match_sets)
+    // attribute set/point credit consistently with a normal walkover win.
+    const syntheticSets = Array.from({ length: winSets }, () =>
+      winnerSide === "A"
+        ? { a: setPoints, b: 0 }
+        : { a: 0, b: setPoints },
+    );
+
+    await db.transaction(async (tx) => {
+      await tx.delete(matchSets).where(eq(matchSets.matchId, id));
+      await tx.insert(matchSets).values(
+        syntheticSets.map((s, i) => ({
+          matchId: id,
+          setNumber: i + 1,
+          pointsA: s.a,
+          pointsB: s.b,
+        })),
+      );
+      await tx
+        .update(matches)
+        .set({
+          status: "finished",
+          setsA: winnerSide === "A" ? winSets : 0,
+          setsB: winnerSide === "B" ? winSets : 0,
+          winnerParticipantId: winnerId,
+          forfeitedBy: dqId,
+          played: false,
+          updatedAt: new Date(),
+        })
+        .where(eq(matches.id, id));
+
+      // Mirror the result endpoint: push the winner into any directly
+      // downstream KO slot so the bracket stays consistent.
+      const downstream = await tx
+        .select()
+        .from(matches)
+        .where(
+          and(
+            inArray(matches.stage, ["ko", "ko_losers"] as const),
+            eq(matches.categoryId, match.categoryId),
+          ),
+        );
+
+      for (const d of downstream) {
+        const updates: { participantAId?: string; participantBId?: string } = {};
+        if (d.sourceMatchAId === id) updates.participantAId = winnerId;
+        if (d.sourceMatchBId === id) updates.participantBId = winnerId;
+        if (Object.keys(updates).length > 0) {
+          await tx.update(matches).set(updates).where(eq(matches.id, d.id));
+        }
+      }
+    });
+
+    publishCategoryRevision(match.categoryId);
+    return c.json({ ok: true, winnerParticipantId: winnerId });
   });
