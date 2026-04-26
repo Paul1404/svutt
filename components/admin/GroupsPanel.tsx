@@ -252,6 +252,7 @@ export function GroupsPanel({
         participants={participants}
         groups={groups}
         onMarkLive={togglePlayed}
+        onEnterResult={(id) => setOpenMatchId(id)}
       />
 
       <StandingsExplainer />

@@ -7,7 +7,7 @@ import type {
 } from "@/lib/db/schema";
 import type { GroupStanding } from "@/lib/engine/types";
 import { ChevronDown, Users } from "@/components/Icon";
-import { CallList } from "@/components/CallList";
+import { PublicCallList } from "./PublicCallList";
 import { StandingsExplainer } from "@/components/StandingsExplainer";
 import { StandingsCellTooltip } from "@/components/StandingsCellTooltip";
 import { MatchMeta } from "@/components/MatchMeta";
@@ -54,11 +54,11 @@ export function PublicGroupView({
       <SectionHeading
         eyebrow="Spielplan"
         title="Gruppenphase"
-        subtitle="Jeder gegen jeden — die Bestplatzierten ziehen weiter."
+        subtitle="Jeder gegen jeden. Die Bestplatzierten ziehen weiter."
         icon={<Users size={18} />}
       />
 
-      <CallList
+      <PublicCallList
         matches={matches}
         participants={participants}
         groups={groups}
