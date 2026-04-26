@@ -128,8 +128,15 @@ export default async function HomePage() {
 
       <section className="mt-16 sm:mt-24">
         <div className="flex items-end justify-between gap-4 flex-wrap">
-          <div>
-            <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-ink-900">
+          <div className="relative pl-5">
+            <span
+              aria-hidden
+              className="absolute left-0 top-2 bottom-3 w-0.5 rounded-full bg-gradient-to-b from-brand-500 via-brand-400 to-brand-200"
+            />
+            <div className="text-[10px] font-bold uppercase tracking-[0.24em] text-brand-700">
+              SV 1945 Untereuerheim
+            </div>
+            <h1 className="mt-1 text-4xl sm:text-5xl font-bold tracking-tight text-ink-900">
               Turniere
             </h1>
             <p className="mt-3 max-w-xl text-ink-500">
@@ -138,7 +145,7 @@ export default async function HomePage() {
             </p>
           </div>
           {list.length > 0 && (
-            <span className="text-xs font-medium text-ink-500">
+            <span className="text-xs font-medium text-ink-500 tabular-nums">
               {list.length} {list.length === 1 ? "Turnier" : "Turniere"}
             </span>
           )}

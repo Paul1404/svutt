@@ -68,8 +68,16 @@ export default async function PublicTournamentPage({
 
   return (
     <div className="min-h-screen bg-page">
-      <header className="bg-brand-700 text-white">
-        <div className="mx-auto max-w-4xl px-4 py-10 sm:py-14">
+      <header className="relative overflow-hidden bg-gradient-to-br from-brand-800 via-brand-700 to-brand-600 text-white">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-30"
+          style={{
+            background:
+              "radial-gradient(60% 80% at 100% 0%, rgba(255,255,255,0.18) 0%, transparent 60%)",
+          }}
+        />
+        <div className="relative mx-auto max-w-4xl px-4 py-10 sm:py-14">
           <div className="flex items-center justify-between gap-4">
             <Link
               href="/"
@@ -79,7 +87,10 @@ export default async function PublicTournamentPage({
             </Link>
             <ClubMark size="sm" showLabel={false} />
           </div>
-          <h1 className="mt-4 text-3xl sm:text-5xl font-bold tracking-tight">
+          <div className="mt-6 text-[10px] font-bold uppercase tracking-[0.24em] text-brand-200/90">
+            Turnier
+          </div>
+          <h1 className="mt-1 text-3xl sm:text-5xl font-bold tracking-tight">
             {tournament.name}
           </h1>
           {(tournament.location || tournament.startDate) && (
@@ -107,10 +118,20 @@ export default async function PublicTournamentPage({
       </header>
 
       <main id="main" tabIndex={-1} className="mx-auto max-w-4xl px-4 py-10 space-y-6">
-        <div className="flex items-baseline justify-between">
-          <h2 className="text-xl font-semibold tracking-tight">Spielklassen</h2>
+        <div className="flex items-end justify-between gap-3 flex-wrap">
+          <div className="flex items-start gap-3">
+            <span className="mt-1 hidden sm:inline-block h-7 w-0.5 rounded-full bg-gradient-to-b from-brand-500 via-brand-400 to-brand-200" />
+            <div>
+              <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-700">
+                Übersicht
+              </div>
+              <h2 className="mt-0.5 text-2xl font-bold tracking-tight text-ink-900">
+                Spielklassen
+              </h2>
+            </div>
+          </div>
           {cats.length > 0 && (
-            <span className="text-xs text-ink-500">
+            <span className="text-xs text-ink-500 tabular-nums">
               {cats.length} {cats.length === 1 ? "Klasse" : "Klassen"}
             </span>
           )}
