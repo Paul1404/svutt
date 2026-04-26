@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Match, MatchSetRow, Participant } from "@/lib/db/schema";
 import { Trophy } from "@/components/Icon";
 import { displayName } from "@/lib/displayName";
+import { matchLabel } from "@/lib/matchLabel";
 
 export type TreeBracketMatch = Match;
 
@@ -401,7 +402,7 @@ export function TreeBracket({
                   </span>
                 )}
                 <span className="truncate">
-                  T{m.tableNumber ?? "?"}
+                  {matchLabel(m) || "—"}
                   {matchSets.length > 0 && (
                     <>
                       {" · "}

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type { Match, Participant } from "@/lib/db/schema";
 import { Radio, X } from "@/components/Icon";
 import { useToast } from "@/components/Toast";
+import { matchNumber } from "@/lib/matchLabel";
 
 type Props = {
   matches: Match[];
@@ -120,6 +121,14 @@ export function LivePlayPanel({ matches, participants }: Props) {
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-ink-500">
+                      {matchNumber(m) !== null && (
+                        <>
+                          <span className="font-mono tabular-nums text-amber-700">
+                            {matchNumber(m)}
+                          </span>
+                          <span className="text-ink-300">·</span>
+                        </>
+                      )}
                       <span className="font-mono tabular-nums text-amber-700">
                         T{m.tableNumber ?? "?"}
                       </span>

@@ -17,6 +17,7 @@ import { StandingsCellTooltip } from "@/components/StandingsCellTooltip";
 import { useToast } from "@/components/Toast";
 import { computeBreakdownsByPlayer } from "@/lib/engine/standings-breakdown";
 import { displayName } from "@/lib/displayName";
+import { matchLabel } from "@/lib/matchLabel";
 
 type Props = {
   tournamentId: string;
@@ -513,11 +514,11 @@ export function GroupsPanel({
                                 </span>
                               ) : (
                                 <span
-                                  className={`text-xs font-mono ${
+                                  className={`text-xs font-mono tabular-nums ${
                                     inProgress ? "match-row-live-meta" : "text-ink-400"
                                   }`}
                                 >
-                                  T{m.tableNumber ?? "?"}
+                                  {matchLabel(m) || "—"}
                                 </span>
                               )}
                             </div>

@@ -11,6 +11,7 @@ import { StandingsExplainer } from "@/components/StandingsExplainer";
 import { StandingsCellTooltip } from "@/components/StandingsCellTooltip";
 import { computeBreakdownsByPlayer } from "@/lib/engine/standings-breakdown";
 import { displayName } from "@/lib/displayName";
+import { matchLabel } from "@/lib/matchLabel";
 
 type Props = {
   groups: Group[];
@@ -186,7 +187,7 @@ export function PublicGroupView({
                                 inProgress ? "match-row-live-meta" : "text-ink-400"
                               }`}
                             >
-                              T{m.tableNumber ?? "?"}
+                              {matchLabel(m) || "—"}
                             </span>
                           )}
                         </div>

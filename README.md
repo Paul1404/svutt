@@ -4,12 +4,12 @@
 
 # SVUTT
 
-**Tischtennis-Turnierverwaltung - end-to-end, in the browser.**
+**Tischtennis-Turnierverwaltung im Browser.**
 
-Groups, KO brackets, Swiss rounds, round-robin, a wall-clock scheduler and a
-live public view. Built for the table-tennis section of
-[SV 1945 Untereuerheim e.V.](https://sv-untereuerheim.de) - free for any club
-to fork.
+Auslosung, Gruppen, KO, Schweizer System, Spielplan und eine öffentliche
+Live-Ansicht. Gebaut für die Tischtennis-Abteilung von
+[SV 1945 Untereuerheim e.V.](https://sv-untereuerheim.de). Wer einen eigenen
+Verein hat, darf den Code gerne forken und das Logo austauschen.
 
 <br />
 
@@ -27,179 +27,193 @@ to fork.
 
 ---
 
-## The idea
+## Worum es geht
 
-Running a club tournament on paper is fine until someone asks "who's on table 3
-next?". SVUTT takes a player list and produces everything you actually need on
-match day: the draw, the schedule, the bracket, the live table, and a QR code
-you can tape to the wall so nobody has to ask you anything.
+Wer schon mal eine Vereinsmeisterschaft mit Zettel und Filzstift organisiert
+hat, kennt die Situation: irgendwann steht jemand am Tisch und fragt "wer
+spielt jetzt eigentlich an Tisch 3?". SVUTT nimmt eine Teilnehmerliste und
+macht daraus alles, was am Spieltag tatsächlich gebraucht wird – Auslosung,
+Spielplan, Gruppentabellen, KO-Baum, Live-Ansicht und einen QR-Code, den man
+an die Halle hängen kann.
 
-It's one admin screen, one public screen, and an engine that's 100 % pure
-functions - which is why the test suite runs without a database and the draws
-are reproducible from a seed.
+Eine Admin-Seite, eine öffentliche Seite, dazwischen eine Engine aus puren
+Funktionen. Das ist der Grund, warum die Tests ohne Datenbank laufen und
+warum Auslosungen aus dem Seed reproduzierbar sind.
 
 ---
 
-## What it does
+## Was drin ist
 
-### Tournament formats - pick one per Spielklasse
+### Turnierformate
 
-| Structure | What happens | Min. players |
+Pro Spielklasse einzeln einstellbar:
+
+| Format | Ablauf | Min. Teilnehmer |
 | --- | --- | --- |
-| `groups_ko` *(default)* | Round-robin groups → single-elimination KO, optionally filled with Lucky Losers | 4 |
-| `round_robin`            | Everyone plays everyone, one big Tabelle, no KO | 3 |
-| `ko_only`                | Straight single-elimination with seeded positioning + byes | 2 |
-| `swiss`                  | N Swiss rounds (Dutch pairing, Buchholz / Sonneborn-Berger tiebreaks) | 4 |
+| `groups_ko` *(Standard)* | Gruppenphase im Round-Robin, danach KO. Lucky-Loser-Plätze füllen den Baum optional auf. | 4 |
+| `round_robin_finals` | Eine Liga (jeder gegen jeden), die besten vier spielen Halbfinale, Finale und Spiel um Platz 3. | 4 |
+| `round_robin` | Jeder gegen jeden, eine Tabelle, kein KO. | 3 |
+| `ko_only` | Reines KO mit gesetzter Auslosung und Freilosen. | 2 |
+| `swiss` | Schweizer System mit Buchholz/Sonneborn-Berger. | 4 |
 
-One tournament can mix them: Herren A as `groups_ko`, Jugend as `swiss`,
-Damen-Doppel as `round_robin`.
+Mischen ist erlaubt: Herren A als `groups_ko`, Jugend als `swiss`,
+Damen-Doppel als `round_robin` – alles im selben Turnier.
 
-### Draw modes
+### Auslosungsmodi
 
-- **Zufällig** - shuffled with a deterministic Mulberry32 RNG (same seed → same
-  draw, which is great for replaying "wait, was that right?").
-- **Gesetzt (Schlange)** - snake distribution by seed/rank so the top players
-  end up spread across groups.
-- **Manuell** - skip the algorithm, drop players into groups yourself.
+- **Zufällig** – mit deterministischem Mulberry32-RNG. Gleicher Seed →
+  gleiche Auslosung. Hilft beim "Moment, war das wirklich richtig?".
+- **Gesetzt (Schlange)** – Snake-Verteilung nach Setzplatz, damit die starken
+  Spieler in unterschiedlichen Gruppen landen.
+- **Manuell** – Algorithmus überspringen und Spieler selbst auf Gruppen
+  verteilen.
 
-### Scheduling
+### Spielplan und Tische
 
-Static wall-clock allocator. You tell it *start time*, *parallel tables* and
-*minutes per match*; it assigns every match a table number and a scheduled
-time:
+Der Scheduler verteilt die Spiele auf die parallelen Tische und vergibt jedem
+Spiel eine Nummer. Für die Gruppenphase wird zusätzlich versucht, dass kein
+Spieler in zwei aufeinanderfolgenden Slots antritt – wenn es sich vermeiden
+lässt, bekommt jeder zwischen seinen Spielen eine Pause. Wenn alle übrigen
+Spiele dieselben Spieler betreffen (kleine Gruppen, ein Tisch), spielt das
+Format halt durch.
 
-```
-tableNumber  = (playOrder % tables) + 1
-minuteOffset = floor(playOrder / tables) * matchDurationMinutes
-wallClock    = startTime + minuteOffset
-```
+Jedes Spiel hat eine globale Spielnummer (`#1`, `#2`, …). Die taucht in
+allen Listen, im KO-Baum und in der Live-Anzeige auf, sodass beim Aufrufen
+gut "Spiel 12, Tisch 2" durch die Halle gerufen werden kann.
 
-No live re-balancing when a match runs long - the schedule is a plan, not a
-reality.
+### Ergebniseingabe
 
-### Match input
+Satz für Satz: `11:3, 11:7`. Die Engine prüft jeden Satz gegen die
+Tischtennis-Regeln (`lib/engine/sets.ts`):
 
-Set-by-set: `11:3, 11:7`. The engine validates each set against table-tennis
-rules (`lib/engine/sets.ts`):
+- Sieger braucht ≥ `setPoints` (Standard 11) **und** mindestens
+  `setMinLead` Punkte Vorsprung (Standard 2).
+- Bei Einstand muss jeder weitere Punkt den Vorsprung um genau den
+  Mindestabstand vergrößern – also 12:10, 13:11, 14:12 …, niemals 15:10.
+- `winSets` legt das Format fest – Bo3 (Standard), Bo5, Bo7.
+- Zu viele Sätze, Sätze nach entschiedenem Match oder unmögliche Stände
+  werden vor dem Speichern mit deutscher Fehlermeldung abgelehnt.
 
-- Winner needs ≥ `setPoints` (default 11) **and** a lead of ≥ `setMinLead`
-  (default 2).
-- Deuce: every point past the target must extend the lead by exactly the
-  min-lead (12:10, 13:11, 14:12 … never 15:10).
-- `winSets` determines the format - Bo3 (default), Bo5, Bo7.
-- Too many sets, sets after the match is decided, or impossible scores all
-  produce German error messages before anything is saved.
+### Gruppentabellen
 
-### Group standings - deterministic tie-breakers
+Tiebreaker laufen in dieser Reihenfolge:
 
-Ordered strictly:
+1. **Siege**
+2. **Satzdifferenz**
+3. **Punktdifferenz**
+4. **Direkter Vergleich** – nur bei genau zwei Spielern gleichauf
+5. **Einführungsreihenfolge** – stabile Sortierung, damit die Tabelle
+   reproduzierbar ist, wenn alles gleich ist
 
-1. **Siege** (wins)
-2. **Satzdifferenz** (set difference)
-3. **Punktdifferenz** (point difference)
-4. **Head-to-head** - only applied for exact 2-way ties
-5. **Einführungsreihenfolge** - stable insertion order, so the table is
-   deterministic even when everything else is equal
+### KO-Baum
 
-### KO bracket
-
-- Group winners seeded A, B, C, … into a bracket of `nextPowerOfTwo(#groups)`
-  slots.
-- Gaps filled with **Lucky Losers** - best Gruppendritten ranked by wins → set
-  diff → point diff → group label. Toggleable per Spielklasse.
-- Half-split pairing: slot `i` vs slot `i + size/2`, so with 4 groups you get
-  **A vs C** and **B vs D**, not A vs B.
-- KO labels are localised - *Finale*, *Halbfinale*, *Viertelfinale*,
+- Gruppensieger setzen sich auf A, B, C, … in einen Baum mit
+  `nextPowerOfTwo(#Gruppen)` Plätzen.
+- Lücken werden mit **Lucky Losern** gefüllt – die besten Gruppendritten,
+  sortiert nach Siegen → Satzdifferenz → Punktdifferenz → Gruppenlabel.
+  Pro Spielklasse ein-/ausschaltbar.
+- Halbsplit-Paarung: Slot `i` gegen Slot `i + size/2`. Bei vier Gruppen
+  also **A gegen C** und **B gegen D**, nicht A gegen B.
+- Runden sind beschriftet: *Finale*, *Halbfinale*, *Viertelfinale*,
   *Achtelfinale*, *N. Runde*.
-- Downstream slots auto-fill when upstream matches finish.
+- Folgepartien füllen sich automatisch, sobald die Vorrundenpartie steht.
 
-### Swiss system
+### Schweizer System
 
-Dutch pairing with the usual machinery:
+Dutch Pairing mit dem üblichen Drumherum:
 
-- Score groups (wins + byes).
-- Within each score group: score desc → Buchholz desc → initial seed asc.
-- Top half vs bottom half, with swap-down on forced rematch.
-- Odd field → lowest unbyed player gets the bye (1 point).
-- Standings sort by score → Buchholz → Sonneborn-Berger → seed.
-- `suggestedSwissRounds(playerCount)` picks a default round count.
+- Score-Gruppen (Siege + Freilose).
+- Innerhalb einer Score-Gruppe: Score absteigend → Buchholz absteigend →
+  Setzplatz aufsteigend.
+- Obere Hälfte gegen untere Hälfte, bei erzwungener Wiederholung wird
+  durchgetauscht.
+- Ungerade Teilnehmerzahl → der schwächste Spieler ohne bisheriges Freilos
+  bekommt es (1 Punkt).
+- Rangliste: Score → Buchholz → Sonneborn-Berger → Setzplatz.
+- `suggestedSwissRounds(playerCount)` schlägt eine Rundenzahl vor.
 
-### Public view (`/t/[slug]`)
+### Öffentliche Ansicht (`/t/[slug]`)
 
-- Tournament overview + per-Spielklasse status badges.
-- Tables, schedule (table + wall-clock), KO bracket with pending slots.
-- Auto-refresh every 30 s - pauses when the tab isn't visible.
-- Mobile-first, works on the phone you taped to the scorer's table.
-- Light / dark toggle, respects `prefers-reduced-motion`.
+- Übersicht über das Turnier, Statusbadges pro Spielklasse.
+- Tabellen, Spielplan (Spielnummer + Tisch), KO-Baum mit offenen Plätzen.
+- Lädt sich alle 30 s neu – pausiert, wenn der Tab nicht sichtbar ist, und
+  bekommt zusätzlich Live-Updates per SSE, sobald ein Ergebnis eingetragen
+  wurde.
+- Mobile-first, läuft auf dem Handy am Schreibertisch.
+- Hell-/Dunkelmodus mit Toggle, respektiert `prefers-reduced-motion`.
 
-### Admin view (`/admin`)
+### Admin-Ansicht (`/admin`)
 
-- Single admin, password from env. No user management on purpose.
-- Tournament wizard with live preview (total matches, KO size, estimated
-  duration).
-- Bulk participant import (paste one name per line) plus per-row edit of name,
-  club, seed.
-- One-click draw → schedule → bracket, with the option to redo the draw up
-  until `drawDone` is set.
-- QR-Code share modal with copy-to-clipboard.
-- Match result dialog with inline validation and Undo-Toast.
-- Keyboard-friendly: ESC closes modals, focus rings on everything.
+- Ein Admin, Passwort aus der Umgebung. Bewusst keine Benutzerverwaltung.
+- Turnier-Wizard mit Live-Vorschau (Spielanzahl, KO-Größe, geschätzte Dauer).
+- Massenimport für Teilnehmer (eine Zeile pro Name) plus Inline-Bearbeitung
+  von Name, Verein, Setzplatz.
+- Auslosung → Spielplan → Baum auf Knopfdruck. Solange `drawDone` nicht
+  gesetzt ist, kann die Auslosung neu gewürfelt werden.
+- Drag & Drop zwischen Gruppen, solange noch nichts gespielt wurde.
+- "Wird gespielt"-Markierung pro Spiel, damit die Live-Spalte zeigt, was
+  gerade an welchem Tisch läuft.
+- Demo-Modus: Zufallsergebnisse für offene Spiele füllen, optional pro
+  Phase. Praktisch für Trockenläufe.
+- QR-Code-Modal mit Kopier-Knopf zum Aushang.
+- Match-Result-Dialog mit Inline-Validierung und Undo-Toast.
+- Tastatur-freundlich: ESC schließt Dialoge, Fokusring überall.
 
 ---
 
 ## Stack
 
-- **Next.js 16** App Router + **React 19.2**, rendered server-side with
-  `dynamic = "force-dynamic"` on public pages so results show up the moment
-  they're entered.
-- **TypeScript** in strict mode - `noUncheckedIndexedAccess`,
-  `noImplicitOverride`, `noFallthroughCasesInSwitch`. The engine is written as
-  if the type checker is a test.
-- **Hono** for the API. One handler at `app/api/[[...route]]/route.ts`, routes
-  split by file.
-- **Drizzle ORM** on **PostgreSQL**. Migrations in `/drizzle`, schema in
+- **Next.js 16** mit App Router und **React 19.2**, öffentliche Seiten mit
+  `dynamic = "force-dynamic"`, damit Ergebnisse sofort nach dem Eintragen
+  sichtbar sind.
+- **TypeScript** strict – `noUncheckedIndexedAccess`, `noImplicitOverride`,
+  `noFallthroughCasesInSwitch`. Die Engine ist so geschrieben, als wäre
+  der Compiler ein Test.
+- **Hono** für die API. Ein einziger Handler unter
+  `app/api/[[...route]]/route.ts`, Routen sind nach Datei aufgeteilt.
+- **Drizzle ORM** auf **PostgreSQL**. Migrationen in `/drizzle`, Schema in
   `lib/db/schema.ts`.
-- **Tailwind CSS v4** with CSS-first theming (`@theme { … }`) and hand-rolled
-  utilities (`btn`, `card`, `badge-*`) so the markup stays readable.
-- **Zod v4** on every request body - if it passes the schema, the handler
-  trusts it.
-- **jose** for HS256 session JWTs stored in an HttpOnly cookie.
-- **qrcode** for the share modal.
-- **Vitest 4** + **PGlite** for tests - the API suite spins up Postgres in
-  Node, no Docker.
+- **Tailwind CSS v4** mit CSS-First-Theming (`@theme { … }`) und
+  handgemachten Utilities (`btn`, `card`, `badge-*`).
+- **Zod v4** an jeder Schreib-Route. Was durchs Schema kommt, vertraut der
+  Handler.
+- **jose** für HS256-Session-JWTs in einem HttpOnly-Cookie.
+- **qrcode** fürs Share-Modal.
+- **Vitest 4** + **PGlite** für Tests – die API-Suite startet Postgres in
+  Node, kein Docker nötig.
 
 ---
 
-## Getting started
+## Loslegen
 
 ```bash
 pnpm install
-cp .env.example .env        # edit DATABASE_URL, ADMIN_PASSWORD, SESSION_SECRET
+cp .env.example .env        # DATABASE_URL, ADMIN_PASSWORD, SESSION_SECRET setzen
 pnpm db:migrate
-pnpm dev                    # http://localhost:3000 - admin on /admin
+pnpm dev                    # http://localhost:3000 - Admin auf /admin
 ```
 
-`SESSION_SECRET` needs ≥ 16 characters; `openssl rand -hex 32` is the standard
-incantation. In production set `NODE_ENV=production` so the session cookie
-carries the `Secure` flag.
+`SESSION_SECRET` muss mindestens 16 Zeichen haben; `openssl rand -hex 32`
+ist die übliche Zauberformel. In Produktion `NODE_ENV=production` setzen,
+damit das Session-Cookie das `Secure`-Flag bekommt.
 
-### Scripts
+### Skripte
 
-| Script | What it does |
+| Skript | Was es tut |
 | --- | --- |
-| `pnpm dev` | Next.js dev server (Turbopack). |
-| `pnpm build` / `pnpm start` | Production build + run. |
-| `pnpm typecheck` | `tsc --noEmit` in strict mode. |
-| `pnpm test` | Vitest - pure engine tests **and** Hono end-to-end on in-process Postgres via [PGlite](https://pglite.dev). |
-| `pnpm test:watch` | Same, in watch mode. |
-| `pnpm db:generate` | Generate a migration from `schema.ts`. |
-| `pnpm db:push` | Push the schema to the DB (dev only). |
-| `pnpm db:migrate` | Apply SQL migrations from `/drizzle`. |
-| `pnpm db:studio` | Drizzle Studio. |
+| `pnpm dev` | Dev-Server (Turbopack). |
+| `pnpm build` / `pnpm start` | Build und Produktionsstart. |
+| `pnpm typecheck` | `tsc --noEmit` im strict-Modus. |
+| `pnpm test` | Vitest – pure Engine-Tests **und** API-End-to-End auf [PGlite](https://pglite.dev). |
+| `pnpm test:watch` | Dasselbe, aber mit Watch. |
+| `pnpm db:generate` | Migration aus `schema.ts` erzeugen. |
+| `pnpm db:push` | Schema direkt pushen (nur Dev). |
+| `pnpm db:migrate` | SQL-Migrationen aus `/drizzle` ausführen. |
+| `pnpm db:studio` | Drizzle Studio öffnen. |
 
 ---
 
-## Data model
+## Datenmodell
 
 ```
 Tournament ──∞ Category ──∞ Participant
@@ -212,46 +226,49 @@ Tournament ──∞ Category ──∞ Participant
                         └─ sourceMatchA / sourceMatchB ──→ Match   (KO chaining)
 ```
 
-Eight tables total: `tournaments`, `categories`, `participants`, `groups`,
-`group_members`, `matches`, `match_sets`, `sessions`. Tournament format and
-draw mode are plain text columns - adding a new format is an engine change, not
-a migration.
+Acht Tabellen insgesamt: `tournaments`, `categories`, `participants`,
+`groups`, `group_members`, `matches`, `match_sets`, `sessions`. Format und
+Auslosungsmodus sind Textspalten – ein neues Format ist eine Engine-Änderung,
+keine Migration.
 
-See [`lib/db/schema.ts`](./lib/db/schema.ts) for the definitive shape.
+Die Wahrheit liegt in [`lib/db/schema.ts`](./lib/db/schema.ts).
 
 ---
 
 ## Engine
 
-`lib/engine/` is pure TypeScript - no Next, no DB, no React. Import it from a
-CLI, a cron, or a test; it doesn't care.
+`lib/engine/` ist pures TypeScript – kein Next, keine DB, kein React.
+Lässt sich aus einem CLI, einem Cron oder einem Test importieren, ohne
+dass es nervt.
 
-| File | Exports |
+| Datei | Exportiert |
 | --- | --- |
 | `types.ts`           | `Player`, `SetScore`, `MatchOutcome`, `EngineMatch`, `EngineGroup`, `StandingRow`, `Bracket`, `BracketSlot`. |
 | `sets.ts`            | `isValidSet`, `setWinner`, `computeMatchOutcome`, `validateMatchInput`. |
-| `rng.ts`             | `createRng(seed)` - Mulberry32, plus `shuffle`. |
+| `rng.ts`             | `createRng(seed)` – Mulberry32, plus `shuffle`. |
 | `draw.ts`            | `computeGroupShape`, `drawGroups`, `orderBySeed`. |
-| `roundRobin.ts`      | Berger-table round-robin scheduler. |
-| `standings.ts`       | `computeStandings` with the tie-breaker chain above. |
-| `bracket.ts`         | `buildBracket` (groups → KO with Lucky Losers), `nextPowerOfTwo`. |
-| `koOnly.ts`          | `buildKoOnly`, `seedingOrder` for KO-only tournaments. |
-| `roundRobinOnly.ts`  | Single-group round-robin builder. |
+| `roundRobin.ts`      | Berger-Tabelle für Round-Robin. |
+| `standings.ts`       | `computeStandings` mit der Tiebreaker-Kette von oben. |
+| `bracket.ts`         | `buildBracket` (Gruppen → KO mit Lucky Losern), `nextPowerOfTwo`. |
+| `koOnly.ts`          | `buildKoOnly`, `seedingOrder` für reine KO-Turniere. |
+| `roundRobinOnly.ts`  | Einzelgruppen-Round-Robin. |
 | `swiss.ts`           | `planSwissRound`, `computeSwissStandings`, `suggestedSwissRounds`. |
-| `schedule.ts`        | `scheduleMatches` - the wall-clock allocator. |
-| `format.ts`          | Format/draw-mode enums, German labels, min-participant constants. |
+| `schedule.ts`        | `scheduleMatches` (einfach) und `scheduleMatchesWithRest` (gibt Spielern Pausen zwischen ihren Spielen, wenn möglich). |
+| `format.ts`          | Format-/Auslosungs-Enums, deutsche Labels, Mindestteilnehmerzahlen. |
+| `randomResult.ts`    | Zufallsergebnisse für den Demo-Modus. |
+| `tournamentStats.ts` | Aggregierte Statistiken fürs Admin-Dashboard. |
 
-`lib/preview.ts` sits one level up and uses the engine to estimate match count,
-KO size, Lucky Loser slots and total duration before the admin commits.
+`lib/preview.ts` sitzt eine Ebene drüber und schätzt Spielzahl, KO-Größe,
+Lucky-Loser-Plätze und Gesamtdauer, bevor der Admin auf "Anlegen" drückt.
 
 ---
 
 ## API
 
-All endpoints under `/api/*`, one Hono handler at
+Alle Endpunkte unter `/api/*`, ein Hono-Handler unter
 `app/api/[[...route]]/route.ts`.
 
-**Public** - no auth.
+**Public** – ohne Auth.
 
 ```
 GET  /api/health
@@ -266,7 +283,7 @@ POST /api/auth/login     { username, password }
 POST /api/auth/logout
 ```
 
-**Admin** - session cookie required.
+**Admin** – Session-Cookie nötig.
 
 ```
 GET|POST            /api/tournaments
@@ -278,77 +295,81 @@ GET|POST            /api/categories/:id/participants
 PATCH|DELETE        /api/categories/:id/participants/:pid
 POST                /api/categories/:id/draw
 PUT                 /api/categories/:id/groups/:gid/members
+POST                /api/categories/:id/groups/move
 POST                /api/categories/:id/bracket
-POST                /api/categories/:id/schedule
-POST                /api/categories/:id/swiss-round
+POST                /api/categories/:id/swiss/round
+POST                /api/categories/:id/populate-test-results
 
 GET                 /api/matches/:id
 PUT|DELETE          /api/matches/:id/result
+PUT                 /api/matches/:id/played
 ```
 
 ---
 
 ## Auth
 
-Single admin, credentials from env. On `POST /api/auth/login` the password is
-compared in constant time, a HS256 JWT is signed with `SESSION_SECRET` and set
-as `svutt_session` (HttpOnly, SameSite=Lax, `Secure` in production, 7-day TTL).
+Ein Admin, Zugangsdaten aus der Umgebung. `POST /api/auth/login` vergleicht
+das Passwort in konstanter Zeit, signiert ein HS256-JWT mit
+`SESSION_SECRET` und setzt es als `svutt_session` (HttpOnly, SameSite=Lax,
+in Produktion `Secure`, 7 Tage gültig).
 
-`middleware.ts` guards `/admin/:path*`: unauthenticated → `/admin/login`;
-already-authenticated on the login page → `/admin`. The JWT signature is
-re-verified on every matched request.
+`middleware.ts` schützt `/admin/:path*`: nicht eingeloggt → `/admin/login`,
+schon eingeloggt auf der Login-Seite → `/admin`. Die Signatur wird bei
+jedem geschützten Request neu geprüft.
 
-No user table, no sign-up, no password reset. If you lose the password, change
-`ADMIN_PASSWORD` and redeploy.
+Keine User-Tabelle, keine Registrierung, kein Passwort-Reset. Wer das
+Passwort vergisst, ändert `ADMIN_PASSWORD` und deployt neu.
 
 ---
 
-## Testing
+## Tests
 
 ```
 tests/
 ├── engine/           # pure: sets, draw, roundRobin, standings, bracket,
 │                     # koOnly, roundRobinOnly, swiss, schedule, preview,
-│                     # and a full-tournament integration simulation.
-└── api/              # Hono + Drizzle end-to-end on PGlite.
-    └── setup.ts      # spins up an in-process Postgres per test file.
+│                     # plus eine vollständige Turnier-Simulation.
+└── api/              # Hono + Drizzle gegen PGlite.
+    └── setup.ts      # in-process Postgres pro Testdatei.
 ```
 
-`pnpm test` runs both. No live database, no Docker, no fixture files to keep
-in sync. Seeded RNG makes draw tests deterministic.
+`pnpm test` zieht beides durch. Keine echte DB, kein Docker, keine
+Fixture-Files. Auslosungstests sind dank Seed-RNG deterministisch.
 
 ---
 
 ## Deployment
 
-### Railway (one-button-ish)
+### Railway (so ungefähr ein Knopfdruck)
 
-`railway.json` + `Dockerfile` ship with the repo.
+`railway.json` und `Dockerfile` liegen im Repo.
 
 1. *New Project → Deploy from GitHub repo.*
 2. *+ New → Database → PostgreSQL.*
-3. On the app service, set:
+3. Auf dem App-Service folgendes setzen:
 
-   | Variable | Value |
+   | Variable | Wert |
    | --- | --- |
-   | `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` *(reference variable)* |
-   | `ADMIN_USERNAME` | your admin login |
-   | `ADMIN_PASSWORD` | strong password |
+   | `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` *(Reference Variable)* |
+   | `ADMIN_USERNAME` | Admin-Login |
+   | `ADMIN_PASSWORD` | starkes Passwort |
    | `SESSION_SECRET` | `openssl rand -hex 32` |
    | `NEXT_PUBLIC_BASE_URL` | `https://${{RAILWAY_PUBLIC_DOMAIN}}` |
 
-   `NEXT_PUBLIC_BASE_URL` is baked in at **build time** - set it before the
-   first deploy. Expose the service first (*Settings → Networking → Generate
-   Domain*) so `RAILWAY_PUBLIC_DOMAIN` is populated.
+   `NEXT_PUBLIC_BASE_URL` wird zur **Build-Zeit** ins Bundle gebacken –
+   also vor dem ersten Deploy setzen. Vorher Service exposen
+   (*Settings → Networking → Generate Domain*), damit
+   `RAILWAY_PUBLIC_DOMAIN` befüllt ist.
 
-4. Deploy. The start command is `pnpm db:migrate && pnpm start`, so every
-   deploy applies pending migrations automatically.
+4. Deploy. Der Start-Befehl ist `pnpm db:migrate && pnpm start`, also
+   laufen Migrationen automatisch durch.
 
-5. Visit `https://<your-domain>/admin` and log in.
+5. `https://<dein-domain>/admin` aufrufen und einloggen.
 
-### Docker (anywhere else)
+### Docker (überall sonst)
 
-Multi-stage build, Node 22 Alpine, non-root user, 3000/tcp:
+Multi-Stage-Build, Node 22 Alpine, Non-Root-User, 3000/tcp:
 
 ```bash
 docker build -t svutt .
@@ -362,29 +383,33 @@ docker run -p 3000:3000 \
 
 ---
 
-## Project layout
+## Projektstruktur
 
 ```
-app/                 Next.js routes
-├── page.tsx           public tournament list
-├── t/[slug]/          public tournament view
-├── admin/             wizard, dashboard, login
-└── api/[[...route]]/  single Hono mount
-components/          React - split by admin/ and public/
+app/                 Next.js-Routen
+├── page.tsx           Liste der öffentlichen Turniere
+├── t/[slug]/          öffentliche Turnieransicht
+├── admin/             Wizard, Dashboard, Login
+└── api/[[...route]]/  Hono-Mount
+
+components/          React – getrennt nach admin/ und public/
 lib/
-├── db/                Drizzle client + schema + migrations runner
-├── engine/            pure tournament logic (13 modules)
-├── api/               Hono routes + helpers
-└── auth/              JWT session
-tests/               vitest - engine + API
-drizzle/             SQL migrations (0000_init, 0001_category_match_settings,
-                     0002_tournament_structure)
+├── db/                Drizzle-Client + Schema + Migrations-Runner
+├── engine/            pure Turnierlogik
+├── api/               Hono-Routen + Helfer
+├── auth/              JWT-Session
+├── displayName.ts     "Nachname Vorname" → "Vorname Nachname" für die UI
+├── matchLabel.ts      Spielnummer + Tisch fürs Aufrufen
+└── preview.ts         Vorschau-Schätzungen
+
+tests/               Vitest – Engine + API
+drizzle/             SQL-Migrationen
 public/              logo.png
 ```
 
 ---
 
-## License
+## Lizenz
 
-MIT - see [LICENSE](./LICENSE). Fork it, rebrand the logo (`public/logo.png`)
-and the club name, run your own Vereinsmeisterschaft.
+MIT – siehe [LICENSE](./LICENSE). Forken, Logo (`public/logo.png`) und
+Vereinsnamen austauschen, eigene Vereinsmeisterschaft fahren.
