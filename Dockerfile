@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.7
 
 FROM node:26-alpine AS base
-RUN corepack enable
+RUN npm install -g pnpm@10.33.0
 WORKDIR /app
 
 FROM base AS deps
