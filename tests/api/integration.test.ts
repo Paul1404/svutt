@@ -991,3 +991,59 @@ describe("API integration: full tournament happy path", () => {
     expect(ko3.length).toBe(2);
   });
 });
+
+describe("API: login rate limiting", () => {
+  // Unique IPs per case so buckets stay isolated from each other and from
+  // the shared login in beforeAll.
+  function badLogin(ip: string) {
+    return call(app, "/api/auth/login", {
+      method: "POST",
+      json: { username: "admin", password: "wrong-password" },
+      headers: { "x-forwarded-for": ip },
+    });
+  }
+
+  test("locks out after too many failed attempts", async () => {
+    const ip = "203.0.113.10";
+    for (let i = 0; i < 10; i++) {
+      expect((await badLogin(ip)).status).toBe(401);
+    }
+    const blocked = await badLogin(ip);
+    expect(blocked.status).toBe(429);
+    expect((blocked.body as { error: string }).error).toMatch(/Anmeldeversuche/);
+
+    // A correct password from the same IP is still blocked while locked out.
+    const stillBlocked = await call(app, "/api/auth/login", {
+      method: "POST",
+      json: { username: "admin", password: "test-password-123" },
+      headers: { "x-forwarded-for": ip },
+    });
+    expect(stillBlocked.status).toBe(429);
+  });
+
+  test("does not block a different IP", async () => {
+    const res = await call(app, "/api/auth/login", {
+      method: "POST",
+      json: { username: "admin", password: "test-password-123" },
+      headers: { "x-forwarded-for": "203.0.113.20" },
+    });
+    expect(res.status).toBe(200);
+  });
+
+  test("a successful login clears prior failures", async () => {
+    const ip = "203.0.113.30";
+    for (let i = 0; i < 5; i++) {
+      expect((await badLogin(ip)).status).toBe(401);
+    }
+    const ok = await call(app, "/api/auth/login", {
+      method: "POST",
+      json: { username: "admin", password: "test-password-123" },
+      headers: { "x-forwarded-for": ip },
+    });
+    expect(ok.status).toBe(200);
+    // Counter reset: another five failures should not trip the limit.
+    for (let i = 0; i < 5; i++) {
+      expect((await badLogin(ip)).status).toBe(401);
+    }
+  });
+});
