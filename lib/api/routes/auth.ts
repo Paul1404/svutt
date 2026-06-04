@@ -6,17 +6,35 @@ import {
 } from "@/lib/auth/session";
 import { loginSchema } from "@/lib/validators";
 import { parseJson } from "../helpers";
+import {
+  clientIp,
+  isRateLimited,
+  recordFailure,
+  resetFailures,
+} from "../rate-limit";
 
 export const authRoutes = new Hono()
   .post("/login", async (c) => {
+    const ip = clientIp(c);
+    const limit = isRateLimited(ip);
+    if (limit.limited) {
+      c.header("Retry-After", String(limit.retryAfterSeconds));
+      return c.json(
+        { error: "Zu viele Anmeldeversuche. Bitte später erneut versuchen." },
+        429,
+      );
+    }
+
     const parsed = await parseJson(c, loginSchema);
     if (!parsed.ok) return parsed.response;
     const { username, password } = parsed.data;
 
     if (!verifyAdminCredentials(username, password)) {
+      recordFailure(ip);
       return c.json({ error: "Falsche Zugangsdaten." }, 401);
     }
 
+    resetFailures(ip);
     const token = await signSession(username);
     const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
     c.header(

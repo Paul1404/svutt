@@ -314,6 +314,11 @@ das Passwort in konstanter Zeit, signiert ein HS256-JWT mit
 `SESSION_SECRET` und setzt es als `svutt_session` (HttpOnly, SameSite=Lax,
 in Produktion `Secure`, 7 Tage gültig).
 
+Der Login ist pro IP rate-limited: nach 10 fehlgeschlagenen Versuchen
+innerhalb von 15 Minuten kommt 15 Minuten lang ein `429` mit `Retry-After`.
+Ein erfolgreicher Login setzt den Zähler zurück. Der IP-Zähler liegt im
+Speicher, passt also zum Single-Instance-Deploy auf Railway.
+
 `middleware.ts` schützt `/admin/:path*`: nicht eingeloggt → `/admin/login`,
 schon eingeloggt auf der Login-Seite → `/admin`. Die Signatur wird bei
 jedem geschützten Request neu geprüft.
