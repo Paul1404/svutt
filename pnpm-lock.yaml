@@ -13,7 +13,7 @@ importers:
         version: 2.1.1
       drizzle-orm:
         specifier: ^0.45.2
-        version: 0.45.2(@electric-sql/pglite@0.5.1)(postgres@3.4.9)
+        version: 0.45.2(@electric-sql/pglite@0.5.2)(postgres@3.4.9)
       hono:
         specifier: ^4.12.25
         version: 4.12.25
@@ -40,8 +40,8 @@ importers:
         version: 4.4.3
     devDependencies:
       '@electric-sql/pglite':
-        specifier: ^0.5.1
-        version: 0.5.1
+        specifier: ^0.5.2
+        version: 0.5.2
       '@tailwindcss/postcss':
         specifier: ^4.3.1
         version: 4.3.1
@@ -85,8 +85,8 @@ packages:
   '@drizzle-team/brocli@0.10.2':
     resolution: {integrity: sha512-z33Il7l5dKjUgGULTqBsQBQwckHh5AbIuxhdsIxDDiZAzBOrZO6q9ogcWC65kU382AfynTfgNumVcNIjuIua6w==}
 
-  '@electric-sql/pglite@0.5.1':
-    resolution: {integrity: sha512-h2Vc+qkQqsEL5kvyN5nBAxn3Vbyvka7QfDW7Io+CdcwU1+X8JbCAN2og+5dI11S3eJuDfroUCxzJaap6k+ezEw==}
+  '@electric-sql/pglite@0.5.2':
+    resolution: {integrity: sha512-y6ySdFE7FQB7BkVaSNaPINgY7mXCyvi+3GQB5ySX9WGwgrdh31WXMP5RM40oAyYff47lIr7xdcW8UbCW5NHDmw==}
 
   '@emnapi/core@1.10.0':
     resolution: {integrity: sha512-yq6OkJ4p82CAfPl0u9mQebQHKPJkY7WrIuk205cTYnYe+k2Z8YBh11FrbRG/H6ihirqcacOgl2BIO8oyMQLeXw==}
@@ -1510,9 +1510,6 @@ packages:
       babel-plugin-macros:
         optional: true
 
-  tailwindcss@4.3.0:
-    resolution: {integrity: sha512-y6nxMGB1nMW9R6k96e5gdIFzcfL/gTJRNaqGes1YvkLnPVXzWgbqFF2yLC0T8G774n24cx3Pe8XrKoniCOAH+Q==}
-
   tailwindcss@4.3.1:
     resolution: {integrity: sha512-hk+TB1m+K8CYNrP6rjQaq/Y+4Zylwpa87mLYBKCunwnnQ9p+fHb7kmSfGqyEJoxF/O6CDyABWVFEafNSYKll+Q==}
 
@@ -1667,7 +1664,7 @@ snapshots:
 
   '@drizzle-team/brocli@0.10.2': {}
 
-  '@electric-sql/pglite@0.5.1': {}
+  '@electric-sql/pglite@0.5.2': {}
 
   '@emnapi/core@1.10.0':
     dependencies:
@@ -2321,9 +2318,9 @@ snapshots:
       esbuild: 0.25.12
       tsx: 4.22.4
 
-  drizzle-orm@0.45.2(@electric-sql/pglite@0.5.1)(postgres@3.4.9):
+  drizzle-orm@0.45.2(@electric-sql/pglite@0.5.2)(postgres@3.4.9):
     optionalDependencies:
-      '@electric-sql/pglite': 0.5.1
+      '@electric-sql/pglite': 0.5.2
       postgres: 3.4.9
 
   emoji-regex@8.0.0: {}
@@ -2679,8 +2676,6 @@ snapshots:
     dependencies:
       client-only: 0.0.1
       react: 19.2.7
-
-  tailwindcss@4.3.0: {}
 
   tailwindcss@4.3.1: {}
 
