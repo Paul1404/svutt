@@ -20,6 +20,10 @@ updates:
         patterns:
           - "next"
           - "eslint-config-next"
+    ignore:
+      - dependency-name: "typescript"
+        versions:
+          - ">= 7.0.0, < 8.0.0"
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
