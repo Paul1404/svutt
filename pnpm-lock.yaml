@@ -15,8 +15,8 @@ importers:
         specifier: ^0.45.2
         version: 0.45.2(@electric-sql/pglite@0.5.4)(postgres@3.4.9)
       hono:
-        specifier: ^4.13.1
-        version: 4.13.1
+        specifier: ^4.13.3
+        version: 4.13.3
       jose:
         specifier: ^6.2.8
         version: 6.2.8
@@ -1387,8 +1387,8 @@ packages:
   graceful-fs@4.2.11:
     resolution: {integrity: sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ==}
 
-  hono@4.13.1:
-    resolution: {integrity: sha512-kdJoFVv2xmayw6cY09H7AbMJMt8Jn5jdlEdXsP7AGBdF2DIptVlKlOLKXP41yPip4/a3yQPv9gVcJYI8YY04dw==}
+  hono@4.13.3:
+    resolution: {integrity: sha512-r8AO2mYHoLxSHkgafNeC/BXyb2vWRxD3jem4Ts+ptav8oTG5FIRifAjuJEmZI4bSvvc2ns0GxmIYiZnHqN3mMw==}
     engines: {node: '>=16.9.0'}
 
   is-fullwidth-code-point@3.0.0:
@@ -2720,7 +2720,7 @@ snapshots:
 
   graceful-fs@4.2.11: {}
 
-  hono@4.13.1: {}
+  hono@4.13.3: {}
 
   is-fullwidth-code-point@3.0.0: {}
 
