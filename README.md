@@ -25,6 +25,15 @@ Verein hat, darf den Code gerne forken und das Logo austauschen.
 
 </div>
 
+![SVUTT: öffentlicher Spielplan einer Demo-Vereinsmeisterschaft](docs/screenshots/tournament.png)
+
+Die Aufnahme zeigt die echte Anwendung mit einer lokal angelegten
+Demo-Vereinsmeisterschaft. Alle Teilnehmernamen und Ergebnisse sind
+Beispieldaten, keine Daten eines echten Turniers.
+
+[Turnierformate](#turnierformate) · [Loslegen](#loslegen) ·
+[Engine](#engine) · [Lizenz](#lizenz)
+
 ---
 
 ## Worum es geht
@@ -32,7 +41,7 @@ Verein hat, darf den Code gerne forken und das Logo austauschen.
 Wer schon mal eine Vereinsmeisterschaft mit Zettel und Filzstift organisiert
 hat, kennt die Situation: irgendwann steht jemand am Tisch und fragt "wer
 spielt jetzt eigentlich an Tisch 3?". SVUTT nimmt eine Teilnehmerliste und
-macht daraus alles, was am Spieltag tatsächlich gebraucht wird – Auslosung,
+macht daraus alles, was am Spieltag tatsächlich gebraucht wird - Auslosung,
 Spielplan, Gruppentabellen, KO-Baum, Live-Ansicht und einen QR-Code, den man
 an die Halle hängen kann.
 
@@ -57,22 +66,22 @@ Pro Spielklasse einzeln einstellbar:
 | `swiss` | Schweizer System mit Buchholz/Sonneborn-Berger. | 4 |
 
 Mischen ist erlaubt: Herren A als `groups_ko`, Jugend als `swiss`,
-Damen-Doppel als `round_robin` – alles im selben Turnier.
+Damen-Doppel als `round_robin` - alles im selben Turnier.
 
 ### Auslosungsmodi
 
-- **Zufällig** – mit deterministischem Mulberry32-RNG. Gleicher Seed →
+- **Zufällig** - mit deterministischem Mulberry32-RNG. Gleicher Seed →
   gleiche Auslosung. Hilft beim "Moment, war das wirklich richtig?".
-- **Gesetzt (Schlange)** – Snake-Verteilung nach Setzplatz, damit die starken
+- **Gesetzt (Schlange)** - Snake-Verteilung nach Setzplatz, damit die starken
   Spieler in unterschiedlichen Gruppen landen.
-- **Manuell** – Algorithmus überspringen und Spieler selbst auf Gruppen
+- **Manuell** - Algorithmus überspringen und Spieler selbst auf Gruppen
   verteilen.
 
 ### Spielplan und Tische
 
 Der Scheduler verteilt die Spiele auf die parallelen Tische und vergibt jedem
 Spiel eine Nummer. Für die Gruppenphase wird zusätzlich versucht, dass kein
-Spieler in zwei aufeinanderfolgenden Slots antritt – wenn es sich vermeiden
+Spieler in zwei aufeinanderfolgenden Slots antritt - wenn es sich vermeiden
 lässt, bekommt jeder zwischen seinen Spielen eine Pause. Wenn alle übrigen
 Spiele dieselben Spieler betreffen (kleine Gruppen, ein Tisch), spielt das
 Format halt durch.
@@ -89,8 +98,8 @@ Tischtennis-Regeln (`lib/engine/sets.ts`):
 - Sieger braucht ≥ `setPoints` (Standard 11) **und** mindestens
   `setMinLead` Punkte Vorsprung (Standard 2).
 - Bei Einstand muss jeder weitere Punkt den Vorsprung um genau den
-  Mindestabstand vergrößern – also 12:10, 13:11, 14:12 …, niemals 15:10.
-- `winSets` legt das Format fest – Bo3 (Standard), Bo5, Bo7.
+  Mindestabstand vergrößern - also 12:10, 13:11, 14:12 …, niemals 15:10.
+- `winSets` legt das Format fest - Bo3 (Standard), Bo5, Bo7.
 - Zu viele Sätze, Sätze nach entschiedenem Match oder unmögliche Stände
   werden vor dem Speichern mit deutscher Fehlermeldung abgelehnt.
 
@@ -101,15 +110,15 @@ Tiebreaker laufen in dieser Reihenfolge:
 1. **Siege**
 2. **Satzdifferenz**
 3. **Punktdifferenz**
-4. **Direkter Vergleich** – nur bei genau zwei Spielern gleichauf
-5. **Einführungsreihenfolge** – stabile Sortierung, damit die Tabelle
+4. **Direkter Vergleich** - nur bei genau zwei Spielern gleichauf
+5. **Einführungsreihenfolge** - stabile Sortierung, damit die Tabelle
    reproduzierbar ist, wenn alles gleich ist
 
 ### KO-Baum
 
 - Gruppensieger setzen sich auf A, B, C, … in einen Baum mit
   `nextPowerOfTwo(#Gruppen)` Plätzen.
-- Lücken werden mit **Lucky Losern** gefüllt – die besten Gruppendritten,
+- Lücken werden mit **Lucky Losern** gefüllt - die besten Gruppendritten,
   sortiert nach Siegen → Satzdifferenz → Punktdifferenz → Gruppenlabel.
   Pro Spielklasse ein-/ausschaltbar.
 - Halbsplit-Paarung: Slot `i` gegen Slot `i + size/2`. Bei vier Gruppen
@@ -136,7 +145,7 @@ Dutch Pairing mit dem üblichen Drumherum:
 
 - Übersicht über das Turnier, Statusbadges pro Spielklasse.
 - Tabellen, Spielplan (Spielnummer + Tisch), KO-Baum mit offenen Plätzen.
-- Lädt sich alle 30 s neu – pausiert, wenn der Tab nicht sichtbar ist, und
+- Lädt sich alle 30 s neu - pausiert, wenn der Tab nicht sichtbar ist, und
   bekommt zusätzlich Live-Updates per SSE, sobald ein Ergebnis eingetragen
   wurde.
 - Mobile-first, läuft auf dem Handy am Schreibertisch.
@@ -166,7 +175,7 @@ Dutch Pairing mit dem üblichen Drumherum:
 - **Next.js 16** mit App Router und **React 19.2**, öffentliche Seiten mit
   `dynamic = "force-dynamic"`, damit Ergebnisse sofort nach dem Eintragen
   sichtbar sind.
-- **TypeScript** strict – `noUncheckedIndexedAccess`, `noImplicitOverride`,
+- **TypeScript** strict - `noUncheckedIndexedAccess`, `noImplicitOverride`,
   `noFallthroughCasesInSwitch`. Die Engine ist so geschrieben, als wäre
   der Compiler ein Test.
 - **Hono** für die API. Ein einziger Handler unter
@@ -179,7 +188,7 @@ Dutch Pairing mit dem üblichen Drumherum:
   Handler.
 - **jose** für HS256-Session-JWTs in einem HttpOnly-Cookie.
 - **qrcode** fürs Share-Modal.
-- **Vitest 4** + **PGlite** für Tests – die API-Suite startet Postgres in
+- **Vitest 4** + **PGlite** für Tests - die API-Suite startet Postgres in
   Node, kein Docker nötig.
 
 ---
@@ -204,7 +213,7 @@ damit das Session-Cookie das `Secure`-Flag bekommt.
 | `pnpm dev` | Dev-Server (Turbopack). |
 | `pnpm build` / `pnpm start` | Build und Produktionsstart. |
 | `pnpm typecheck` | `tsc --noEmit` im strict-Modus. |
-| `pnpm test` | Vitest – pure Engine-Tests **und** API-End-to-End auf [PGlite](https://pglite.dev). |
+| `pnpm test` | Vitest - pure Engine-Tests **und** API-End-to-End auf [PGlite](https://pglite.dev). |
 | `pnpm test:watch` | Dasselbe, aber mit Watch. |
 | `pnpm db:generate` | Migration aus `schema.ts` erzeugen. |
 | `pnpm db:push` | Schema direkt pushen (nur Dev). |
@@ -228,7 +237,7 @@ Tournament ──∞ Category ──∞ Participant
 
 Acht Tabellen insgesamt: `tournaments`, `categories`, `participants`,
 `groups`, `group_members`, `matches`, `match_sets`, `sessions`. Format und
-Auslosungsmodus sind Textspalten – ein neues Format ist eine Engine-Änderung,
+Auslosungsmodus sind Textspalten - ein neues Format ist eine Engine-Änderung,
 keine Migration.
 
 Die Wahrheit liegt in [`lib/db/schema.ts`](./lib/db/schema.ts).
@@ -237,7 +246,7 @@ Die Wahrheit liegt in [`lib/db/schema.ts`](./lib/db/schema.ts).
 
 ## Engine
 
-`lib/engine/` ist pures TypeScript – kein Next, keine DB, kein React.
+`lib/engine/` ist pures TypeScript - kein Next, keine DB, kein React.
 Lässt sich aus einem CLI, einem Cron oder einem Test importieren, ohne
 dass es nervt.
 
@@ -245,7 +254,7 @@ dass es nervt.
 | --- | --- |
 | `types.ts`           | `Player`, `SetScore`, `MatchOutcome`, `EngineMatch`, `EngineGroup`, `StandingRow`, `Bracket`, `BracketSlot`. |
 | `sets.ts`            | `isValidSet`, `setWinner`, `computeMatchOutcome`, `validateMatchInput`. |
-| `rng.ts`             | `createRng(seed)` – Mulberry32, plus `shuffle`. |
+| `rng.ts`             | `createRng(seed)` - Mulberry32, plus `shuffle`. |
 | `draw.ts`            | `computeGroupShape`, `drawGroups`, `orderBySeed`. |
 | `roundRobin.ts`      | Berger-Tabelle für Round-Robin. |
 | `standings.ts`       | `computeStandings` mit der Tiebreaker-Kette von oben. |
@@ -268,7 +277,7 @@ Lucky-Loser-Plätze und Gesamtdauer, bevor der Admin auf "Anlegen" drückt.
 Alle Endpunkte unter `/api/*`, ein Hono-Handler unter
 `app/api/[[...route]]/route.ts`.
 
-**Public** – ohne Auth.
+**Public** - ohne Auth.
 
 ```
 GET  /api/health
@@ -283,7 +292,7 @@ POST /api/auth/login     { username, password }
 POST /api/auth/logout
 ```
 
-**Admin** – Session-Cookie nötig.
+**Admin** - Session-Cookie nötig.
 
 ```
 GET|POST            /api/tournaments
@@ -362,7 +371,7 @@ Fixture-Files. Auslosungstests sind dank Seed-RNG deterministisch.
    | `SESSION_SECRET` | `openssl rand -hex 32` |
    | `NEXT_PUBLIC_BASE_URL` | `https://${{RAILWAY_PUBLIC_DOMAIN}}` |
 
-   `NEXT_PUBLIC_BASE_URL` wird zur **Build-Zeit** ins Bundle gebacken –
+   `NEXT_PUBLIC_BASE_URL` wird zur **Build-Zeit** ins Bundle gebacken -
    also vor dem ersten Deploy setzen. Vorher Service exposen
    (*Settings → Networking → Generate Domain*), damit
    `RAILWAY_PUBLIC_DOMAIN` befüllt ist.
@@ -397,7 +406,7 @@ app/                 Next.js-Routen
 ├── admin/             Wizard, Dashboard, Login
 └── api/[[...route]]/  Hono-Mount
 
-components/          React – getrennt nach admin/ und public/
+components/          React - getrennt nach admin/ und public/
 lib/
 ├── db/                Drizzle-Client + Schema + Migrations-Runner
 ├── engine/            pure Turnierlogik
@@ -407,7 +416,7 @@ lib/
 ├── matchLabel.ts      Spielnummer + Tisch fürs Aufrufen
 └── preview.ts         Vorschau-Schätzungen
 
-tests/               Vitest – Engine + API
+tests/               Vitest - Engine + API
 drizzle/             SQL-Migrationen
 public/              logo.png
 ```
@@ -416,5 +425,5 @@ public/              logo.png
 
 ## Lizenz
 
-MIT – siehe [LICENSE](./LICENSE). Forken, Logo (`public/logo.png`) und
+MIT - siehe [LICENSE](./LICENSE). Forken, Logo (`public/logo.png`) und
 Vereinsnamen austauschen, eigene Vereinsmeisterschaft fahren.

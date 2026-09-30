@@ -39,6 +39,10 @@ State clearly when authenticated, database, deployment, or live verification was
 
 ## Maintaining instructions
 
+Public screenshots belong in `docs/screenshots/`. Capture a local demo tournament
+with fictional participants and label it as demo data in the README. Keep
+actual participant records and administrative credentials out of public assets.
+
 Update `AGENTS.md` when verified, durable repository behavior changes. Keep it concise and
 move detailed explanations into `docs/`. Keep `CLAUDE.md` as the compatibility import
 unless Claude-specific guidance is genuinely required.
