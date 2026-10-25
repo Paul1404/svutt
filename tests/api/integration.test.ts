@@ -49,6 +49,18 @@ describe("API integration: full tournament happy path", () => {
     expect((res.body as { ok: boolean }).ok).toBe(true);
   });
 
+  test("readiness rejects a failed database without leaking details", async () => {
+    const probe = vi.spyOn(dbHolder.db!, "execute").mockRejectedValueOnce(new Error("private connection details"));
+    try {
+      const response = await app.request("/api/health");
+      expect(response.status).toBe(503);
+      expect(response.headers.get("Cache-Control")).toBe("no-store");
+      expect(await response.json()).toEqual({ ok: false });
+    } finally {
+      probe.mockRestore();
+    }
+  });
+
   test("admin endpoints reject without cookie", async () => {
     const res = await call(app, "/api/tournaments");
     expect(res.status).toBe(401);

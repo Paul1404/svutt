@@ -1,3 +1,5 @@
+import { sql } from "drizzle-orm";
+import { db } from "../db/client";
 import { Hono } from "hono";
 import { authRoutes } from "./routes/auth";
 import { tournamentRoutes } from "./routes/tournaments";
@@ -9,7 +11,15 @@ import { requireAdmin } from "./middleware";
 
 export const api = new Hono().basePath("/api");
 
-api.get("/health", (c) => c.json({ ok: true, now: new Date().toISOString() }));
+api.get("/health", async (c) => {
+  c.header("Cache-Control", "no-store");
+  try {
+    await db.execute(sql`SELECT 1`);
+    return c.json({ ok: true });
+  } catch {
+    return c.json({ ok: false }, 503);
+  }
+});
 
 api.route("/auth", authRoutes);
 api.route("/public", publicRoutes);

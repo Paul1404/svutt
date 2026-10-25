@@ -46,3 +46,9 @@ actual participant records and administrative credentials out of public assets.
 Update `AGENTS.md` when verified, durable repository behavior changes. Keep it concise and
 move detailed explanations into `docs/`. Keep `CLAUDE.md` as the compatibility import
 unless Claude-specific guidance is genuinely required.
+
+## Readiness
+
+`/api/health` performs bounded, read-only dependency checks and returns 503 on
+failure with no connection details. Responses disable caching.
+Railway uses this endpoint instead of the homepage.
