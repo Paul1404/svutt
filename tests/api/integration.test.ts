@@ -50,7 +50,7 @@ describe("API integration: full tournament happy path", () => {
   });
 
   test("readiness rejects a failed database without leaking details", async () => {
-    const probe = vi.spyOn(dbHolder.db!, "execute").mockRejectedValueOnce(new Error("private connection details"));
+    const probe = vi.spyOn(dbHolder.db!, "transaction").mockRejectedValueOnce(new Error("private connection details"));
     try {
       const response = await app.request("/api/health");
       expect(response.status).toBe(503);
