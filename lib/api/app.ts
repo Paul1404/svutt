@@ -14,7 +14,10 @@ export const api = new Hono().basePath("/api");
 api.get("/health", async (c) => {
   c.header("Cache-Control", "no-store");
   try {
-    await db.execute(sql`SELECT 1`);
+    await db.transaction(async (transaction) => {
+      await transaction.execute(sql`SET LOCAL statement_timeout = '2s'`);
+      await transaction.execute(sql`SELECT 1`);
+    });
     return c.json({ ok: true });
   } catch {
     return c.json({ ok: false }, 503);
