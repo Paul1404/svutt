@@ -20,6 +20,8 @@ const client =
   global.__svuttPg ??
   postgres(connectionString ?? "postgres://localhost/svutt_invalid", {
     max: 10,
+    connect_timeout: 3,
+    connection: { statement_timeout: 2000 },
     idle_timeout: 20,
     prepare: false,
   });

@@ -2,7 +2,7 @@
   "name": "svutt",
   "version": "0.1.0",
   "private": true,
-  "description": "SVUTT — Tischtennis-Turnierverwaltung des SV 1945 Untereuerheim e.V.",
+  "description": "SVUTT \u2014 Tischtennis-Turnierverwaltung des SV 1945 Untereuerheim e.V.",
   "license": "MIT",
   "scripts": {
     "dev": "next dev",
@@ -19,14 +19,14 @@
   "dependencies": {
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.2",
-    "hono": "^4.13.5",
-    "jose": "^6.2.10",
-    "next": "^16.3.5",
+    "hono": "^4.13.11",
+    "jose": "^6.2.12",
+    "next": "^16.4.1",
     "postgres": "^3.4.9",
     "qrcode": "^1.5.4",
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8",
-    "zod": "^4.6.2"
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8",
@@ -36,14 +36,14 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "drizzle-kit": "^0.31.10",
-    "postcss": "^8.5.26",
+    "postcss": "^8.5.28",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.23.13",
     "typescript": "^7.0.2",
-    "vitest": "^4.1.11"
+    "vitest": "^5.0.1"
   },
   "packageManager": "pnpm@10.33.0",
   "engines": {
-    "node": ">=22"
+    "node": ">=22.12.0"
   }
 }
